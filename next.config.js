@@ -5,7 +5,7 @@ const nextConfig = {
     domains: [
       'lh3.googleusercontent.com',
       'images.unsplash.com',
-      'xwonqnfinfcwlzfusiba.supabase.co'
+      'cllrleatfeweyhbpyywo.supabase.co'
     ],
   },
 };
