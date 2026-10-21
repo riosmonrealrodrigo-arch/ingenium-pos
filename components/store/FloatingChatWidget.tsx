@@ -1,14 +1,31 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, User, Phone, CheckCheck, ExternalLink, ShieldCheck, Sparkles, Wrench, Search, Bot } from 'lucide-react';
+import {
+  MessageSquare,
+  X,
+  Send,
+  User,
+  Phone,
+  CheckCheck,
+  ExternalLink,
+  Sparkles,
+  Search,
+  Bot,
+  RotateCcw
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { ChatMessage, ChatConversation, StorefrontCustomer } from '@/types';
-import { DEMO_MESSAGES, DEMO_REPAIRS } from '@/lib/mockData';
+import { DEMO_REPAIRS } from '@/lib/mockData';
 
 interface FloatingChatWidgetProps {
   businessPhone?: string;
   businessName?: string;
 }
+
+const isValidUUID = (str?: string | null): boolean => {
+  if (!str) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+};
 
 export default function FloatingChatWidget({
   businessPhone = '+52 81 3962 9319',
@@ -28,7 +45,7 @@ export default function FloatingChatWidget({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load customer and existing conversation
+  // Load customer and existing conversation with UUID validation
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('ingenium_store_customer');
@@ -36,8 +53,8 @@ export default function FloatingChatWidget({
         try {
           const parsed = JSON.parse(saved);
           setCustomer(parsed);
-          setName(parsed.name);
-          setPhone(parsed.phone);
+          setName(parsed.name || '');
+          setPhone(parsed.phone || '');
         } catch {}
       }
 
@@ -45,9 +62,18 @@ export default function FloatingChatWidget({
       if (savedConv) {
         try {
           const parsed = JSON.parse(savedConv);
-          setConversation(parsed);
-          loadMessages(parsed.id);
-        } catch {}
+          if (parsed && isValidUUID(parsed.id)) {
+            setConversation(parsed);
+            loadMessages(parsed.id);
+          } else {
+            // Remove legacy or mock non-UUID conversation ID
+            localStorage.removeItem('ingenium_client_chat_conv');
+            setConversation(null);
+          }
+        } catch {
+          localStorage.removeItem('ingenium_client_chat_conv');
+          setConversation(null);
+        }
       }
     }
   }, []);
@@ -56,9 +82,9 @@ export default function FloatingChatWidget({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isOpen]);
 
-  // Real-time listener for customer
+  // Real-time listener for incoming messages from Staff/Admin in POS
   useEffect(() => {
-    if (!conversation) return;
+    if (!conversation?.id || !isValidUUID(conversation.id)) return;
 
     try {
       const channel = supabase
@@ -75,8 +101,16 @@ export default function FloatingChatWidget({
             const newMsg = payload.new as ChatMessage;
             setMessages(prev => {
               if (prev.some(m => m.id === newMsg.id)) return prev;
+              // Check if replacing an optimistic message
+              const tempMatch = prev.find(
+                m => m.id.startsWith('temp-') && m.sender_type === newMsg.sender_type && m.message === newMsg.message
+              );
+              if (tempMatch) {
+                return prev.map(m => m.id === tempMatch.id ? newMsg : m);
+              }
               return [...prev, newMsg];
             });
+
             if (!isOpen && newMsg.sender_type !== 'client') {
               setUnreadBadge(b => b + 1);
             }
@@ -87,10 +121,14 @@ export default function FloatingChatWidget({
       return () => {
         supabase.removeChannel(channel);
       };
-    } catch {}
-  }, [conversation, isOpen]);
+    } catch (err) {
+      console.warn('Realtime channel subscription error:', err);
+    }
+  }, [conversation?.id, isOpen]);
 
   const loadMessages = async (convId: string) => {
+    if (!isValidUUID(convId)) return;
+
     try {
       const { data, error } = await supabase
         .from('chat_messages')
@@ -101,35 +139,56 @@ export default function FloatingChatWidget({
       if (error || !data || data.length === 0) {
         const local = localStorage.getItem(`ingenium_chat_msgs_${convId}`);
         if (local) {
-          setMessages(JSON.parse(local));
-        } else if (DEMO_MESSAGES[convId]) {
-          setMessages(DEMO_MESSAGES[convId]);
+          try {
+            setMessages(JSON.parse(local));
+          } catch {}
         }
       } else {
         setMessages(data);
       }
     } catch {
       const local = localStorage.getItem(`ingenium_chat_msgs_${convId}`);
-      if (local) setMessages(JSON.parse(local));
+      if (local) {
+        try {
+          setMessages(JSON.parse(local));
+        } catch {}
+      }
     }
   };
 
-  const initBotConversation = (convId: string, clientName: string) => {
-    const welcomeMsg: ChatMessage = {
-      id: 'bot-welcome-' + Date.now(),
-      conversation_id: convId,
-      sender_type: 'bot',
-      sender_name: 'Asistente Virtual INGENIUM',
-      message: `¡Hola ${clientName}! 👋 Bienvenido a ${businessName}. ¿En qué podemos ayudarte hoy? Un asesor humano también te responderá en breve si lo requieres.`,
-      created_at: new Date().toISOString(),
-    };
-    return [welcomeMsg];
+  const createSupabaseConversation = async (cust: StorefrontCustomer): Promise<ChatConversation | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .insert({
+          client_name: cust.name,
+          client_phone: cust.phone,
+          client_email: cust.email,
+          status: 'open',
+          unread_admin_count: 1,
+          unread_client_count: 0,
+          last_message: 'Inició chat con asistente virtual',
+          last_message_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error insertando chat_conversation:', error);
+        return null;
+      }
+      return data;
+    } catch (err) {
+      console.error('Error en createSupabaseConversation:', err);
+      return null;
+    }
   };
 
   const startConversation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !phone.trim()) return;
+    if (!name.trim() || !phone.trim() || loading) return;
 
+    setLoading(true);
     const newCust: StorefrontCustomer = {
       id: 'cust-' + Date.now(),
       name: name.trim(),
@@ -142,11 +201,9 @@ export default function FloatingChatWidget({
       localStorage.setItem('ingenium_store_customer', JSON.stringify(newCust));
     }
 
-    setLoading(true);
-    const convId = 'conv-' + Date.now();
-    const newConv: ChatConversation = {
-      id: convId,
-      business_id: 'demo-biz-1',
+    const realConv = await createSupabaseConversation(newCust);
+    const convToUse: ChatConversation = realConv || {
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '00000000-0000-0000-0000-000000000001',
       client_name: newCust.name,
       client_phone: newCust.phone,
       client_email: newCust.email,
@@ -158,38 +215,44 @@ export default function FloatingChatWidget({
       created_at: new Date().toISOString(),
     };
 
-    try {
-      const { data, error } = await supabase
-        .from('chat_conversations')
-        .insert({
-          client_name: newCust.name,
-          client_phone: newCust.phone,
-          client_email: newCust.email,
-          status: 'open',
-        })
-        .select()
-        .single();
-
-      if (data && !error) {
-        setConversation(data);
-        localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(data));
-      } else {
-        setConversation(newConv);
-        localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(newConv));
-      }
-    } catch {
-      setConversation(newConv);
-      localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(newConv));
+    setConversation(convToUse);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(convToUse));
     }
 
-    const initialMsgs = initBotConversation(convId, newCust.name);
-    setMessages(initialMsgs);
-    localStorage.setItem(`ingenium_chat_msgs_${convId}`, JSON.stringify(initialMsgs));
+    const welcomeText = `¡Hola ${newCust.name}! 👋 Bienvenido a ${businessName}. ¿En qué podemos ayudarte hoy? Un asesor técnico en nuestro punto de venta (POS) también responderá tus dudas aquí mismo o por WhatsApp.`;
+
+    if (isValidUUID(convToUse.id)) {
+      try {
+        await supabase.from('chat_messages').insert({
+          conversation_id: convToUse.id,
+          sender_type: 'bot',
+          sender_name: 'Asistente Virtual INGENIUM',
+          message: welcomeText,
+        });
+      } catch (err) {
+        console.warn('Error guardando mensaje bot inicial:', err);
+      }
+    }
+
+    const welcomeMsg: ChatMessage = {
+      id: 'bot-welcome-' + Date.now(),
+      conversation_id: convToUse.id,
+      sender_type: 'bot',
+      sender_name: 'Asistente Virtual INGENIUM',
+      message: welcomeText,
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages([welcomeMsg]);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`ingenium_chat_msgs_${convToUse.id}`, JSON.stringify([welcomeMsg]));
+    }
     setLoading(false);
   };
 
   const handleQuickBotAction = async (option: 'reparacion' | 'cotizar' | 'humano') => {
-    if (!conversation || !customer) return;
+    if (!customer) return;
 
     let userText = '';
     let botReply = '';
@@ -213,11 +276,32 @@ export default function FloatingChatWidget({
   };
 
   const appendMessage = async (text: string, senderType: 'client' | 'admin' | 'bot', senderName: string) => {
-    if (!conversation) return;
+    let activeConv = conversation;
 
-    const newMsg: ChatMessage = {
-      id: 'msg-' + Date.now(),
-      conversation_id: conversation.id,
+    // Self-healing: if no active conversation or not a valid UUID, create a real one in Supabase
+    if (!activeConv || !isValidUUID(activeConv.id)) {
+      const activeCust = customer || {
+        id: 'cust-' + Date.now(),
+        name: name.trim() || 'Cliente Web',
+        phone: phone.trim() || '+528139629319',
+        email: 'cliente@ingenium.com',
+      };
+      activeConv = await createSupabaseConversation(activeCust);
+      if (activeConv) {
+        setConversation(activeConv);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(activeConv));
+        }
+      } else {
+        console.error('No se pudo establecer conversación en Supabase.');
+        return;
+      }
+    }
+
+    const tempId = 'temp-' + Date.now();
+    const optimisticMsg: ChatMessage = {
+      id: tempId,
+      conversation_id: activeConv.id,
       sender_type: senderType,
       sender_name: senderName,
       message: text,
@@ -225,44 +309,58 @@ export default function FloatingChatWidget({
     };
 
     setMessages(prev => {
-      const updated = [...prev, newMsg];
-      localStorage.setItem(`ingenium_chat_msgs_${conversation.id}`, JSON.stringify(updated));
+      const updated = [...prev, optimisticMsg];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`ingenium_chat_msgs_${activeConv.id}`, JSON.stringify(updated));
+      }
       return updated;
     });
 
     try {
-      await supabase.from('chat_messages').insert({
-        conversation_id: conversation.id,
-        sender_type: senderType,
-        sender_name: senderName,
-        message: text,
-      });
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert({
+          conversation_id: activeConv.id,
+          sender_type: senderType,
+          sender_name: senderName,
+          message: text,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error insertando chat_message:', error);
+      } else if (data) {
+        setMessages(prev => prev.map(m => m.id === tempId ? data : m));
+      }
 
       await supabase
         .from('chat_conversations')
         .update({
           last_message: text,
           last_message_at: new Date().toISOString(),
-          unread_admin_count: senderType === 'client' ? (conversation.unread_admin_count || 0) + 1 : 0,
+          unread_admin_count: senderType === 'client' ? (activeConv.unread_admin_count || 0) + 1 : 0,
         })
-        .eq('id', conversation.id);
-    } catch {}
+        .eq('id', activeConv.id);
+    } catch (err) {
+      console.error('Excepción al enviar mensaje a Supabase:', err);
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMsg.trim() || !conversation || !customer) return;
+    if (!inputMsg.trim()) return;
 
     const userText = inputMsg.trim();
     setInputMsg('');
 
-    await appendMessage(userText, 'client', customer.name);
+    const sender = customer?.name || name.trim() || 'Cliente Web';
+    await appendMessage(userText, 'client', sender);
 
     // Auto bot logic if user is searching for a repair order
     const upperText = userText.toUpperCase();
     if (upperText.includes('ORD-') || upperText.match(/\d{8,10}/)) {
       setTimeout(async () => {
-        // Search in DEMO_REPAIRS or Supabase
         const found = DEMO_REPAIRS.find(
           r => r.folio.toUpperCase() === upperText || r.client_phone.includes(userText)
         );
@@ -280,17 +378,29 @@ export default function FloatingChatWidget({
           const reply = `📱 *Información de Orden ${found.folio}:*\n• Dispositivo: ${found.device_brand} ${found.device_model}\n• Estado actual: ${statusLabels[found.status] || found.status}\n• Falla: ${found.issue_reported}\n• Diagnóstico: ${found.technician_diagnosis || 'En revisión'}\n• Saldo pendiente: $${balance} MXN`;
           await appendMessage(reply, 'bot', 'Sistema de Taller INGENIUM');
         } else {
-          await appendMessage('No encontramos una orden con ese folio exacto en el sistema. Puedes escribirnos a WhatsApp al +52 81 3962 9319 o un técnico humano revisará tus datos en el POS y te responderá en breve.', 'bot', 'Asistente Virtual INGENIUM');
+          await appendMessage(
+            'No encontramos una orden con ese folio exacto en el sistema. Puedes escribirnos a WhatsApp al +52 81 3962 9319 o un técnico humano revisará tus datos en el POS y te responderá en breve.',
+            'bot',
+            'Asistente Virtual INGENIUM'
+          );
         }
       }, 800);
+    }
+  };
+
+  const resetChat = () => {
+    if (confirm('¿Deseas reiniciar la sesión de chat e iniciar como nuevo visitante?')) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('ingenium_client_chat_conv');
+      }
+      setConversation(null);
+      setMessages([]);
     }
   };
 
   const whatsappRepairUrl = `https://wa.me/528139629319?text=${encodeURIComponent(
     'Hola INGENIUM MOBILE, me comunico desde la página web. Necesito cotizar/revisar la reparación de un equipo. Marca/Modelo: [ ] Falla: [ ]'
   )}`;
-
-  const whatsappUrl = whatsappRepairUrl;
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
@@ -301,7 +411,7 @@ export default function FloatingChatWidget({
             setIsOpen(true);
             setUnreadBadge(0);
           }}
-          className="relative flex items-center gap-2.5 px-5 py-3.5 bg-gradient-to-r from-emerald-600 to-[#128C7E] text-white font-bold rounded-full shadow-2xl hover:scale-105 active:scale-95 transition group border-2 border-white/40"
+          className="relative flex items-center gap-2.5 px-5 py-3.5 bg-gradient-to-r from-emerald-600 to-[#128C7E] text-white font-bold rounded-full shadow-2xl hover:scale-105 active:scale-95 transition group border-2 border-white/40 cursor-pointer"
         >
           <div className="w-2.5 h-2.5 bg-green-300 rounded-full animate-ping" />
           <MessageSquare size={19} />
@@ -329,25 +439,32 @@ export default function FloatingChatWidget({
               <div>
                 <h4 className="font-bold text-sm leading-tight flex items-center gap-1.5">
                   {businessName}
-                  <span className="text-[10px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono">BOT & POS</span>
+                  <span className="text-[10px] bg-emerald-700 text-emerald-100 px-1.5 py-0.5 rounded font-mono">BOT & POS</span>
                 </h4>
-                <p className="text-[11px] text-emerald-200">En línea · Respuesta inmediata</p>
+                <p className="text-[11px] text-emerald-200">En línea · Conectado con POS</p>
               </div>
             </div>
 
             <div className="flex items-center gap-1.5">
+              <button
+                onClick={resetChat}
+                title="Reiniciar chat / Nuevo visitante"
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <RotateCcw size={15} />
+              </button>
               <a
-                href={whatsappUrl}
+                href={whatsappRepairUrl}
                 target="_blank"
                 rel="noreferrer"
                 title="Abrir en WhatsApp Web / App"
-                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition"
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
               >
                 <ExternalLink size={16} />
               </a>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition"
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
               >
                 <X size={19} />
               </button>
@@ -404,16 +521,16 @@ export default function FloatingChatWidget({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-[#075E54] hover:bg-[#128C7E] text-white font-bold rounded-xl text-xs transition shadow-md flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-[#075E54] hover:bg-[#128C7E] text-white font-bold rounded-xl text-xs transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <MessageSquare size={15} />
-                  Empezar a Chatear
+                  {loading ? 'Iniciando conexión...' : 'Empezar a Chatear'}
                 </button>
               </form>
 
               <div className="mt-4 pt-4 border-t border-gray-200 text-center">
                 <a
-                  href={whatsappUrl}
+                  href={whatsappRepairUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center justify-center gap-1"
@@ -446,19 +563,19 @@ export default function FloatingChatWidget({
                     </a>
                     <button
                       onClick={() => handleQuickBotAction('reparacion')}
-                      className="text-left px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#075E54] font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-emerald-200"
+                      className="text-left px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#075E54] font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-emerald-200 cursor-pointer"
                     >
                       <Search size={12} /> 1. Consultar estado o cotizar en web
                     </button>
                     <button
                       onClick={() => handleQuickBotAction('cotizar')}
-                      className="text-left px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-blue-200"
+                      className="text-left px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-blue-200 cursor-pointer"
                     >
                       <Sparkles size={12} /> 2. Cotizar refacción ($ MXN)
                     </button>
                     <button
                       onClick={() => handleQuickBotAction('humano')}
-                      className="text-left px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-amber-200"
+                      className="text-left px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-amber-200 cursor-pointer"
                     >
                       <User size={12} /> 3. Chatear con asesor en POS
                     </button>
@@ -510,7 +627,7 @@ export default function FloatingChatWidget({
                 <button
                   type="submit"
                   disabled={!inputMsg.trim()}
-                  className="p-2.5 bg-[#075E54] hover:bg-[#128C7E] text-white rounded-full disabled:opacity-40 transition shadow-sm"
+                  className="p-2.5 bg-[#075E54] hover:bg-[#128C7E] text-white rounded-full disabled:opacity-40 transition shadow-sm cursor-pointer"
                 >
                   <Send size={15} />
                 </button>

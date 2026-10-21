@@ -6,6 +6,7 @@ import { Product, StorefrontCustomer } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import ClientAuthModal from '@/components/store/ClientAuthModal';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
+import SocialNetworksBar from '@/components/SocialNetworksBar';
 import {
   ShoppingBag,
   Search,
@@ -146,10 +147,12 @@ export default function TiendaPage() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
           {/* Logo & Brand */}
-          <Link href="/tienda" className="flex items-center gap-3 group">
-            <div className="w-12 h-12 bg-[#f59e0b] rounded-xl flex items-center justify-center text-[#1e3a5f] font-black text-2xl shadow group-hover:scale-105 transition">
-              I
-            </div>
+          <Link href="/" className="flex items-center gap-3 group">
+            <img
+              src="/images/logo.jpg"
+              alt="INGENIUM MOBILE"
+              className="w-12 h-12 rounded-full object-cover shadow border border-gray-200 group-hover:scale-105 transition"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xl font-black text-[#1e3a5f] tracking-tight">INGENIUM MÓVIL</span>
@@ -469,6 +472,9 @@ export default function TiendaPage() {
       {/* Floating Chat Widget */}
       <FloatingChatWidget businessName="INGENIUM MÓVIL" businessPhone="+52 81 3962 9319" />
 
+      {/* Floating Social Networks Dock (Bottom Left) */}
+      <SocialNetworksBar variant="floating" />
+
       {/* Client Registration / Login Modal */}
       <ClientAuthModal
         isOpen={authModalOpen}
@@ -477,10 +483,27 @@ export default function TiendaPage() {
       />
 
       {/* Footer */}
-      <footer className="bg-[#1e3a5f] text-white py-8 px-4 sm:px-6 lg:px-8 border-t border-white/10 mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/70">
-          <p>© 2026 INGENIUM POS · INGENIUM MÓVIL. Todos los derechos reservados.</p>
+      <footer className="bg-[#1e3a5f] text-white py-10 px-4 sm:px-6 lg:px-8 border-t border-white/10 mt-auto">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-white/70">
+          <div className="flex items-center gap-3">
+            <img
+              src="/images/logo.jpg"
+              alt="INGENIUM MOBILE"
+              className="w-10 h-10 rounded-full object-cover border border-white/20"
+            />
+            <div>
+              <p className="font-bold text-white text-sm">INGENIUM MÓVIL</p>
+              <p className="text-[11px] text-white/50">Repuestos garantizados y servicio técnico</p>
+            </div>
+          </div>
+
+          <SocialNetworksBar variant="inline" />
+
           <div className="flex items-center gap-4">
+            <Link href="/" className="hover:text-amber-400 transition">
+              Inicio
+            </Link>
+            <span>•</span>
             <Link href="/login" className="hover:text-amber-400 transition">
               Panel Administrativo POS
             </Link>

@@ -105,8 +105,8 @@ export interface CartItem {
 
 export interface ChatConversation {
   id: string;
-  business_id: string;
-  client_id?: string;
+  business_id?: string | null;
+  client_id?: string | null;
   client_name: string;
   client_phone?: string;
   client_email?: string;
