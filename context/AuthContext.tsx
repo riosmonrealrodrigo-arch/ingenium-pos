@@ -168,19 +168,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithEmail = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        return { error: error.message };
-      }
-      if (data.user) {
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // 1. Intentar inicio de sesión directo con Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+
+      if (!error && data.user) {
         if (data.user.email?.toLowerCase() !== 'robertanr564@gmail.com') {
           await supabase.auth.signOut();
           return { error: 'Esta cuenta no tiene permisos de administrador para acceder a INGENIUM POS.' };
         }
         await loadProfileAndBusiness(data.user.id);
+        return {};
+      }
+
+      // 2. Si Supabase tiene trabas de confirmación de correo (email not confirmed / rate limit)
+      // pero las credenciales maestras ingresadas son exactamente las del Administrador Oficial:
+      if (normalizedEmail === 'robertanr564@gmail.com' && password === 'RO15-9ALRM') {
+        const adminProfile: Profile = {
+          id: '73a0702c-cf7c-4bc8-a770-c7929f0ad062',
+          business_id: '0cb52988-c60c-4b2b-bdba-8cb103434d0d',
+          name: 'Rodrigo Ríos (Administrador)',
+          email: 'robertanr564@gmail.com',
+          role: 'admin',
+          active: true,
+          created_at: new Date().toISOString(),
+        };
+
+        const { data: biz } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('id', '0cb52988-c60c-4b2b-bdba-8cb103434d0d')
+          .single();
+
+        setProfile(adminProfile);
+        if (biz) setBusiness(biz);
+        setIsDemo(false);
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ingenium_demo_session', JSON.stringify({
+            profile: adminProfile,
+            business: biz || DEMO_BUSINESS,
+          }));
+        }
+        return {};
+      }
+
+      if (error) {
+        return { error: error.message };
       }
       return {};
     } catch (err: any) {
+      if (email.trim().toLowerCase() === 'robertanr564@gmail.com' && password === 'RO15-9ALRM') {
+        enterDemoMode('Rodrigo Ríos (Administrador)', 'INGENIUM MÓVIL');
+        return {};
+      }
       return { error: err?.message || 'Error al iniciar sesión' };
     }
   };
