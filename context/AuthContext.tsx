@@ -13,6 +13,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string, name: string, businessName: string) => Promise<{ error?: string }>;
+  resetPassword: (email: string) => Promise<{ error?: string; success?: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -114,7 +115,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
-    enterDemoMode('Usuario Google', 'INGENIUM MÓVIL');
+    try {
+      const redirectUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : 'https://ingenium-pos.vercel.app/auth/callback';
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+        },
+      });
+
+      if (error) {
+        console.warn('OAuth google error:', error.message);
+        enterDemoMode('Administrador Google', 'INGENIUM MÓVIL');
+      }
+    } catch {
+      enterDemoMode('Administrador Google', 'INGENIUM MÓVIL');
+    }
+  };
+
+  const resetPassword = async (email: string): Promise<{ error?: string; success?: boolean }> => {
+    try {
+      const redirectUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : 'https://ingenium-pos.vercel.app/auth/callback';
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) return { error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { error: err?.message || 'Error al enviar correo de recuperación' };
+    }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
@@ -201,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ profile, business, loading, isDemo, enterDemoMode, signInWithGoogle, signInWithEmail, signUp, signOut }}>
+    <AuthContext.Provider value={{ profile, business, loading, isDemo, enterDemoMode, signInWithGoogle, signInWithEmail, signUp, resetPassword, signOut }}>
       {children}
     </AuthContext.Provider>
   );

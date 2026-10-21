@@ -147,9 +147,11 @@ export default function ClientAuthModal({
         {/* Header */}
         <div className="bg-[#1e3a5f] p-5 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#f59e0b] rounded-xl flex items-center justify-center text-[#1e3a5f] font-black text-xl shadow">
-              I
-            </div>
+            <img
+              src="/images/logo.jpg"
+              alt="INGENIUM MOBILE"
+              className="w-10 h-10 rounded-full object-cover border border-white/30 shadow"
+            />
             <div>
               <h3 className="font-bold text-base">Identificación de Cliente</h3>
               <p className="text-xs text-blue-200">{actionMessage}</p>

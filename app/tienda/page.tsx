@@ -504,8 +504,12 @@ export default function TiendaPage() {
               Inicio
             </Link>
             <span>•</span>
-            <Link href="/login" className="hover:text-amber-400 transition">
-              Panel Administrativo POS
+            <Link
+              href="/login"
+              title="Acceso Administrativo"
+              className="text-white/30 hover:text-white/70 transition flex items-center gap-1 text-[11px]"
+            >
+              🔒 Terminal
             </Link>
           </div>
         </div>
