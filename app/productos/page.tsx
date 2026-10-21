@@ -7,18 +7,33 @@ import { useProducts } from '@/context/ProductContext';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package, Globe, Eye, EyeOff } from 'lucide-react';
+import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package, Globe, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 export default function ProductosPage() {
   const { profile, business, loading } = useAuth();
-  const { products, loadProducts, toggleActive, toggleStorefront } = useProducts();
+  const { products, loadProducts, toggleActive, toggleStorefront, deleteProduct, purgeDemoProducts } = useProducts();
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all'|'active'|'inactive'|'low'|'store'>('all');
+  const [purging, setPurging] = useState(false);
 
   useEffect(() => { if (!loading && !profile) router.replace('/login'); }, [profile, loading, router]);
-  useEffect(() => { if (profile) loadProducts(); }, [profile]);
+  useEffect(() => { if (profile) loadProducts(); }, [profile, loadProducts]);
+
+  const handleDelete = async (id: string, name: string) => {
+    if (confirm(`¿Estás seguro de eliminar el producto "${name}"? Esta acción se sincronizará de inmediato con la base de datos y la tienda web.`)) {
+      await deleteProduct(id);
+    }
+  };
+
+  const handlePurgeDemo = async () => {
+    if (confirm('⚠️ ¿DESEAS VACIAR Y ELIMINAR TODOS LOS PRODUCTOS DE PRUEBA (DEMO)?\n\nEsta acción dejará tu inventario limpio desde CERO para que puedas ingresar únicamente tus productos y refacciones reales.')) {
+      setPurging(true);
+      await purgeDemoProducts();
+      setPurging(false);
+    }
+  };
 
   const filtered = products.filter(p => {
     const s = p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase());
@@ -37,19 +52,34 @@ export default function ProductosPage() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 lg:ml-64 flex flex-col pb-20 lg:pb-0">
-        <Header title="Productos" subtitle={`${products.length} productos registrados`} />
+        <Header title="Productos e Inventario" subtitle={`${products.length} productos registrados · Moneda: $ MXN`} />
         <main className="p-4 lg:p-6 space-y-4 max-w-7xl mx-auto w-full">
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre o código..."
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre o código SKU..."
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]" />
             </div>
-            <Link href="/productos/nuevo"
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white rounded-xl text-sm font-bold hover:bg-[#1d4ed8] transition whitespace-nowrap active:scale-95">
-              <Plus size={16} /> Nuevo producto
-            </Link>
+            
+            <div className="flex items-center gap-2">
+              {products.length > 0 && (
+                <button
+                  onClick={handlePurgeDemo}
+                  disabled={purging}
+                  title="Eliminar todos los productos de prueba y empezar desde ceros"
+                  className="px-3.5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold border border-red-200 transition flex items-center gap-1.5 active:scale-95"
+                >
+                  <Trash2 size={14} />
+                  <span>{purging ? 'Limpiando...' : 'Vaciar Catálogo Demo'}</span>
+                </button>
+              )}
+
+              <Link href="/productos/nuevo"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white rounded-xl text-sm font-bold hover:bg-[#1d4ed8] transition whitespace-nowrap active:scale-95 shadow-md shadow-blue-500/20">
+                <Plus size={16} /> Nuevo producto
+              </Link>
+            </div>
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -68,7 +98,7 @@ export default function ProductosPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    {['Código','Nombre','P. Compra','P. Venta','Stock','Tienda Web','Estado','Acciones'].map(h => (
+                    {['Código','Nombre / Refacción','P. Compra','P. Venta ($ MXN)','Stock','Tienda Web','Estado','Acciones'].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
@@ -85,8 +115,8 @@ export default function ProductosPage() {
                             <p className="text-[11px] text-gray-400 truncate max-w-xs">{p.commercial_description}</p>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-gray-500">{formatCurrency(p.purchase_price, business?.currency)}</td>
-                        <td className="px-4 py-3 font-bold text-[#2563eb]">{formatCurrency(p.sale_price, business?.currency)}</td>
+                        <td className="px-4 py-3 text-gray-500">{formatCurrency(p.purchase_price)}</td>
+                        <td className="px-4 py-3 font-bold text-[#2563eb]">{formatCurrency(p.sale_price)}</td>
                         <td className="px-4 py-3">
                           <span className={`font-bold ${p.stock === 0 ? 'text-red-500' : p.stock <= p.min_stock ? 'text-amber-500' : 'text-green-600'}`}>
                             {p.stock}
@@ -117,6 +147,13 @@ export default function ProductosPage() {
                             <button onClick={() => toggleActive(p.id, !p.active)} className="p-2 hover:bg-gray-100 rounded-lg transition" title="Cambiar estado">
                               {p.active ? <ToggleRight size={16} className="text-green-500" /> : <ToggleLeft size={16} className="text-gray-400" />}
                             </button>
+                            <button
+                              onClick={() => handleDelete(p.id, p.name)}
+                              className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition"
+                              title="Eliminar producto"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -137,18 +174,24 @@ export default function ProductosPage() {
                     <p className="font-bold text-gray-800 truncate">{p.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{p.code} · Stock: <span className={p.stock <= p.min_stock ? 'text-amber-500 font-bold' : ''}>{p.stock}</span></p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-black text-[#2563eb]">{formatCurrency(p.sale_price, business?.currency)}</p>
-                    <Link href={`/productos/${p.id}`} className="text-xs text-blue-400 font-medium">Editar</Link>
+                  <div className="text-right shrink-0 space-y-1">
+                    <p className="font-black text-[#2563eb]">{formatCurrency(p.sale_price)}</p>
+                    <div className="flex items-center justify-end gap-2">
+                      <Link href={`/productos/${p.id}`} className="text-xs text-blue-500 font-medium">Editar</Link>
+                      <button onClick={() => handleDelete(p.id, p.name)} className="text-xs text-red-500 font-medium">Borrar</button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
             {filtered.length === 0 && (
-              <div className="text-center py-16 text-gray-300">
-                <Package size={48} className="mx-auto mb-3" />
-                <p className="text-sm">No se encontraron productos</p>
+              <div className="text-center py-16 text-gray-400 space-y-3">
+                <Package size={48} className="mx-auto text-gray-300" />
+                <p className="text-sm font-bold text-gray-700">No hay productos registrados en el inventario</p>
+                <p className="text-xs max-w-sm mx-auto">
+                  Tu catálogo está limpio y listo. Haz clic en <strong>"Nuevo producto"</strong> para ingresar tus refacciones y accesorios reales.
+                </p>
               </div>
             )}
           </div>

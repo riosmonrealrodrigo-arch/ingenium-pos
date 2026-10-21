@@ -315,19 +315,19 @@ export default function ConfiguracionTicketsPage() {
                     <div className="py-2 border-b border-dashed border-gray-300 text-[10px] space-y-1">
                       <div className="flex justify-between">
                         <span>1x Pantalla OLED iPhone 13</span>
-                        <span className="font-bold">Q 850.00</span>
+                        <span className="font-bold">$850.00 MXN</span>
                       </div>
                       <div className="flex justify-between">
                         <span>1x Cristal Templado 9D</span>
-                        <span className="font-bold">Q 35.00</span>
+                        <span className="font-bold">$35.00 MXN</span>
                       </div>
                       <div className="flex justify-between font-black text-xs text-gray-900 pt-1 border-t border-gray-200">
                         <span>TOTAL:</span>
-                        <span>Q 885.00</span>
+                        <span>$885.00 MXN</span>
                       </div>
                       <div className="flex justify-between text-gray-500 text-[9px]">
                         <span>Pago: EFECTIVO</span>
-                        <span>Cambio: Q 115.00</span>
+                        <span>Cambio: $115.00 MXN</span>
                       </div>
                     </div>
 

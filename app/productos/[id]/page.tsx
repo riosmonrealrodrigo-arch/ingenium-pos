@@ -7,14 +7,15 @@ import { Product } from '@/types';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { ArrowLeft, Save, Globe } from 'lucide-react';
+import { ArrowLeft, Save, Globe, Trash2 } from 'lucide-react';
 
 export default function EditarProductoPage() {
   const { profile, business, loading } = useAuth();
-  const { products, loadProducts, updateProduct } = useProducts();
+  const { products, loadProducts, updateProduct, deleteProduct } = useProducts();
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -77,6 +78,15 @@ export default function EditarProductoPage() {
     });
     setSaving(false);
     router.push('/productos');
+  };
+
+  const handleDelete = async () => {
+    if (confirm(`¿Estás seguro de eliminar permanentemente "${form.name}"? Esta acción se reflejará de inmediato en Supabase y la tienda web.`)) {
+      setDeleting(true);
+      await deleteProduct(id);
+      setDeleting(false);
+      router.push('/productos');
+    }
   };
 
   if (loading || !profile) return null;
@@ -246,21 +256,32 @@ export default function EditarProductoPage() {
               </button>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => router.back()}
-                className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-sm font-bold transition flex items-center justify-center gap-1.5"
               >
-                Cancelar
+                <Trash2 size={16} />
+                <span>{deleting ? 'Eliminando...' : 'Eliminar Producto'}</span>
               </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 py-3 bg-[#2563eb] text-white rounded-xl text-sm font-bold hover:bg-[#1d4ed8] transition flex items-center justify-center gap-2 disabled:opacity-60 shadow"
-              >
-                <Save size={16} /> {saving ? 'Guardando...' : 'Guardar cambios'}
-              </button>
+              <div className="flex-1 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-3 bg-[#2563eb] text-white rounded-xl text-sm font-bold hover:bg-[#1d4ed8] transition flex items-center justify-center gap-2 disabled:opacity-60 shadow"
+                >
+                  <Save size={16} /> {saving ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              </div>
             </div>
           </form>
         </main>

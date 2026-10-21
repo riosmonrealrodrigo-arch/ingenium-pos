@@ -105,17 +105,17 @@ export default function TiendaPage() {
     if (!customer || cart.length === 0) return;
 
     const itemsText = cart
-      .map(i => `• ${i.quantity}x ${i.product.name} (${formatCurrency(i.product.sale_price * i.quantity, 'Q')})`)
+      .map(i => `• ${i.quantity}x ${i.product.name} (${formatCurrency(i.product.sale_price * i.quantity)})`)
       .join('\n');
 
     const msg = `*¡NUEVO PEDIDO DESDE CATÁLOGO ONLINE!* 📱🛒\n\n` +
       `*Cliente:* ${customer.name}\n` +
       `*WhatsApp:* ${customer.phone}\n\n` +
       `*Productos:* \n${itemsText}\n\n` +
-      `*Total a Pagar:* ${formatCurrency(cartTotal, 'Q')}\n\n` +
+      `*Total a Pagar:* ${formatCurrency(cartTotal)}\n\n` +
       `_Por favor confirmar disponibilidad y método de entrega/retiro._`;
 
-    const url = `https://wa.me/50255550199?text=${encodeURIComponent(msg)}`;
+    const url = `https://wa.me/528139629319?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
     setOrderSent(true);
     setCart([]);
@@ -242,8 +242,19 @@ export default function TiendaPage() {
               Repuestos y Servicio Técnico para Celulares
             </h1>
             <p className="text-blue-100 text-sm leading-relaxed">
-              Explora refacciones originales, pantallas OLED, baterías y accesorios con garantía certificada. Consulta en vivo con un técnico.
+              Explora refacciones originales, pantallas OLED, baterías y accesorios con garantía certificada en moneda nacional ($ MXN).
             </p>
+            <div className="pt-2 flex flex-wrap gap-2.5">
+              <a
+                href="https://wa.me/528139629319?text=Hola%20INGENIUM%20MOBILE%2C%20me%20comunico%20desde%20la%20p%C3%A1gina%20web.%20Necesito%20cotizar%2Frevisar%20la%20reparaci%C3%B3n%20de%20un%20equipo.%20Marca%2FModelo%3A%20%5B%20%5D%20Falla%3A%20%5B%20%5D"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold rounded-xl text-xs transition shadow-lg active:scale-95"
+              >
+                <PhoneCall size={14} />
+                <span>Cotizar Reparación por WhatsApp (+52 81 3962 9319)</span>
+              </a>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
@@ -352,7 +363,7 @@ export default function TiendaPage() {
                       <div>
                         <span className="text-[10px] text-gray-400 block font-medium">Precio final</span>
                         <span className="font-black text-lg text-[#1e3a5f]">
-                          {formatCurrency(product.sale_price, 'Q')}
+                          {formatCurrency(product.sale_price)}
                         </span>
                       </div>
 
@@ -426,11 +437,11 @@ export default function TiendaPage() {
                       <div className="flex-1 min-w-0 pr-3">
                         <p className="font-bold text-xs text-gray-800 truncate">{item.product.name}</p>
                         <p className="text-[11px] text-gray-500">
-                          {item.quantity} x {formatCurrency(item.product.sale_price, 'Q')}
+                          {item.quantity} x {formatCurrency(item.product.sale_price)}
                         </p>
                       </div>
                       <span className="font-black text-sm text-[#1e3a5f]">
-                        {formatCurrency(item.product.sale_price * item.quantity, 'Q')}
+                        {formatCurrency(item.product.sale_price * item.quantity)}
                       </span>
                     </div>
                   ))}
@@ -439,7 +450,7 @@ export default function TiendaPage() {
                 <div className="pt-4 border-t border-gray-100 space-y-3">
                   <div className="flex items-center justify-between text-base font-black text-gray-900">
                     <span>Total Estimado:</span>
-                    <span className="text-[#2563eb]">{formatCurrency(cartTotal, 'Q')}</span>
+                    <span className="text-[#2563eb]">{formatCurrency(cartTotal)}</span>
                   </div>
 
                   <button
@@ -456,7 +467,7 @@ export default function TiendaPage() {
       )}
 
       {/* Floating Chat Widget */}
-      <FloatingChatWidget businessName="INGENIUM MÓVIL" businessPhone="+502 5555-0199" />
+      <FloatingChatWidget businessName="INGENIUM MÓVIL" businessPhone="+52 81 3962 9319" />
 
       {/* Client Registration / Login Modal */}
       <ClientAuthModal

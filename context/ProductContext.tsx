@@ -11,6 +11,8 @@ interface ProductContextType {
   loadProducts: () => Promise<void>;
   addProduct: (data: Omit<Product, 'id' | 'business_id' | 'created_at'>) => Promise<void>;
   updateProduct: (id: string, data: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  purgeDemoProducts: () => Promise<void>;
   toggleActive: (id: string, active: boolean) => Promise<void>;
   toggleStorefront: (id: string, visible_en_tienda: boolean) => Promise<void>;
   updateStock: (id: string, delta: number) => Promise<void>;
@@ -19,25 +21,14 @@ interface ProductContextType {
 const ProductContext = createContext<ProductContextType | null>(null);
 
 export function ProductProvider({ children }: { children: ReactNode }) {
-  const { business, isDemo } = useAuth();
-  const [products, setProducts] = useState<Product[]>(DEMO_PRODUCTS);
+  const { business } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Initialize from localStorage in demo mode if exists
-  useEffect(() => {
-    if (isDemo && typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ingenium_demo_products');
-      if (saved) {
-        try {
-          setProducts(JSON.parse(saved));
-        } catch {
-          setProducts(DEMO_PRODUCTS);
-        }
-      } else {
-        setProducts(DEMO_PRODUCTS);
-      }
-    }
-  }, [isDemo]);
+  const isDemoCleared = () => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('ingenium_demo_cleared') === 'true';
+  };
 
   const saveProductsToStorage = (newProducts: Product[]) => {
     setProducts(newProducts);
@@ -46,77 +37,161 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Carga reactiva desde Supabase
   const loadProducts = useCallback(async () => {
-    if (!business) return;
-    if (isDemo) {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('ingenium_demo_products');
-        if (saved) setProducts(JSON.parse(saved));
-      }
-      return;
-    }
-
     setLoading(true);
+    const cleared = isDemoCleared();
+
     try {
+      // Consulta a la tabla products de Supabase
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('business_id', business.id)
-        .order('name');
+        .order('created_at', { ascending: false });
 
-      if (error || !data || data.length === 0) {
-        // Fallback to demo products if DB is empty or unreachable
-        setProducts(DEMO_PRODUCTS);
+      if (!error && data) {
+        if (data.length > 0) {
+          setProducts(data);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ingenium_demo_products', JSON.stringify(data));
+          }
+        } else {
+          // Si la base de datos está vacía
+          if (cleared) {
+            setProducts([]);
+          } else {
+            setProducts(DEMO_PRODUCTS);
+          }
+        }
       } else {
-        setProducts(data);
+        // Fallback local/offline si no hay conexión
+        if (cleared) {
+          setProducts([]);
+        } else if (typeof window !== 'undefined') {
+          const saved = localStorage.getItem('ingenium_demo_products');
+          setProducts(saved ? JSON.parse(saved) : DEMO_PRODUCTS);
+        }
       }
     } catch {
-      setProducts(DEMO_PRODUCTS);
+      if (cleared) {
+        setProducts([]);
+      } else {
+        setProducts(DEMO_PRODUCTS);
+      }
     } finally {
       setLoading(false);
     }
-  }, [business, isDemo]);
+  }, []);
+
+  // Suscripción Supabase Realtime para sincronizar POS y Tienda Web en vivo
+  useEffect(() => {
+    loadProducts();
+
+    try {
+      const channel = supabase
+        .channel('realtime_products_sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'products' },
+          payload => {
+            // Recargar productos automáticamente en cuanto haya cualquier cambio (INSERT, UPDATE, DELETE)
+            loadProducts();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (e) {
+      console.warn('Realtime channel error:', e);
+    }
+  }, [loadProducts]);
 
   const addProduct = async (data: Omit<Product, 'id' | 'business_id' | 'created_at'>) => {
-    if (!business) return;
-    if (isDemo) {
-      const newP: Product = {
-        ...data,
-        id: 'prod-' + Date.now(),
-        business_id: business.id,
-        created_at: new Date().toISOString(),
-      };
-      saveProductsToStorage([newP, ...products]);
-      return;
+    const bizId = business?.id && business.id !== 'demo-biz-1' ? business.id : undefined;
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ingenium_demo_cleared');
     }
 
     try {
-      await supabase.from('products').insert({ ...data, business_id: business.id });
-      await loadProducts();
-    } catch {
-      const newP: Product = {
-        ...data,
-        id: 'prod-' + Date.now(),
-        business_id: business.id,
-        created_at: new Date().toISOString(),
-      };
-      saveProductsToStorage([newP, ...products]);
+      const { data: inserted, error } = await supabase
+        .from('products')
+        .insert({
+          code: data.code,
+          name: data.name,
+          description: data.description,
+          commercial_description: data.commercial_description || data.description,
+          image_url: data.image_url,
+          visible_en_tienda: data.visible_en_tienda !== false,
+          category_id: data.category_id || null,
+          purchase_price: data.purchase_price,
+          sale_price: data.sale_price,
+          stock: data.stock,
+          min_stock: data.min_stock,
+          active: data.active,
+          ...(bizId ? { business_id: bizId } : {}),
+        })
+        .select()
+        .single();
+
+      if (!error && inserted) {
+        const updated = [inserted, ...products.filter(p => p.id !== inserted.id)];
+        saveProductsToStorage(updated);
+        return;
+      }
+    } catch (e) {
+      console.warn('Error al insertar en Supabase:', e);
     }
+
+    const newP: Product = {
+      ...data,
+      id: 'prod-' + Date.now(),
+      business_id: bizId || 'demo-biz-1',
+      created_at: new Date().toISOString(),
+    };
+    saveProductsToStorage([newP, ...products]);
   };
 
   const updateProduct = async (id: string, data: Partial<Product>) => {
-    if (isDemo) {
-      const updated = products.map(p => (p.id === id ? { ...p, ...data } : p));
-      saveProductsToStorage(updated);
-      return;
-    }
+    // Actualización optimista local
+    const updated = products.map(p => (p.id === id ? { ...p, ...data } : p));
+    saveProductsToStorage(updated);
 
     try {
-      await supabase.from('products').update(data).eq('id', id);
-      await loadProducts();
-    } catch {
-      const updated = products.map(p => (p.id === id ? { ...p, ...data } : p));
-      saveProductsToStorage(updated);
+      await supabase
+        .from('products')
+        .update(data)
+        .eq('id', id);
+    } catch (e) {
+      console.warn('Error al actualizar producto en Supabase:', e);
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    const updated = products.filter(p => p.id !== id);
+    saveProductsToStorage(updated);
+
+    try {
+      await supabase.from('products').delete().eq('id', id);
+    } catch (e) {
+      console.warn('Error al eliminar producto en Supabase:', e);
+    }
+  };
+
+  const purgeDemoProducts = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ingenium_demo_cleared', 'true');
+      localStorage.removeItem('ingenium_demo_products');
+    }
+
+    setProducts([]);
+
+    try {
+      await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    } catch (e) {
+      console.warn('Aviso de purga en Supabase:', e);
     }
   };
 
@@ -136,7 +211,20 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ProductContext.Provider value={{ products, loading, loadProducts, addProduct, updateProduct, toggleActive, toggleStorefront, updateStock }}>
+    <ProductContext.Provider
+      value={{
+        products,
+        loading,
+        loadProducts,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        purgeDemoProducts,
+        toggleActive,
+        toggleStorefront,
+        updateStock,
+      }}
+    >
       {children}
     </ProductContext.Provider>
   );

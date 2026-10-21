@@ -11,7 +11,7 @@ interface FloatingChatWidgetProps {
 }
 
 export default function FloatingChatWidget({
-  businessPhone = '+502 5555-0199',
+  businessPhone = '+52 81 3962 9319',
   businessName = 'INGENIUM MÓVIL',
 }: FloatingChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -195,14 +195,14 @@ export default function FloatingChatWidget({
     let botReply = '';
 
     if (option === 'reparacion') {
-      userText = '🔍 Consultar estado de una reparación';
-      botReply = 'Por favor escribe tu número de folio (ej. ORD-1001) o tu número de teléfono para buscar el diagnóstico y avance de tu dispositivo en el taller.';
+      userText = '🔍 Consultar estado o cotizar reparación';
+      botReply = '¡Hola! Para cotizar la reparación de tu equipo o consultar el avance, puedes usar el botón verde de WhatsApp (+52 81 3962 9319) o dejar aquí mismo la Marca, Modelo y Falla. Un técnico del POS te responderá de inmediato.';
     } else if (option === 'cotizar') {
       userText = '📱 Cotizar un repuesto o pantalla';
-      botReply = 'Escríbenos la marca y modelo exacto de tu celular (ej. iPhone 13 Pro o Samsung A54). Contamos con pantallas OLED originales, baterías y accesorios listos para entrega.';
+      botReply = 'Escríbenos la marca y modelo exacto de tu celular (ej. iPhone 13 Pro o Samsung A54). Contamos con pantallas OLED, baterías y refacciones garantizadas con precios en $ MXN.';
     } else {
       userText = '👤 Quiero hablar con un asesor técnico';
-      botReply = '¡Entendido! Hemos alertado al personal del taller en el POS de escritorio. Tu consulta está en cola prioritaria. También puedes tocar el botón de WhatsApp arriba si prefieres.';
+      botReply = '¡Entendido! Hemos alertado al personal técnico en el POS de escritorio. Tu consulta está en cola prioritaria. También puedes pulsar el botón de WhatsApp si deseas respuesta directa.';
     }
 
     await appendMessage(userText, 'client', customer.name);
@@ -276,18 +276,21 @@ export default function FloatingChatWidget({
             entregado: '✅ Entregado al cliente con garantía',
           };
 
-          const reply = `📱 *Información de Orden ${found.folio}:*\n• Dispositivo: ${found.device_brand} ${found.device_model}\n• Estado actual: ${statusLabels[found.status] || found.status}\n• Falla: ${found.issue_reported}\n• Diagnóstico: ${found.technician_diagnosis || 'En revisión'}\n• Saldo pendiente: Q ${(found.estimated_cost - found.advance_payment).toFixed(2)}`;
+          const balance = (found.estimated_cost - found.advance_payment).toFixed(2);
+          const reply = `📱 *Información de Orden ${found.folio}:*\n• Dispositivo: ${found.device_brand} ${found.device_model}\n• Estado actual: ${statusLabels[found.status] || found.status}\n• Falla: ${found.issue_reported}\n• Diagnóstico: ${found.technician_diagnosis || 'En revisión'}\n• Saldo pendiente: $${balance} MXN`;
           await appendMessage(reply, 'bot', 'Sistema de Taller INGENIUM');
         } else {
-          await appendMessage('No encontramos una orden con ese folio exacto en el sistema. Un técnico humano revisará tus datos en el POS y te responderá en breve.', 'bot', 'Asistente Virtual INGENIUM');
+          await appendMessage('No encontramos una orden con ese folio exacto en el sistema. Puedes escribirnos a WhatsApp al +52 81 3962 9319 o un técnico humano revisará tus datos en el POS y te responderá en breve.', 'bot', 'Asistente Virtual INGENIUM');
         }
       }, 800);
     }
   };
 
-  const whatsappUrl = `https://wa.me/${businessPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
-    `Hola ${businessName}, estoy en su catálogo online y requiero atención técnica.`
+  const whatsappRepairUrl = `https://wa.me/528139629319?text=${encodeURIComponent(
+    'Hola INGENIUM MOBILE, me comunico desde la página web. Necesito cotizar/revisar la reparación de un equipo. Marca/Modelo: [ ] Falla: [ ]'
   )}`;
+
+  const whatsappUrl = whatsappRepairUrl;
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
@@ -430,23 +433,34 @@ export default function FloatingChatWidget({
                     <Sparkles size={13} className="text-amber-500" /> Opciones rápidas de atención:
                   </p>
                   <div className="flex flex-col gap-1.5">
+                    <a
+                      href={whatsappRepairUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-left px-3 py-2 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold rounded-xl text-[11px] transition flex items-center justify-between shadow-xs"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Phone size={13} /> Contactar Taller por WhatsApp (+52 81 3962 9319)
+                      </span>
+                      <ExternalLink size={12} />
+                    </a>
                     <button
                       onClick={() => handleQuickBotAction('reparacion')}
                       className="text-left px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#075E54] font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-emerald-200"
                     >
-                      <Search size={12} /> 1. Consultar estado de reparación
+                      <Search size={12} /> 1. Consultar estado o cotizar en web
                     </button>
                     <button
                       onClick={() => handleQuickBotAction('cotizar')}
                       className="text-left px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-blue-200"
                     >
-                      <Sparkles size={12} /> 2. Cotizar repuesto o pantalla
+                      <Sparkles size={12} /> 2. Cotizar refacción ($ MXN)
                     </button>
                     <button
                       onClick={() => handleQuickBotAction('humano')}
                       className="text-left px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-amber-200"
                     >
-                      <User size={12} /> 3. Hablar con soporte técnico humano
+                      <User size={12} /> 3. Chatear con asesor en POS
                     </button>
                   </div>
                 </div>

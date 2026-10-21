@@ -18,7 +18,7 @@ export default function PrintTicketModal({
   onClose,
   sale,
   repair,
-  currency = 'Q',
+  currency = '$ MXN',
 }: PrintTicketModalProps) {
   const [settings, setSettings] = useState<TicketSettings>(DEFAULT_TICKET_SETTINGS);
   const [format, setFormat] = useState<'thermal_80' | 'thermal_58' | 'letter'>('thermal_80');

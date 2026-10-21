@@ -14,11 +14,11 @@ export default function ConfiguracionPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [form, setForm] = useState({ name: '', address: '', phone: '', email: '', currency: 'Q', tax_rate: '12' });
+  const [form, setForm] = useState({ name: '', address: '', phone: '', email: '', currency: '$ MXN', tax_rate: '16' });
 
   useEffect(() => { if (!loading && !profile) router.replace('/login'); }, [profile, loading, router]);
   useEffect(() => {
-    if (business) setForm({ name: business.name, address: business.address ?? '', phone: business.phone ?? '', email: business.email ?? '', currency: business.currency ?? 'Q', tax_rate: String(business.tax_rate ?? 12) });
+    if (business) setForm({ name: business.name, address: business.address ?? '', phone: business.phone ?? '', email: business.email ?? '', currency: business.currency ?? '$ MXN', tax_rate: String(business.tax_rate ?? 16) });
   }, [business]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -95,15 +95,15 @@ export default function ConfiguracionPage() {
               <h2 className="font-bold text-gray-800 text-base">Configuración fiscal</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Moneda</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Moneda Oficial</label>
                   <select value={form.currency} onChange={set('currency')}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]">
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]">
+                    <option value="$ MXN">$ MXN - Pesos Mexicanos (México)</option>
+                    <option value="$">$ USD - Dólares</option>
                     <option value="Q">Q - Quetzal (Guatemala)</option>
-                    <option value="$">$ - Dólar (USD)</option>
                     <option value="L">L - Lempira (Honduras)</option>
                     <option value="C$">C$ - Córdoba (Nicaragua)</option>
                     <option value="₡">₡ - Colón (Costa Rica)</option>
-                    <option value="MXN">MXN - Peso (México)</option>
                   </select>
                 </div>
                 <Field label="Impuesto (%)" type="number" step="0.01" value={form.tax_rate} onChange={set('tax_rate')} placeholder="12" />

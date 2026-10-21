@@ -2,20 +2,27 @@ export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
 }
 
-export const formatCurrency = (amount: number, currency = 'Q'): string =>
-  `${currency} ${amount.toFixed(2)}`;
+// Formateo de Moneda estándar en Pesos Mexicanos ($0.00 MXN)
+export const formatCurrency = (amount: number, _currency = '$'): string => {
+  const num = typeof amount === 'number' && !isNaN(amount) ? amount : 0;
+  const formatted = num.toLocaleString('es-MX', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `$${formatted} MXN`;
+};
 
 export const formatDate = (iso: string): string =>
-  new Date(iso).toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' });
+  new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 
 export const formatDateTime = (iso: string): string =>
-  new Date(iso).toLocaleString('es-GT', {
+  new Date(iso).toLocaleString('es-MX', {
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
 
 export const formatTime = (iso: string): string =>
-  new Date(iso).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+  new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
 export const todayISO = (): string => new Date().toISOString().split('T')[0];
 
