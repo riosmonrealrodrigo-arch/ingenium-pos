@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: { domains: ['lh3.googleusercontent.com'] },
+  output: 'standalone',
+  images: {
+    domains: [
+      'lh3.googleusercontent.com',
+      'images.unsplash.com',
+      'xwonqnfinfcwlzfusiba.supabase.co'
+    ],
+  },
 };
+
 module.exports = nextConfig;

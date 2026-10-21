@@ -1,5 +1,7 @@
 node_modules/
 .next/
+dist-electron/
+release/
 .env.local
 .env
 *.log

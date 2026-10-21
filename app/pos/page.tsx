@@ -6,10 +6,11 @@ import { useProducts } from '@/context/ProductContext';
 import { useCart } from '@/context/CartContext';
 import { useSales } from '@/context/SalesContext';
 import { useClients } from '@/context/ClientContext';
-import { Product, PaymentMethod, Client } from '@/types';
+import { Product, PaymentMethod, Client, Sale } from '@/types';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
+import PrintTicketModal from '@/components/pos/PrintTicketModal';
 import { Search, Plus, Minus, Trash2, ShoppingCart, X, Check, Banknote, CreditCard, Smartphone, BookUser } from 'lucide-react';
 import { formatCurrency, generateTicket } from '@/lib/utils';
 
@@ -27,6 +28,8 @@ export default function POSPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [success, setSuccess] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [completedSale, setCompletedSale] = useState<Sale | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   useEffect(() => { if (!loading && !profile) router.replace('/login'); }, [profile, loading, router]);
   useEffect(() => { if (profile) { loadProducts(); loadClients(); } }, [profile]);
@@ -47,6 +50,8 @@ export default function POSPage() {
       setCashGiven('');
       setSelectedClient(null);
       setSuccess(generateTicket(sale.id));
+      setCompletedSale(sale);
+      setShowPrintModal(true);
       setTimeout(() => setSuccess(''), 4000);
     } finally {
       setProcessing(false);
@@ -55,7 +60,17 @@ export default function POSPage() {
 
   const change = payMethod === 'efectivo' && cashGiven ? parseFloat(cashGiven) - total : 0;
 
-  if (loading || !profile) return null;
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen bg-[#1e3a5f] flex flex-col items-center justify-center text-white">
+        <div className="w-16 h-16 bg-[#f59e0b] rounded-2xl flex items-center justify-center font-black text-[#1e3a5f] text-3xl shadow-2xl mb-4 animate-bounce">
+          I
+        </div>
+        <h2 className="text-xl font-bold tracking-wide">INGENIUM POS</h2>
+        <p className="text-white/60 text-xs mt-1">Cargando catálogo y caja de cobro...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -225,6 +240,16 @@ export default function POSPage() {
             </div>
           </div>
         )}
+        {/* Print ticket modal */}
+        <PrintTicketModal
+          isOpen={showPrintModal}
+          onClose={() => {
+            setShowPrintModal(false);
+            setCompletedSale(null);
+          }}
+          sale={completedSale}
+          currency={business?.currency}
+        />
       </div>
       <BottomNav />
     </div>

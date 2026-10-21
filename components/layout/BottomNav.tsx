@@ -1,14 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingCart, Package, ClipboardList, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Wrench, Package, ClipboardList } from 'lucide-react';
 
 const items = [
   { href: '/dashboard', label: 'Inicio', icon: LayoutDashboard },
   { href: '/pos', label: 'Vender', icon: ShoppingCart },
+  { href: '/reparaciones', label: 'Taller', icon: Wrench },
   { href: '/productos', label: 'Productos', icon: Package },
   { href: '/ventas', label: 'Ventas', icon: ClipboardList },
-  { href: '/reportes', label: 'Reportes', icon: BarChart2 },
 ];
 
 export default function BottomNav() {

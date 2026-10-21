@@ -6,7 +6,8 @@ import { supabase } from '@/lib/supabase';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { Save, Check } from 'lucide-react';
+import { Save, Check, Printer, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ConfiguracionPage() {
   const { profile, business, loading } = useAuth();
@@ -27,10 +28,14 @@ export default function ConfiguracionPage() {
     e.preventDefault();
     if (!business) return;
     setSaving(true);
-    await supabase.from('businesses').update({
-      name: form.name, address: form.address, phone: form.phone,
-      email: form.email, currency: form.currency, tax_rate: parseFloat(form.tax_rate) || 0,
-    }).eq('id', business.id);
+    try {
+      await supabase.from('businesses').update({
+        name: form.name, address: form.address, phone: form.phone,
+        email: form.email, currency: form.currency, tax_rate: parseFloat(form.tax_rate) || 0,
+      }).eq('id', business.id);
+    } catch {
+      // In demo mode or offline, state is kept
+    }
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -50,6 +55,30 @@ export default function ConfiguracionPage() {
               <Check size={16} /> Configuración guardada correctamente
             </div>
           )}
+
+          {/* Quick link to ticket format settings */}
+          <Link
+            href="/configuracion/tickets"
+            className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl hover:border-[#2563eb] transition group shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#2563eb] text-white flex items-center justify-center shadow-md">
+                <Printer size={20} />
+              </div>
+              <div>
+                <p className="font-bold text-gray-900 text-sm group-hover:text-[#2563eb] transition">
+                  Personalizar Tickets y Recibos
+                </p>
+                <p className="text-xs text-gray-500">
+                  Formato 58mm/80mm, NIT, datos fiscales, cláusula de taller y garantías
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-bold text-[#2563eb]">
+              <span>Configurar</span>
+              <ChevronRight size={16} />
+            </div>
+          </Link>
 
           <form onSubmit={handleSave} className="space-y-5">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">

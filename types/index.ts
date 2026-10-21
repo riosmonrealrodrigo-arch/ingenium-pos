@@ -37,6 +37,9 @@ export interface Product {
   code: string;
   name: string;
   description?: string;
+  commercial_description?: string;
+  image_url?: string;
+  visible_en_tienda?: boolean;
   category_id?: string;
   purchase_price: number;
   sale_price: number;
@@ -69,16 +72,16 @@ export interface Sale {
   business_id: string;
   user_id: string;
   user_name: string;
-  client_id?: string;
-  client_name?: string;
+  client_id?: string | null;
+  client_name?: string | null;
   items: SaleItem[];
   subtotal: number;
   discount: number;
   tax: number;
   total: number;
   payment_method: PaymentMethod;
-  cash_given?: number;
-  change?: number;
+  cash_given?: number | null;
+  change?: number | null;
   status: 'completed' | 'cancelled';
   created_at: string;
 }
@@ -98,4 +101,83 @@ export interface CartItem {
   product: Product;
   quantity: number;
   discount: number;
+}
+
+export interface ChatConversation {
+  id: string;
+  business_id: string;
+  client_id?: string;
+  client_name: string;
+  client_phone?: string;
+  client_email?: string;
+  status: 'open' | 'closed';
+  unread_admin_count: number;
+  unread_client_count: number;
+  last_message?: string;
+  last_message_at?: string;
+  created_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  sender_type: 'client' | 'admin' | 'bot';
+  sender_name: string;
+  message: string;
+  created_at: string;
+}
+
+export interface StorefrontCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+}
+
+export type RepairStatus =
+  | 'recibido'
+  | 'en_diagnostico'
+  | 'esperando_repuesto'
+  | 'listo_entrega'
+  | 'entregado'
+  | 'cancelado';
+
+export interface RepairOrder {
+  id: string;
+  folio: string;
+  business_id: string;
+  client_id?: string | null;
+  client_name: string;
+  client_phone: string;
+  client_email?: string | null;
+  device_brand: string;
+  device_model: string;
+  device_color?: string;
+  imei_serial?: string;
+  unlock_pattern?: string;
+  issue_reported: string;
+  technician_diagnosis?: string;
+  estimated_cost: number;
+  advance_payment: number;
+  status: RepairStatus;
+  assigned_technician?: string;
+  received_at: string;
+  completed_at?: string | null;
+  delivered_at?: string | null;
+  created_at: string;
+}
+
+export interface TicketSettings {
+  id?: string;
+  business_id: string;
+  business_name: string;
+  tax_id?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  social_media?: string;
+  warranty_note: string;
+  repair_terms: string;
+  default_format: 'thermal_58' | 'thermal_80' | 'letter';
+  logo_url?: string;
 }

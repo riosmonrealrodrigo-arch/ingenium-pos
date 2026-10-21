@@ -7,22 +7,27 @@ import { useProducts } from '@/context/ProductContext';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package } from 'lucide-react';
+import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package, Globe, Eye, EyeOff } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 export default function ProductosPage() {
   const { profile, business, loading } = useAuth();
-  const { products, loadProducts, toggleActive } = useProducts();
+  const { products, loadProducts, toggleActive, toggleStorefront } = useProducts();
   const router = useRouter();
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all'|'active'|'inactive'|'low'>('all');
+  const [filter, setFilter] = useState<'all'|'active'|'inactive'|'low'|'store'>('all');
 
   useEffect(() => { if (!loading && !profile) router.replace('/login'); }, [profile, loading, router]);
   useEffect(() => { if (profile) loadProducts(); }, [profile]);
 
   const filtered = products.filter(p => {
     const s = p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase());
-    const f = filter === 'all' || (filter === 'active' && p.active) || (filter === 'inactive' && !p.active) || (filter === 'low' && p.stock <= p.min_stock);
+    const f =
+      filter === 'all' ||
+      (filter === 'active' && p.active) ||
+      (filter === 'inactive' && !p.active) ||
+      (filter === 'low' && p.stock <= p.min_stock) ||
+      (filter === 'store' && p.visible_en_tienda !== false);
     return s && f;
   });
 
@@ -48,7 +53,7 @@ export default function ProductosPage() {
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {[['all','Todos'],['active','Activos'],['inactive','Inactivos'],['low','Stock bajo']].map(([v,l]) => (
+            {[['all','Todos'],['active','Activos'],['store','En Tienda Web'],['low','Stock bajo'],['inactive','Inactivos']].map(([v,l]) => (
               <button key={v} onClick={() => setFilter(v as typeof filter)}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition
                   ${filter === v ? 'bg-[#2563eb] text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}>
@@ -63,38 +68,60 @@ export default function ProductosPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    {['Código','Nombre','P. Compra','P. Venta','Stock','Estado',''].map(h => (
+                    {['Código','Nombre','P. Compra','P. Venta','Stock','Tienda Web','Estado','Acciones'].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map(p => (
-                    <tr key={p.id} className="hover:bg-gray-50 transition">
-                      <td className="px-4 py-3 font-mono text-xs text-gray-500 bg-gray-50/50">{p.code}</td>
-                      <td className="px-4 py-3 font-semibold text-gray-800">{p.name}</td>
-                      <td className="px-4 py-3 text-gray-500">{formatCurrency(p.purchase_price, business?.currency)}</td>
-                      <td className="px-4 py-3 font-bold text-[#2563eb]">{formatCurrency(p.sale_price, business?.currency)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`font-bold ${p.stock === 0 ? 'text-red-500' : p.stock <= p.min_stock ? 'text-amber-500' : 'text-green-600'}`}>
-                          {p.stock}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${p.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {p.active ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <Link href={`/productos/${p.id}`} className="p-2 hover:bg-blue-50 rounded-lg text-blue-500 transition"><Edit2 size={14} /></Link>
-                          <button onClick={() => toggleActive(p.id, !p.active)} className="p-2 hover:bg-gray-100 rounded-lg transition">
-                            {p.active ? <ToggleRight size={16} className="text-green-500" /> : <ToggleLeft size={16} className="text-gray-400" />}
+                  {filtered.map(p => {
+                    const isVisibleInStore = p.visible_en_tienda !== false;
+                    return (
+                      <tr key={p.id} className="hover:bg-gray-50 transition">
+                        <td className="px-4 py-3 font-mono text-xs text-gray-500 bg-gray-50/50">{p.code}</td>
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-gray-800">{p.name}</p>
+                          {p.commercial_description && (
+                            <p className="text-[11px] text-gray-400 truncate max-w-xs">{p.commercial_description}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">{formatCurrency(p.purchase_price, business?.currency)}</td>
+                        <td className="px-4 py-3 font-bold text-[#2563eb]">{formatCurrency(p.sale_price, business?.currency)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`font-bold ${p.stock === 0 ? 'text-red-500' : p.stock <= p.min_stock ? 'text-amber-500' : 'text-green-600'}`}>
+                            {p.stock}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => toggleStorefront(p.id, !isVisibleInStore)}
+                            className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 transition ${
+                              isVisibleInStore
+                                ? 'bg-blue-100 text-[#2563eb] hover:bg-blue-200'
+                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                            }`}
+                            title="Haz clic para activar o desactivar de la tienda web"
+                          >
+                            <Globe size={12} />
+                            {isVisibleInStore ? 'Visible' : 'Oculto'}
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${p.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                            {p.active ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1">
+                            <Link href={`/productos/${p.id}`} className="p-2 hover:bg-blue-50 rounded-lg text-blue-500 transition" title="Editar"><Edit2 size={14} /></Link>
+                            <button onClick={() => toggleActive(p.id, !p.active)} className="p-2 hover:bg-gray-100 rounded-lg transition" title="Cambiar estado">
+                              {p.active ? <ToggleRight size={16} className="text-green-500" /> : <ToggleLeft size={16} className="text-gray-400" />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

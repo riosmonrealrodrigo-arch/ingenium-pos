@@ -1,12 +1,46 @@
 {
   "name": "ingenium-pos",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "desktop:dev": "concurrently \"next dev\" \"electron .\"",
+    "desktop:build": "next build && electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.ingeniummobile.pos",
+    "productName": "INGENIUM POS",
+    "copyright": "Copyright © 2026 INGENIUMMOBILE",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "INGENIUM POS"
+    }
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -21,6 +55,9 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "concurrently": "^8.2.2",
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3",
     "eslint": "^8",
     "eslint-config-next": "14.2.15",
     "postcss": "^8",

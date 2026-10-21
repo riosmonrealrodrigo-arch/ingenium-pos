@@ -17,7 +17,12 @@ export default function DashboardPage() {
   const { sales, loadSales } = useSales();
   const router = useRouter();
 
-  useEffect(() => { if (!loading && !profile) router.replace('/login'); }, [profile, loading, router]);
+  useEffect(() => {
+    if (!loading && !profile) {
+      const t = setTimeout(() => router.replace('/login'), 500);
+      return () => clearTimeout(t);
+    }
+  }, [profile, loading, router]);
   useEffect(() => { if (profile) { loadProducts(); loadSales(); } }, [profile]);
 
   const today = todayISO();
