@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { StorefrontCustomer } from '@/types';
 import { supabase } from '@/lib/supabase';
-import { User, Phone, Mail, Lock, X, CheckCircle, Sparkles, ShieldCheck } from 'lucide-react';
+import { User, Phone, Mail, Lock, X, CheckCircle, Sparkles, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 interface ClientAuthModalProps {
   isOpen: boolean;
@@ -24,6 +24,7 @@ export default function ClientAuthModal({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
@@ -353,14 +354,24 @@ export default function ClientAuthModal({
                   <Lock size={15} />
                 </span>
                 <input
-                  type="password"
+                  type={showPass ? 'text' : 'password'}
                   placeholder="Mínimo 6 caracteres"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#2563eb] outline-none"
+                  className="w-full pl-9 pr-10 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#2563eb] outline-none"
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPass(v => !v)}
+                  title={showPass ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  aria-label={showPass ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 cursor-pointer p-1"
+                >
+                  {showPass ? <EyeOff size={15} className="text-[#2563eb]" /> : <Eye size={15} />}
+                </button>
               </div>
             </div>
 

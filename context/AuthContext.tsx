@@ -166,21 +166,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithEmail = async (email: string, password: string) => {
+  const signInWithEmail = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        // Fallback transparente
-        enterDemoMode(email.split('@')[0]);
-        return {};
+        return { error: error.message };
       }
       if (data.user) {
+        if (data.user.email?.toLowerCase() !== 'robertanr564@gmail.com') {
+          await supabase.auth.signOut();
+          return { error: 'Esta cuenta no tiene permisos de administrador para acceder a INGENIUM POS.' };
+        }
         await loadProfileAndBusiness(data.user.id);
       }
       return {};
-    } catch {
-      enterDemoMode(email.split('@')[0]);
-      return {};
+    } catch (err: any) {
+      return { error: err?.message || 'Error al iniciar sesión' };
     }
   };
 

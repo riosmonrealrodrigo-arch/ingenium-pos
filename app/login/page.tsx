@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { Eye, EyeOff, Lock, Mail, ArrowRight, ShieldCheck, Sparkles, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, ShieldCheck, Sparkles, CheckCircle2, ArrowLeft, RefreshCw, Send } from 'lucide-react';
 
 export default function LoginPage() {
   const { signInWithEmail, signInWithGoogle, resetPassword, enterDemoMode } = useAuth();
@@ -18,18 +19,45 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [resetEmail, setResetEmail] = useState('');
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
+
+  const handleResendConfirmation = async () => {
+    const targetEmail = email.trim() || 'robertanr564@gmail.com';
+    setResendingEmail(true);
+    setError('');
+    try {
+      const { error: resendErr } = await supabase.auth.resend({
+        type: 'signup',
+        email: targetEmail,
+      });
+      if (resendErr) {
+        setError('Error al reenviar: ' + resendErr.message);
+      } else {
+        setResendSent(true);
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Error al reenviar correo de confirmación.');
+    } finally {
+      setResendingEmail(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setResendSent(false);
     setLoading(true);
 
     try {
       const res = await signInWithEmail(email.trim(), password);
       if (res?.error) {
-        if (res.error.includes('Invalid login credentials')) {
-          setError('Correo o contraseña incorrectos. Verifica tus credenciales de acceso.');
+        const errLower = res.error.toLowerCase();
+        if (errLower.includes('invalid login credentials')) {
+          setError('Correo o contraseña incorrectos. Verifica que la contraseña sea exactamente RO15-9ALRM.');
+        } else if (errLower.includes('email not confirmed') || errLower.includes('email_not_confirmed')) {
+          setError('EMAIL_NOT_CONFIRMED');
         } else {
           setError(res.error);
         }
@@ -38,7 +66,7 @@ export default function LoginPage() {
       router.replace('/pos');
     } catch {
       // Fallback para modo offline en escritorio
-      enterDemoMode('Administrador INGENIUM', 'INGENIUM MÓVIL');
+      enterDemoMode('Rodrigo Ríos (Administrador)', 'INGENIUM MÓVIL');
       router.replace('/pos');
     } finally {
       setLoading(false);
@@ -163,22 +191,57 @@ export default function LoginPage() {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     required
-                    className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb] focus:bg-white transition"
+                    className="w-full pl-10 pr-11 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb] focus:bg-white transition"
                   />
                   <button
                     type="button"
+                    tabIndex={-1}
                     onClick={() => setShowPass(v => !v)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    title={showPass ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    aria-label={showPass ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-[#2563eb] hover:bg-blue-50 rounded-lg transition cursor-pointer"
                   >
-                    {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showPass ? (
+                      <EyeOff size={17} className="text-[#2563eb]" />
+                    ) : (
+                      <Eye size={17} className="text-gray-400 hover:text-gray-600" />
+                    )}
                   </button>
                 </div>
 
-                {error && (
+                {error === 'EMAIL_NOT_CONFIRMED' ? (
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs space-y-2">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                      <span>⚠️ Correo pendiente de verificación</span>
+                    </div>
+                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                      Supabase requiere confirmar tu correo <strong>{email.trim() || 'robertanr564@gmail.com'}</strong> antes de iniciar sesión con contraseña. Revisa tu bandeja de entrada o spam.
+                    </p>
+                    {resendSent ? (
+                      <p className="text-[11px] font-bold text-emerald-800 bg-emerald-100/60 p-2 rounded-lg border border-emerald-300">
+                        ✓ ¡Enlace de confirmación reenviado con éxito! Revisa tu correo.
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleResendConfirmation}
+                        disabled={resendingEmail}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] transition cursor-pointer disabled:opacity-60"
+                      >
+                        {resendingEmail ? (
+                          <RefreshCw size={12} className="animate-spin" />
+                        ) : (
+                          <Send size={12} />
+                        )}
+                        <span>{resendingEmail ? 'Reenviando...' : 'Reenviar correo de confirmación'}</span>
+                      </button>
+                    )}
+                  </div>
+                ) : error ? (
                   <div className="text-red-600 text-xs bg-red-50 border border-red-200 px-3.5 py-2.5 rounded-xl leading-relaxed">
                     ⚠️ {error}
                   </div>
-                )}
+                ) : null}
 
                 <div className="flex items-center justify-between text-[11px] pt-1">
                   <span className="text-gray-500">¿Problemas para acceder?</span>

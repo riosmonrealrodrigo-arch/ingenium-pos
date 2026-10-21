@@ -14,26 +14,41 @@ export default function AuthCallback() {
         return;
       }
 
+      const email = session.user.email?.toLowerCase();
+      const isAdminAccount = email === 'robertanr564@gmail.com';
       const target = typeof window !== 'undefined' ? sessionStorage.getItem('ingenium_auth_target') : null;
 
-      if (target === 'client') {
-        // Acceso de Cliente desde la tienda en línea
+      if (target === 'client' || !isAdminAccount) {
+        // Acceso exclusivo de Cliente desde la tienda en línea (o cualquier usuario que NO sea el admin oficial)
         const cust: StorefrontCustomer = {
           id: session.user.id,
-          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Cliente',
+          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || email?.split('@')[0] || 'Cliente',
           phone: session.user.user_metadata?.phone || '',
           email: session.user.email || '',
         };
         localStorage.setItem('ingenium_store_customer', JSON.stringify(cust));
+
+        // Aseguramos en la base de datos que su rol quede como 'cliente'
+        try {
+          await supabase.from('profiles').upsert({
+            id: session.user.id,
+            name: cust.name,
+            email: session.user.email,
+            role: 'cliente',
+            active: true,
+          }, { onConflict: 'id' });
+        } catch {}
+
         router.replace('/tienda');
       } else {
-        // Acceso del Propietario / Administración al POS
+        // Acceso exclusivo del Propietario / Administrador Oficial (robertanr564@gmail.com)
         try {
           const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           if (!prof) {
             await supabase.from('profiles').insert({
               id: session.user.id,
-              name: session.user.user_metadata?.full_name || 'Rodrigo Ríos (Propietario)',
+              business_id: '0cb52988-c60c-4b2b-bdba-8cb103434d0d',
+              name: session.user.user_metadata?.full_name || 'Rodrigo Ríos (Administrador)',
               email: session.user.email,
               role: 'admin',
               active: true,
