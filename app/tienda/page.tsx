@@ -6,7 +6,7 @@ import { Product, StorefrontCustomer } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import ClientAuthModal from '@/components/store/ClientAuthModal';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
-import SocialNetworksBar from '@/components/SocialNetworksBar';
+import { supabase } from '@/lib/supabase';
 import {
   ShoppingBag,
   Search,
@@ -46,6 +46,20 @@ export default function TiendaPage() {
           // ignore
         }
       }
+
+      // Check if user authenticated via Google OAuth
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          const googleCustomer: StorefrontCustomer = {
+            id: session.user.id,
+            name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Cliente',
+            phone: session.user.user_metadata?.phone || '',
+            email: session.user.email || '',
+          };
+          setCustomer(googleCustomer);
+          localStorage.setItem('ingenium_store_customer', JSON.stringify(googleCustomer));
+        }
+      });
     }
   }, [loadProducts]);
 
@@ -472,9 +486,6 @@ export default function TiendaPage() {
       {/* Floating Chat Widget */}
       <FloatingChatWidget businessName="INGENIUM MÓVIL" businessPhone="+52 81 3962 9319" />
 
-      {/* Floating Social Networks Dock (Bottom Left) */}
-      <SocialNetworksBar variant="floating" />
-
       {/* Client Registration / Login Modal */}
       <ClientAuthModal
         isOpen={authModalOpen}
@@ -497,19 +508,17 @@ export default function TiendaPage() {
             </div>
           </div>
 
-          <SocialNetworksBar variant="inline" />
-
-          <div className="flex items-center gap-4">
-            <Link href="/" className="hover:text-amber-400 transition">
+          <div className="flex items-center gap-3 text-xs text-white/70">
+            <Link href="/" className="hover:text-amber-400 transition font-medium">
               Inicio
             </Link>
-            <span>•</span>
+            {/* Camouflaged Taller link for POS Access */}
             <Link
               href="/login"
-              title="Acceso Administrativo"
-              className="text-white/30 hover:text-white/70 transition flex items-center gap-1 text-[11px]"
+              aria-label="Taller"
+              className="text-[#1e3a5f] hover:text-white/40 transition-colors select-none text-xs"
             >
-              🔒 Terminal
+              Taller
             </Link>
           </div>
         </div>

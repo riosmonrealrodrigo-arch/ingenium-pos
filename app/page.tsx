@@ -356,9 +356,6 @@ export default function WelcomeHomePage() {
         </section>
       </main>
 
-      {/* Floating Social Networks Dock (Bottom-Left) */}
-      <SocialNetworksBar variant="floating" />
-
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/10 bg-[#09131d] py-10 px-4 sm:px-6 lg:px-8 text-xs text-gray-400">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
@@ -374,27 +371,18 @@ export default function WelcomeHomePage() {
             </div>
           </div>
 
-          {/* Social icons inline */}
-          <SocialNetworksBar variant="inline" />
-
-          {/* Links: Public Links + Hidden POS Access */}
-          <div className="flex items-center gap-4 text-gray-400">
-            <Link href="/tienda" className="hover:text-white transition">
+          {/* Links: Public Shop Link + Camouflaged Taller link for POS Access */}
+          <div className="flex items-center gap-3 text-gray-400">
+            <Link href="/tienda" className="hover:text-white transition text-xs font-semibold">
               Catálogo Tienda
             </Link>
-            <span>•</span>
-            <Link href="/reparaciones" className="hover:text-white transition">
-              Taller
-            </Link>
-            <span>•</span>
-            {/* Hidden / Discreet POS access for owner only */}
+            {/* Camouflaged Taller link blending with background */}
             <Link
               href="/login"
-              title="Acceso Administrativo"
-              className="text-gray-600 hover:text-gray-400 transition flex items-center gap-1 opacity-50 hover:opacity-100"
+              aria-label="Taller"
+              className="text-[#0e1b29] hover:text-gray-400 transition-colors select-none text-xs"
             >
-              <Lock size={11} />
-              <span>Terminal POS</span>
+              Taller
             </Link>
           </div>
         </div>
