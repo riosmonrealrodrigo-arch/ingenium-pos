@@ -18,9 +18,9 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !profile) {
-      const t = setTimeout(() => router.replace('/login'), 500);
-      return () => clearTimeout(t);
+    if (!loading) {
+      if (!profile) router.replace('/login');
+      else if (profile.role === 'cliente') router.replace('/tienda');
     }
   }, [profile, loading, router]);
   useEffect(() => { if (profile) { loadProducts(); loadSales(); } }, [profile]);

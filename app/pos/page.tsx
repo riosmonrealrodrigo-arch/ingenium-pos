@@ -31,7 +31,12 @@ export default function POSPage() {
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
 
-  useEffect(() => { if (!loading && !profile) router.replace('/login'); }, [profile, loading, router]);
+  useEffect(() => {
+    if (!loading) {
+      if (!profile) router.replace('/login');
+      else if (profile.role === 'cliente') router.replace('/tienda');
+    }
+  }, [profile, loading, router]);
   useEffect(() => { if (profile) { loadProducts(); loadClients(); } }, [profile]);
 
   const filtered = products.filter(p =>

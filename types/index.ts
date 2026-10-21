@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'cajero' | 'supervisor';
+export type UserRole = 'admin' | 'cajero' | 'supervisor' | 'cliente';
 export type PaymentMethod = 'efectivo' | 'tarjeta' | 'transferencia' | 'credito' | 'mixto';
 export type MovementType = 'entrada' | 'salida' | 'ajuste' | 'venta';
 

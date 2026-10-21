@@ -35,9 +35,12 @@ export default function ClientAuthModal({
     setError('');
     setGoogleLoading(true);
     try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('ingenium_auth_target', 'client');
+      }
       const redirectUrl = typeof window !== 'undefined'
-        ? `${window.location.origin}/tienda`
-        : 'https://ingenium-pos.vercel.app/tienda';
+        ? `${window.location.origin}/auth/callback`
+        : 'https://ingenium-pos.vercel.app/auth/callback';
 
       const { error: oauthErr } = await supabase.auth.signInWithOAuth({
         provider: 'google',

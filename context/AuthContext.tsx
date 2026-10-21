@@ -52,7 +52,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .single();
 
-      if (error || !prof) return false;
+      if (error || !prof) {
+        // Si no existe perfil en profiles (cliente de la tienda web), asignar rol cliente
+        const clientProf: Profile = {
+          id: userId,
+          business_id: 'demo-biz-1',
+          name: 'Cliente Web',
+          email: '',
+          role: 'cliente',
+          active: true,
+          created_at: new Date().toISOString(),
+        };
+        setProfile(clientProf);
+        return false;
+      }
 
       setProfile(prof);
 

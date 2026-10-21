@@ -49,6 +49,9 @@ export default function LoginPage() {
     setError('');
     setGoogleLoading(true);
     try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('ingenium_auth_target', 'admin');
+      }
       await signInWithGoogle();
     } catch {
       enterDemoMode('Administrador Google', 'INGENIUM MÓVIL');
