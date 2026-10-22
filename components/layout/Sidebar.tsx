@@ -43,35 +43,35 @@ export default function Sidebar() {
   return (
     <>
       <aside className="hidden lg:flex flex-col w-52 bg-[#1e3a5f] text-white h-screen fixed left-0 top-0 z-40 shadow-2xl">
-        <div className="flex items-center gap-2.5 px-3.5 py-4 border-b border-white/10">
+        <div className="flex items-center gap-2 px-3 py-3 border-b border-white/10 shrink-0">
           <img
             src="/images/logo.jpg"
             alt="INGENIUM MOBILE"
-            className="w-8 h-8 rounded-full object-cover border border-white/30 shadow-md shrink-0"
+            className="w-7 h-7 rounded-full object-cover border border-white/30 shadow-md shrink-0"
           />
           <div className="min-w-0">
-            <p className="font-black text-xs leading-tight text-white truncate">INGENIUM POS</p>
-            <p className="text-[9px] text-amber-300 font-semibold truncate">Vende inteligente</p>
+            <p className="font-black text-[11px] leading-tight text-white truncate">INGENIUM POS</p>
+            <p className="text-[8.5px] text-amber-300 font-semibold truncate">Vende inteligente</p>
           </div>
         </div>
 
-        <div className="px-3 py-2.5 border-b border-white/10 bg-white/5">
+        <div className="px-2.5 py-1.5 border-b border-white/10 bg-white/5 shrink-0">
           <div className="flex items-center gap-1.5 min-w-0">
-            <Store size={12} className="text-[#f59e0b] shrink-0" />
-            <span className="text-[11px] text-white/90 truncate font-bold">{businessDisplayName}</span>
+            <Store size={11} className="text-[#f59e0b] shrink-0" />
+            <span className="text-[10px] text-white/90 truncate font-bold">{businessDisplayName}</span>
           </div>
-          <p className="text-[10px] text-white/40 mt-0.5 truncate capitalize">{profile?.name || 'Admin'} · {profile?.role || 'admin'}</p>
+          <p className="text-[9px] text-white/40 mt-0.5 truncate capitalize">{profile?.name || 'Admin'} · {profile?.role || 'admin'}</p>
         </div>
 
-        <nav className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
           {navItems.map(({ href, label, icon: Icon, badge }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
             return (
               <Link key={href} href={href}
-                className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-all
-                  ${active ? 'bg-[#2563eb] text-white font-semibold shadow-md shadow-blue-900/30' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}>
-                <div className="flex items-center gap-2.5 truncate">
-                  <Icon size={16} className="shrink-0" />
+                className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-[11px] transition-all
+                  ${active ? 'bg-[#2563eb] text-white font-semibold shadow-sm' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}>
+                <div className="flex items-center gap-2 truncate">
+                  <Icon size={14} className="shrink-0" />
                   <span className="truncate">{label}</span>
                 </div>
                 {badge && (
@@ -82,53 +82,53 @@ export default function Sidebar() {
           })}
 
           {/* Botón Selector de Temática Web */}
-          <div className="pt-2">
+          <div className="pt-1.5">
             <button
               onClick={() => setThemeModalOpen(true)}
-              className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-purple-200 hover:text-white hover:bg-purple-500/20 border border-purple-400/30 transition cursor-pointer"
+              className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[10.5px] font-semibold text-purple-200 hover:text-white hover:bg-purple-500/20 border border-purple-400/30 transition cursor-pointer"
             >
-              <div className="flex items-center gap-2 truncate">
-                <Palette size={15} className="text-purple-300 shrink-0" />
+              <div className="flex items-center gap-1.5 truncate">
+                <Palette size={13} className="text-purple-300 shrink-0" />
                 <span className="truncate">Temas Web</span>
               </div>
-              <span className="text-[11px]">{STORE_THEMES[themeId]?.emoji || '🎨'}</span>
+              <span className="text-[10px]">{STORE_THEMES[themeId]?.emoji || '🎨'}</span>
             </button>
           </div>
 
           {/* Botón Guía de Inicio */}
-          <div className="pt-1">
+          <div className="pt-0.5">
             <button
               onClick={() => setWelcomeOpen(true)}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-blue-200 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              className="w-full flex items-center justify-between px-2 py-1 rounded-lg text-[10px] font-semibold text-blue-200 hover:text-white hover:bg-white/10 transition cursor-pointer"
             >
-              <div className="flex items-center gap-2 truncate">
-                <Sparkles size={14} className="text-amber-400 shrink-0" />
+              <div className="flex items-center gap-1.5 truncate">
+                <Sparkles size={12} className="text-amber-400 shrink-0" />
                 <span className="truncate">Guía Rápida</span>
               </div>
-              <span className="text-[9px] bg-blue-500/30 text-blue-200 px-1 py-0.5 rounded">F1-F4</span>
+              <span className="text-[8px] bg-blue-500/30 text-blue-200 px-1 py-0.5 rounded">F1-F4</span>
             </button>
           </div>
 
           {/* Enlace directo a la Tienda Web Pública */}
-          <div className="pt-2 mt-2 border-t border-white/10">
+          <div className="pt-1.5 mt-1.5 border-t border-white/10">
             <Link
               href="/tienda"
               target="_blank"
-              className="flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold text-amber-300 hover:text-white hover:bg-amber-400/10 border border-amber-400/30 transition-all"
+              className="flex items-center justify-between px-2 py-1.5 rounded-lg text-[10.5px] font-bold text-amber-300 hover:text-white hover:bg-amber-400/10 border border-amber-400/30 transition-all"
             >
-              <div className="flex items-center gap-2 truncate">
-                <Globe size={15} className="shrink-0" />
+              <div className="flex items-center gap-1.5 truncate">
+                <Globe size={13} className="shrink-0" />
                 <span className="truncate">Tienda Web</span>
               </div>
-              <span className="text-[9px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded">En vivo</span>
+              <span className="text-[8.5px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded">En vivo</span>
             </Link>
           </div>
         </nav>
 
-        <div className="px-2.5 pb-4">
+        <div className="px-2 pb-3 shrink-0">
           <button onClick={signOut}
-            className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-xs text-white/60 hover:bg-red-500/20 hover:text-red-300 transition-all cursor-pointer">
-            <LogOut size={16} />
+            className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[10.5px] text-white/60 hover:bg-red-500/20 hover:text-red-300 transition-all cursor-pointer">
+            <LogOut size={13} />
             Cerrar sesión
           </button>
         </div>
