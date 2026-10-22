@@ -36,7 +36,7 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 min-w-0 max-w-full flex flex-col pb-20 lg:pb-0 overflow-x-hidden">
         <Header title="Dashboard" subtitle={`Buenos días, ${profile.name.split(' ')[0]} 👋`} />
         <main className="p-4 lg:p-6 space-y-5 max-w-7xl mx-auto w-full">
 

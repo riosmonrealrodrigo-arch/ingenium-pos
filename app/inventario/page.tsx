@@ -52,11 +52,11 @@ export default function InventarioPage() {
   if (loading || !profile) return null;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 overflow-x-hidden">
       <Sidebar />
-      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 min-w-0 max-w-full flex flex-col pb-20 lg:pb-0 overflow-x-hidden">
         <Header title="Inventario" subtitle="Control de stock en tiempo real" />
-        <main className="p-4 lg:p-6 space-y-5 max-w-7xl mx-auto w-full">
+        <main className="p-3 sm:p-4 lg:p-5 space-y-4 max-w-7xl mx-auto w-full">
 
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">

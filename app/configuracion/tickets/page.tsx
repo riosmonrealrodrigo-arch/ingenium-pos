@@ -99,7 +99,7 @@ export default function ConfiguracionTicketsPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 min-w-0 max-w-full flex flex-col pb-20 lg:pb-0 overflow-x-hidden">
         <Header
           title="Configuración de Tickets y Recibos"
           subtitle="Personaliza el encabezado, políticas y formato térmico de impresión"

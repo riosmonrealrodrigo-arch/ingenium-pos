@@ -330,15 +330,15 @@ export default function ReparacionesPage() {
   if (loading || !profile) return null;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 overflow-x-hidden">
       <Sidebar />
-      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 min-w-0 max-w-full flex flex-col pb-20 lg:pb-0 overflow-x-hidden">
         <Header
           title="Taller y Reparaciones"
           subtitle="Control de órdenes de servicio, diagnósticos técnicos y entregas"
         />
 
-        <main className="p-4 lg:p-6 space-y-5 max-w-7xl mx-auto w-full">
+        <main className="p-3 sm:p-4 lg:p-5 space-y-4 max-w-7xl mx-auto w-full">
           
           {/* Top Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

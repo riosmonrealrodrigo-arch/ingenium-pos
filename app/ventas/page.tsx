@@ -32,11 +32,11 @@ export default function VentasPage() {
   if (loading || !profile) return null;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 overflow-x-hidden">
       <Sidebar />
-      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 min-w-0 max-w-full flex flex-col pb-20 lg:pb-0 overflow-x-hidden">
         <Header title="Historial de Ventas" />
-        <main className="p-4 lg:p-6 space-y-4 max-w-5xl mx-auto w-full">
+        <main className="p-3 sm:p-4 lg:p-5 space-y-4 max-w-5xl mx-auto w-full">
 
           {/* Period */}
           <div className="flex gap-2">

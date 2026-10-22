@@ -162,88 +162,88 @@ export default function TiendaPage() {
       {/* Top Banner (100% Tienda Orientada al Cliente - Themed) */}
       <div
         style={{ background: currentTheme.navTopGradient }}
-        className="text-white text-xs py-2 px-4 border-b border-white/10 flex justify-between items-center transition-colors duration-500"
+        className="text-white text-[11px] py-1 px-4 border-b border-white/10 flex justify-between items-center transition-colors duration-500"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-amber-400 font-semibold">
-            <Sparkles size={14} /> Taller Especializado & Tienda de Repuestos
+            <Sparkles size={12} /> Taller & Tienda Oficial
           </span>
-          <span className="hidden sm:inline text-white/60">|</span>
+          <span className="hidden sm:inline text-white/40">|</span>
           <span className="hidden sm:inline text-white/80">Envíos a todo el país y retiro en sucursal</span>
         </div>
-        <div className="hidden sm:flex items-center gap-2 text-white/70 text-[11px]">
+        <div className="hidden sm:flex items-center gap-2 text-white/70 text-[10px]">
           <span>Moneda Oficial: <strong className="text-amber-400">$ MXN</strong></span>
         </div>
       </div>
 
       {/* Main Navbar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-xs border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
           {/* Logo & Brand */}
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
             <img
               src="/images/logo.jpg"
               alt="INGENIUM MOBILE"
-              className="w-12 h-12 rounded-full object-cover shadow border border-gray-200 group-hover:scale-105 transition"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-xs border border-gray-200 group-hover:scale-105 transition"
             />
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-black text-[#1e3a5f] tracking-tight">INGENIUM MOBILE</span>
-                <span className="text-[10px] bg-blue-100 text-[#2563eb] font-bold px-1.5 py-0.5 rounded">TIENDA</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-base sm:text-lg font-black text-[#1e3a5f] tracking-tight">INGENIUM MOBILE</span>
+                <span className="text-[9px] bg-blue-100 text-[#2563eb] font-bold px-1 py-0.2 rounded">TIENDA</span>
               </div>
-              <p className="text-xs text-gray-500 font-medium">Repuestos, accesorios y reparaciones</p>
+              <p className="text-[10px] text-gray-400 font-medium hidden sm:block">Repuestos, accesorios y reparaciones</p>
             </div>
           </Link>
 
           {/* Search bar desktop */}
-          <div className="hidden md:flex flex-1 max-w-md mx-6">
+          <div className="hidden md:flex flex-1 max-w-sm mx-4">
             <div className="relative w-full">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                <Search size={17} />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <Search size={14} />
               </span>
               <input
                 type="text"
-                placeholder="Buscar pantalla, batería, cargador, servicio..."
+                placeholder="Buscar pantalla, batería, cargador..."
                 value={search}
                 onChange={e => handleSearchChange(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') scrollToCatalog(); }}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-full text-sm outline-none focus:ring-2 focus:ring-[#2563eb] focus:bg-white transition"
+                className="w-full pl-8.5 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-xs outline-none focus:ring-2 focus:ring-[#2563eb] focus:bg-white transition"
               />
             </div>
           </div>
 
           {/* Actions: Client Profile & Cart */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {customer ? (
-              <div className="flex items-center gap-2 bg-blue-50/80 px-3 py-1.5 rounded-full border border-blue-100 text-xs">
-                <User size={14} className="text-[#2563eb]" />
-                <span className="font-bold text-[#1e3a5f] max-w-[120px] truncate">{customer.name}</span>
+              <div className="flex items-center gap-1.5 bg-blue-50/80 px-2.5 py-1 rounded-full border border-blue-100 text-[11px]">
+                <User size={13} className="text-[#2563eb]" />
+                <span className="font-bold text-[#1e3a5f] max-w-[100px] truncate">{customer.name}</span>
                 <button
                   onClick={handleLogoutCustomer}
                   title="Cerrar sesión"
-                  className="text-gray-400 hover:text-red-500 ml-1"
+                  className="text-gray-400 hover:text-red-500 ml-0.5"
                 >
-                  <LogOut size={13} />
+                  <LogOut size={12} />
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition"
               >
-                <User size={15} /> Iniciar Sesión
+                <User size={13} /> Iniciar Sesión
               </button>
             )}
 
             {/* Cart Trigger */}
             <button
               onClick={() => setCartDrawerOpen(true)}
-              className="relative p-2.5 bg-[#1e3a5f] hover:bg-[#162a45] text-white rounded-full shadow-md transition"
+              className="relative p-2 bg-[#1e3a5f] hover:bg-[#162a45] text-white rounded-full shadow-sm transition"
               title="Ver Carrito"
             >
-              <ShoppingBag size={20} />
+              <ShoppingBag size={17} />
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#f59e0b] text-[#1e3a5f] text-xs font-black rounded-full flex items-center justify-center border-2 border-white">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#f59e0b] text-[#1e3a5f] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
                   {cart.reduce((c, i) => c + i.quantity, 0)}
                 </span>
               )}
@@ -252,10 +252,10 @@ export default function TiendaPage() {
         </div>
 
         {/* Search bar mobile */}
-        <div className="md:hidden px-4 pb-3">
+        <div className="md:hidden px-3 pb-2 pt-0.5">
           <div className="relative w-full">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-              <Search size={16} />
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <Search size={14} />
             </span>
             <input
               type="text"
@@ -263,7 +263,7 @@ export default function TiendaPage() {
               value={search}
               onChange={e => handleSearchChange(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') scrollToCatalog(); }}
-              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
+              className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
         </div>
@@ -272,76 +272,64 @@ export default function TiendaPage() {
       {/* Hero Banner (Themed dynamically from POS with guaranteed CSS linear-gradient) */}
       <section
         style={{ background: currentTheme.cssGradient }}
-        className="relative text-white py-12 px-4 sm:px-6 lg:px-8 shadow-2xl overflow-hidden transition-all duration-700"
+        className="relative text-white py-6 sm:py-8 px-4 sm:px-6 lg:px-8 shadow-md overflow-hidden transition-all duration-700"
       >
         {/* Festive Ambiance Overlay */}
         <SeasonalAmbiance themeId={themeId} />
 
-        <div className="relative z-10 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="space-y-4 max-w-xl text-center md:text-left">
+        <div className="relative z-10 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2.5 max-w-xl text-center md:text-left">
             <div
               style={{
                 backgroundColor: currentTheme.badgeBg,
                 borderColor: currentTheme.badgeBorder,
                 color: currentTheme.badgeText,
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black backdrop-blur-md border shadow-md transition-all"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black backdrop-blur-md border shadow-xs transition-all"
             >
-              <Sparkles size={14} className="text-amber-300" />
+              <Sparkles size={13} className="text-amber-300" />
               <span>{currentTheme.badge}</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.15] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
               {currentTheme.headline}
             </h1>
 
-            <p className="text-white/90 text-sm sm:text-base leading-relaxed drop-shadow-[0_1px_5px_rgba(0,0,0,0.5)]">
+            <p className="text-white/90 text-xs sm:text-sm leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
               {currentTheme.tagline}
             </p>
-
-            <div className="pt-2 flex flex-wrap gap-2.5 justify-center md:justify-start">
-              <a
-                href="https://wa.me/528139629319?text=Hola%20INGENIUM%20MOBILE%2C%20me%20comunico%20desde%20la%20p%C3%A1gina%20web.%20Necesito%20cotizar%2Frevisar%20la%20reparaci%C3%B3n%20de%20un%20equipo.%20Marca%2FModelo%3A%20%5B%20%5D%20Falla%3A%20%5B%20%5D"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#20ba5a] text-white font-extrabold rounded-2xl text-xs sm:text-sm transition-all shadow-xl shadow-green-950/40 hover:scale-105 active:scale-95"
-              >
-                <PhoneCall size={16} />
-                <span>Cotizar Reparación por WhatsApp (+52 81 3962 9319)</span>
-              </a>
-            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
+          <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
             <div
               style={{
                 backgroundColor: currentTheme.cardBg,
                 borderColor: currentTheme.badgeBorder,
               }}
-              className="backdrop-blur-md p-5 rounded-3xl border shadow-2xl text-center transform hover:scale-105 transition-all duration-300"
+              className="backdrop-blur-md p-3.5 rounded-2xl border shadow-lg text-center transform hover:scale-105 transition-all duration-300"
             >
-              <Smartphone size={28} className="mx-auto text-amber-300 mb-2 drop-shadow" />
-              <p className="font-black text-xl text-white">100%</p>
-              <p className="text-xs text-white/90 font-medium">Garantía Escrita</p>
+              <Smartphone size={22} className="mx-auto text-amber-300 mb-1 drop-shadow" />
+              <p className="font-black text-base text-white">100%</p>
+              <p className="text-[10px] text-white/90 font-medium">Garantía Escrita</p>
             </div>
             <div
               style={{
                 backgroundColor: currentTheme.cardBg,
                 borderColor: currentTheme.badgeBorder,
               }}
-              className="backdrop-blur-md p-5 rounded-3xl border shadow-2xl text-center transform hover:scale-105 transition-all duration-300"
+              className="backdrop-blur-md p-3.5 rounded-2xl border shadow-lg text-center transform hover:scale-105 transition-all duration-300"
             >
-              <Wrench size={28} className="mx-auto text-amber-300 mb-2 drop-shadow" />
-              <p className="font-black text-xl text-white">Taller</p>
-              <p className="text-xs text-white/90 font-medium">En el acto</p>
+              <Wrench size={22} className="mx-auto text-amber-300 mb-1 drop-shadow" />
+              <p className="font-black text-base text-white">Taller</p>
+              <p className="text-[10px] text-white/90 font-medium">En el acto</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Categories Bar */}
-      <div className="bg-white border-b border-gray-200 sticky top-20 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <div className="bg-white border-b border-gray-200 sticky top-14 sm:top-16 z-30 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
           {[
             { id: 'todos', label: 'Todos los productos' },
             { id: 'repuestos', label: 'Repuestos & Pantallas' },
@@ -359,9 +347,9 @@ export default function TiendaPage() {
                   ? { backgroundColor: currentTheme.accentColor, color: '#ffffff' }
                   : {}
               }
-              className={`px-4 py-2 rounded-full text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                 selectedCategory === cat.id
-                  ? 'shadow-sm'
+                  ? 'shadow-xs'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >

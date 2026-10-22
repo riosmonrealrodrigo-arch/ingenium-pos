@@ -60,7 +60,7 @@ export default function NuevoProductoPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 min-w-0 max-w-full flex flex-col pb-20 lg:pb-0 overflow-x-hidden">
         <Header title="Nuevo Producto" />
         <main className="p-4 lg:p-6 max-w-2xl mx-auto w-full">
           <button
