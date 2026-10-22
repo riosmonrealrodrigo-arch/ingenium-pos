@@ -51,7 +51,7 @@ export default function ProductosPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
         <Header title="Productos e Inventario" subtitle={`${products.length} productos registrados · Moneda: $ MXN`} />
         <main className="p-4 lg:p-6 space-y-4 max-w-7xl mx-auto w-full">
 

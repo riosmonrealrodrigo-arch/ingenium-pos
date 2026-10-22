@@ -2,7 +2,7 @@ import { Product, Sale, Client, Business, Profile, ChatConversation, ChatMessage
 
 export const DEMO_BUSINESS: Business = {
   id: 'demo-biz-1',
-  name: 'INGENIUM MÓVIL',
+  name: 'INGENIUM MOBILE',
   currency: '$ MXN',
   tax_rate: 16,
   address: 'Av. Constitución 450, Monterrey, N.L., México',
@@ -449,7 +449,7 @@ export const DEMO_REPAIRS: RepairOrder[] = [
 
 export const DEFAULT_TICKET_SETTINGS: TicketSettings = {
   business_id: 'demo-biz-1',
-  business_name: 'INGENIUM MÓVIL',
+  business_name: 'INGENIUM MOBILE',
   tax_id: 'RFC: XAXX010101000',
   address: 'Av. Constitución 450, Monterrey, N.L., México',
   phone: '+52 81 3962 9319',

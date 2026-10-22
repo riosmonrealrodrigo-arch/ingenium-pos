@@ -321,7 +321,7 @@ export default function SoportePage() {
     if (!phone) return '#';
     const clean = phone.replace(/\D/g, '');
     const full = clean.startsWith('52') ? clean : '52' + clean;
-    return `https://wa.me/${full}?text=${encodeURIComponent('Hola! Te saluda el equipo de INGENIUM MÓVIL con respecto a tu consulta en la tienda en línea.')}`;
+    return `https://wa.me/${full}?text=${encodeURIComponent('Hola! Te saluda el equipo de INGENIUM MOBILE con respecto a tu consulta en la tienda en línea.')}`;
   };
 
   if (loading || !profile) return null;
@@ -329,7 +329,7 @@ export default function SoportePage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col pb-20 lg:pb-0 h-screen overflow-hidden">
+      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0 h-screen overflow-hidden">
         <Header title="Soporte y Mensajes de Clientes en Vivo" />
 
         <div className="flex-1 flex overflow-hidden p-4 lg:p-6 gap-6 max-w-7xl mx-auto w-full">

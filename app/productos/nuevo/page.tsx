@@ -60,7 +60,7 @@ export default function NuevoProductoPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
         <Header title="Nuevo Producto" />
         <main className="p-4 lg:p-6 max-w-2xl mx-auto w-full">
           <button
@@ -149,7 +149,7 @@ export default function NuevoProductoPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <Field
-                label={`Precio de compra (${business?.currency ?? 'Q'})`}
+                label={`Precio de compra (${business?.currency ?? '$'})`}
                 type="number"
                 step="0.01"
                 placeholder="0.00"
@@ -157,7 +157,7 @@ export default function NuevoProductoPage() {
                 onChange={set('purchase_price')}
               />
               <Field
-                label={`Precio de venta (${business?.currency ?? 'Q'}) *`}
+                label={`Precio de venta (${business?.currency ?? '$'}) *`}
                 type="number"
                 step="0.01"
                 placeholder="0.00"

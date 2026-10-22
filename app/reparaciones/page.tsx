@@ -287,7 +287,7 @@ export default function ReparacionesPage() {
 
   const handleSendWhatsAppNotification = (rep: RepairOrder) => {
     const cleanPhone = rep.client_phone.replace(/[^0-9]/g, '');
-    const bizName = business?.name || 'INGENIUM MÓVIL';
+    const bizName = business?.name || 'INGENIUM MOBILE';
     const statusText = STATUS_CONFIG[rep.status].label;
 
     let msg = `Hola *${rep.client_name}*, te saludamos de *${bizName}*.\n\n`;
@@ -332,7 +332,7 @@ export default function ReparacionesPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
         <Header
           title="Taller y Reparaciones"
           subtitle="Control de órdenes de servicio, diagnósticos técnicos y entregas"

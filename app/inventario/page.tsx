@@ -54,7 +54,7 @@ export default function InventarioPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
         <Header title="Inventario" subtitle="Control de stock en tiempo real" />
         <main className="p-4 lg:p-6 space-y-5 max-w-7xl mx-auto w-full">
 

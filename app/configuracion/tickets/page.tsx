@@ -99,7 +99,7 @@ export default function ConfiguracionTicketsPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
         <Header
           title="Configuración de Tickets y Recibos"
           subtitle="Personaliza el encabezado, políticas y formato térmico de impresión"
@@ -148,7 +148,7 @@ export default function ConfiguracionTicketsPage() {
                     required
                     value={settings.business_name}
                     onChange={e => handleChange('business_name', e.target.value)}
-                    placeholder="Ej: INGENIUM MÓVIL"
+                    placeholder="Ej: INGENIUM MOBILE"
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                   />
                 </div>

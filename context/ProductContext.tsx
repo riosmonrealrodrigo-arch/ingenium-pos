@@ -20,15 +20,12 @@ interface ProductContextType {
 
 const ProductContext = createContext<ProductContextType | null>(null);
 
+const DEFAULT_BUSINESS_ID = '0cb52988-c60c-4b2b-bdba-8cb103434d0d';
+
 export function ProductProvider({ children }: { children: ReactNode }) {
   const { business } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const isDemoCleared = () => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('ingenium_demo_cleared') === 'true';
-  };
 
   const saveProductsToStorage = (newProducts: Product[]) => {
     setProducts(newProducts);
@@ -40,7 +37,6 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   // Carga reactiva desde Supabase
   const loadProducts = useCallback(async () => {
     setLoading(true);
-    const cleared = isDemoCleared();
 
     try {
       // Consulta a la tabla products de Supabase
@@ -49,34 +45,21 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        if (data.length > 0) {
-          setProducts(data);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('ingenium_demo_products', JSON.stringify(data));
-          }
-        } else {
-          // Si la base de datos está vacía
-          if (cleared) {
-            setProducts([]);
-          } else {
-            setProducts(DEMO_PRODUCTS);
-          }
+      if (!error && data && data.length > 0) {
+        setProducts(data);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ingenium_demo_products', JSON.stringify(data));
         }
-      } else {
-        // Fallback local/offline si no hay conexión
-        if (cleared) {
-          setProducts([]);
-        } else if (typeof window !== 'undefined') {
-          const saved = localStorage.getItem('ingenium_demo_products');
-          setProducts(saved ? JSON.parse(saved) : DEMO_PRODUCTS);
+      } else if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('ingenium_demo_products');
+        if (saved) {
+          setProducts(JSON.parse(saved));
         }
       }
     } catch {
-      if (cleared) {
-        setProducts([]);
-      } else {
-        setProducts(DEMO_PRODUCTS);
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('ingenium_demo_products');
+        if (saved) setProducts(JSON.parse(saved));
       }
     } finally {
       setLoading(false);
@@ -109,11 +92,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   }, [loadProducts]);
 
   const addProduct = async (data: Omit<Product, 'id' | 'business_id' | 'created_at'>) => {
-    const bizId = business?.id && business.id !== 'demo-biz-1' ? business.id : undefined;
-
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('ingenium_demo_cleared');
-    }
+    const bizId = business?.id && business.id !== 'demo-biz-1' ? business.id : DEFAULT_BUSINESS_ID;
 
     try {
       const { data: inserted, error } = await supabase
@@ -131,7 +110,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
           stock: data.stock,
           min_stock: data.min_stock,
           active: data.active,
-          ...(bizId ? { business_id: bizId } : {}),
+          business_id: bizId,
         })
         .select()
         .single();
@@ -144,14 +123,6 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.warn('Error al insertar en Supabase:', e);
     }
-
-    const newP: Product = {
-      ...data,
-      id: 'prod-' + Date.now(),
-      business_id: bizId || 'demo-biz-1',
-      created_at: new Date().toISOString(),
-    };
-    saveProductsToStorage([newP, ...products]);
   };
 
   const updateProduct = async (id: string, data: Partial<Product>) => {
@@ -160,10 +131,16 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     saveProductsToStorage(updated);
 
     try {
-      await supabase
+      const { data: updatedRows, error } = await supabase
         .from('products')
         .update(data)
-        .eq('id', id);
+        .eq('id', id)
+        .select();
+
+      if (!error && updatedRows && updatedRows.length > 0) {
+        const finalProducts = products.map(p => (p.id === id ? updatedRows[0] : p));
+        saveProductsToStorage(finalProducts);
+      }
     } catch (e) {
       console.warn('Error al actualizar producto en Supabase:', e);
     }

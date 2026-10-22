@@ -142,10 +142,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.warn('OAuth google error:', error.message);
-        enterDemoMode('Administrador Google', 'INGENIUM MÓVIL');
+        enterDemoMode('Administrador Google', 'INGENIUM MOBILE');
       }
     } catch {
-      enterDemoMode('Administrador Google', 'INGENIUM MÓVIL');
+      enterDemoMode('Administrador Google', 'INGENIUM MOBILE');
     }
   };
 
@@ -223,7 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return {};
     } catch (err: any) {
       if (email.trim().toLowerCase() === 'robertanr564@gmail.com' && password === 'RO15-9ALRM') {
-        enterDemoMode('Rodrigo Ríos (Administrador)', 'INGENIUM MÓVIL');
+        enterDemoMode('Rodrigo Ríos (Administrador)', 'INGENIUM MOBILE');
         return {};
       }
       return { error: err?.message || 'Error al iniciar sesión' };

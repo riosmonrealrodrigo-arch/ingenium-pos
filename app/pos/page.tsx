@@ -80,7 +80,7 @@ export default function POSPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col h-screen pb-16 lg:pb-0">
+      <div className="flex-1 lg:ml-52 flex flex-col h-screen pb-16 lg:pb-0">
         <Header title="Punto de Venta" />
 
         {/* Success toast */}

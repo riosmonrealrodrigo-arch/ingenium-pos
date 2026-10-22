@@ -45,7 +45,7 @@ const COMMON_FAULTS = [
 
 export default function FloatingChatWidget({
   businessPhone = '+52 81 3962 9319',
-  businessName = 'INGENIUM MÓVIL',
+  businessName = 'INGENIUM MOBILE',
 }: FloatingChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'whatsapp_form' | 'pos_chat' | 'rastreo'>('whatsapp_form');
@@ -72,7 +72,81 @@ export default function FloatingChatWidget({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
+  // Draggable position states
+  const [position, setPosition] = useState<{ x?: number; y?: number }>({});
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number; moved: boolean }>({
+    startX: 0,
+    startY: 0,
+    initialX: 0,
+    initialY: 0,
+    moved: false,
+  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load saved position from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedPos = localStorage.getItem('ingenium_chat_pos');
+      if (savedPos) {
+        try {
+          setPosition(JSON.parse(savedPos));
+        } catch {}
+      }
+    }
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: rect.left,
+      initialY: rect.top,
+      moved: false,
+    };
+    setIsDragging(true);
+    target.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      dragRef.current.moved = true;
+    }
+
+    if (typeof window !== 'undefined') {
+      const newX = Math.max(10, Math.min(window.innerWidth - 75, dragRef.current.initialX + dx));
+      const newY = Math.max(10, Math.min(window.innerHeight - 75, dragRef.current.initialY + dy));
+      setPosition({ x: newX, y: newY });
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+
+    if (dragRef.current.moved && position.x !== undefined && position.y !== undefined && typeof window !== 'undefined') {
+      localStorage.setItem('ingenium_chat_pos', JSON.stringify(position));
+    }
+  };
+
+  const handleBubbleClick = (e: React.MouseEvent) => {
+    if (dragRef.current.moved) {
+      dragRef.current.moved = false;
+      return;
+    }
+    setIsOpen(true);
+    setUnreadBadge(0);
+  };
 
   // Load customer info if saved in storage
   useEffect(() => {
@@ -166,7 +240,7 @@ export default function FloatingChatWidget({
     if (!waName.trim() || !waDevice.trim()) return;
 
     const compiledMessage =
-      `*¡HOLA INGENIUM MÓVIL!* 🤖📱\n` +
+      `*¡HOLA INGENIUM MOBILE!* 🤖📱\n` +
       `Vengo desde la tienda en línea y solicito atención técnica:\n\n` +
       `👤 *Cliente:* ${waName.trim()}\n` +
       `📱 *Equipo / Modelo:* ${waDevice.trim()}\n` +
@@ -253,7 +327,7 @@ export default function FloatingChatWidget({
           localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(conv));
         }
 
-        const welcomeText = `¡Hola ${cust.name.split(' ')[0]}! 👋 Soy el asistente virtual de INGENIUM MÓVIL. Un técnico en el Punto de Venta te atenderá en unos momentos.`;
+        const welcomeText = `¡Hola ${cust.name.split(' ')[0]}! 👋 Soy el asistente virtual de INGENIUM MOBILE. Un técnico en el Punto de Venta te atenderá en unos momentos.`;
         await supabase.from('chat_messages').insert({
           conversation_id: conv.id,
           sender_name: 'Robot INGENIUM',
@@ -305,84 +379,136 @@ export default function FloatingChatWidget({
     } catch {}
   };
 
+  // Position calculations clamped within viewport
+  const isCustomPosition = position.x !== undefined && position.y !== undefined;
+
+  const getBubbleStyle = (): React.CSSProperties => {
+    if (isCustomPosition) {
+      return {
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+      };
+    }
+    return {
+      right: '20px',
+      bottom: '20px',
+    };
+  };
+
+  const getModalStyle = (): React.CSSProperties => {
+    if (typeof window === 'undefined' || !isCustomPosition) {
+      return { right: '20px', bottom: '20px' };
+    }
+    const modalWidth = Math.min(390, window.innerWidth - 20);
+    const modalHeight = 580;
+
+    let left = (position.x ?? 0) - modalWidth + 70;
+    let top = (position.y ?? 0) - modalHeight + 20;
+
+    // Viewport clamping
+    if (left < 10) left = 10;
+    if (left + modalWidth > window.innerWidth - 10) left = window.innerWidth - modalWidth - 10;
+    if (top < 10) top = 10;
+    if (top + modalHeight > window.innerHeight - 10) top = window.innerHeight - modalHeight - 10;
+
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+    };
+  };
+
   return (
-    <div className="fixed bottom-5 right-5 z-50">
-      {/* CUTE ROBOT CIRCULAR FLOATING BUBBLE */}
+    <>
+      {/* CUTE ROBOT CIRCULAR FLOATING BUBBLE (DRAGGABLE) */}
       {!isOpen && (
-        <div className="relative group">
-          {/* Tooltip flotante amigable */}
-          <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-[#0d1b2a] text-white text-xs font-bold py-1.5 px-3 rounded-2xl shadow-xl border border-emerald-400/30 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none flex items-center gap-1.5">
-            <span>¡Hola! Cotiza por WhatsApp</span>
-            <span className="text-emerald-400">🤖💬</span>
+        <div
+          style={getBubbleStyle()}
+          className="fixed z-50 select-none touch-none"
+        >
+          <div className="relative group">
+            {/* Tooltip flotante amigable */}
+            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-[#0d1b2a] text-white text-xs font-bold py-1.5 px-3 rounded-2xl shadow-xl border border-emerald-400/30 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none flex items-center gap-1.5">
+              <span>¡Hola! Cotiza por WhatsApp</span>
+              <span className="text-[10px] text-gray-400 font-normal">(Arrastra para mover)</span>
+              <span className="text-emerald-400">🤖💬</span>
+            </div>
+
+            <div
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onClick={handleBubbleClick}
+              role="button"
+              tabIndex={0}
+              aria-label="Abrir Asistente WhatsApp (Arrastrable)"
+              className={`relative w-15 h-15 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-[#128C7E] via-[#25D366] to-[#34D399] p-0.5 shadow-2xl shadow-emerald-900/40 hover:scale-105 active:scale-95 transition-transform duration-200 flex items-center justify-center border-2 border-white/60 group select-none ${
+                isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'
+              }`}
+            >
+              {/* Anillo de pulso sutil */}
+              <span className="absolute -inset-1 rounded-full bg-emerald-400/30 animate-ping pointer-events-none" style={{ animationDuration: '3s' }} />
+
+              {/* Robot SVG Animado y Cute */}
+              <div className="w-full h-full rounded-full bg-gradient-to-b from-[#1e3a5f] to-[#0d1b2a] flex items-center justify-center p-2.5 overflow-hidden pointer-events-none">
+                <svg
+                  className="w-full h-full transform group-hover:rotate-6 transition-transform duration-300"
+                  viewBox="0 0 64 64"
+                  fill="none"
+                >
+                  {/* Antena del Robot con esfera luminosa */}
+                  <line x1="32" y1="13" x2="32" y2="5" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" />
+                  <circle cx="32" cy="5" r="3.5" fill="#34D399" className="animate-pulse" />
+
+                  {/* Orejas de audífono */}
+                  <rect x="7" y="23" width="5" height="14" rx="2" fill="#F59E0B" />
+                  <rect x="52" y="23" width="5" height="14" rx="2" fill="#F59E0B" />
+
+                  {/* Cabeza del Robot */}
+                  <rect x="12" y="13" width="40" height="34" rx="10" fill="#1E3A5F" stroke="#38BDF8" strokeWidth="2.2" />
+
+                  {/* Pantalla digital oscura */}
+                  <rect x="18" y="20" width="28" height="18" rx="6" fill="#0D1B2A" />
+
+                  {/* Ojos expresivos cyan estilo anime */}
+                  <ellipse cx="25" cy="27" rx="3.5" ry="4" fill="#38BDF8" />
+                  <circle cx="26" cy="25.5" r="1.2" fill="#FFFFFF" />
+                  <ellipse cx="39" cy="27" rx="3.5" ry="4" fill="#38BDF8" />
+                  <circle cx="40" cy="25.5" r="1.2" fill="#FFFFFF" />
+
+                  {/* Sonrisa robótica tierna */}
+                  <path d="M28 32 Q32 35.5 36 32" stroke="#34D399" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+
+                  {/* Mejillas sonrojadas rosas */}
+                  <circle cx="21" cy="31" r="2" fill="#F43F5E" opacity="0.75" />
+                  <circle cx="43" cy="31" r="2" fill="#F43F5E" opacity="0.75" />
+                </svg>
+              </div>
+
+              {/* Mini badge oficial de WhatsApp en la esquina */}
+              <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-[#25D366] border-2 border-white flex items-center justify-center shadow-md pointer-events-none">
+                <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
+                  <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.584 1.777.818 2.796.818 3.179 0 5.765-2.587 5.766-5.766.001-3.182-2.585-5.769-5.766-5.769zm3.393 8.163c-.144.405-.837.774-1.17.822-.312.043-.637.067-1.802-.416-.838-.348-1.465-.898-1.89-1.328l-.022-.022c-.419-.44-1.077-1.285-1.077-2.316 0-1.026.54-1.53.734-1.741.194-.212.423-.264.564-.264.141 0 .283.003.407.009.131.006.304-.05.476.363.177.426.602 1.468.654 1.574.053.106.089.23.018.371-.071.141-.106.23-.212.353-.106.124-.222.277-.318.371-.106.106-.217.221-.093.434.124.212.551.909 1.18 1.469.811.722 1.494.945 1.706 1.051.212.106.336.089.459-.053.124-.141.53-.618.672-.83.141-.212.283-.177.476-.106.195.071 1.237.583 1.449.689.212.106.353.159.407.247.053.088.053.512-.091.917z" />
+                </svg>
+              </div>
+
+              {/* Indicador de mensaje no leído */}
+              {unreadBadge > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-bounce border-2 border-white pointer-events-none">
+                  {unreadBadge}
+                </span>
+              )}
+            </div>
           </div>
-
-          <button
-            onClick={() => {
-              setIsOpen(true);
-              setUnreadBadge(0);
-            }}
-            aria-label="Abrir Asistente WhatsApp"
-            className="relative w-15 h-15 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-[#128C7E] via-[#25D366] to-[#34D399] p-0.5 shadow-2xl shadow-emerald-900/40 hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer border-2 border-white/60 group"
-          >
-            {/* Anillo de pulso sutil */}
-            <span className="absolute -inset-1 rounded-full bg-emerald-400/30 animate-ping pointer-events-none" style={{ animationDuration: '3s' }} />
-
-            {/* Robot SVG Animado y Cute */}
-            <div className="w-full h-full rounded-full bg-gradient-to-b from-[#1e3a5f] to-[#0d1b2a] flex items-center justify-center p-2.5 overflow-hidden">
-              <svg
-                className="w-full h-full transform group-hover:rotate-6 transition-transform duration-300"
-                viewBox="0 0 64 64"
-                fill="none"
-              >
-                {/* Antena del Robot con esfera luminosa */}
-                <line x1="32" y1="13" x2="32" y2="5" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" />
-                <circle cx="32" cy="5" r="3.5" fill="#34D399" className="animate-pulse" />
-
-                {/* Orejas de audífono */}
-                <rect x="7" y="23" width="5" height="14" rx="2" fill="#F59E0B" />
-                <rect x="52" y="23" width="5" height="14" rx="2" fill="#F59E0B" />
-
-                {/* Cabeza del Robot */}
-                <rect x="12" y="13" width="40" height="34" rx="10" fill="#1E3A5F" stroke="#38BDF8" strokeWidth="2.2" />
-
-                {/* Pantalla digital oscura */}
-                <rect x="18" y="20" width="28" height="18" rx="6" fill="#0D1B2A" />
-
-                {/* Ojos expresivos cyan estilo anime */}
-                <ellipse cx="25" cy="27" rx="3.5" ry="4" fill="#38BDF8" />
-                <circle cx="26" cy="25.5" r="1.2" fill="#FFFFFF" />
-                <ellipse cx="39" cy="27" rx="3.5" ry="4" fill="#38BDF8" />
-                <circle cx="40" cy="25.5" r="1.2" fill="#FFFFFF" />
-
-                {/* Sonrisa robótica tierna */}
-                <path d="M28 32 Q32 35.5 36 32" stroke="#34D399" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-
-                {/* Mejillas sonrojadas rosas */}
-                <circle cx="21" cy="31" r="2" fill="#F43F5E" opacity="0.75" />
-                <circle cx="43" cy="31" r="2" fill="#F43F5E" opacity="0.75" />
-              </svg>
-            </div>
-
-            {/* Mini badge oficial de WhatsApp en la esquina */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-[#25D366] border-2 border-white flex items-center justify-center shadow-md">
-              <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
-                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.584 1.777.818 2.796.818 3.179 0 5.765-2.587 5.766-5.766.001-3.182-2.585-5.769-5.766-5.769zm3.393 8.163c-.144.405-.837.774-1.17.822-.312.043-.637.067-1.802-.416-.838-.348-1.465-.898-1.89-1.328l-.022-.022c-.419-.44-1.077-1.285-1.077-2.316 0-1.026.54-1.53.734-1.741.194-.212.423-.264.564-.264.141 0 .283.003.407.009.131.006.304-.05.476.363.177.426.602 1.468.654 1.574.053.106.089.23.018.371-.071.141-.106.23-.212.353-.106.124-.222.277-.318.371-.106.106-.217.221-.093.434.124.212.551.909 1.18 1.469.811.722 1.494.945 1.706 1.051.212.106.336.089.459-.053.124-.141.53-.618.672-.83.141-.212.283-.177.476-.106.195.071 1.237.583 1.449.689.212.106.353.159.407.247.053.088.053.512-.091.917z" />
-              </svg>
-            </div>
-
-            {/* Indicador de mensaje no leído */}
-            {unreadBadge > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-bounce border-2 border-white">
-                {unreadBadge}
-              </span>
-            )}
-          </button>
         </div>
       )}
 
       {/* ASISTENTE MODAL / DIALOG */}
       {isOpen && (
-        <div className="w-[92vw] max-w-[390px] h-[580px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-slideUp">
+        <div
+          style={getModalStyle()}
+          className="fixed z-50"
+        >
+          <div className="w-[92vw] max-w-[390px] h-[580px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-slideUp">
           {/* Header Tecnológico */}
           <div className="bg-gradient-to-r from-[#1e3a5f] via-[#162e4c] to-[#075E54] p-4 text-white flex items-center justify-between shadow-md">
             <div className="flex items-center gap-3">
@@ -703,7 +829,7 @@ export default function FloatingChatWidget({
 
               <div className="pt-4 border-t text-center">
                 <a
-                  href={`https://wa.me/528139629319?text=${encodeURIComponent('Hola INGENIUM MÓVIL, quiero consultar el estado de mi orden ORD.')}`}
+                  href={`https://wa.me/528139629319?text=${encodeURIComponent('Hola INGENIUM MOBILE, quiero consultar el estado de mi orden ORD.')}`}
                   target="_blank"
                   rel="noreferrer"
                   className="text-xs font-bold text-emerald-700 hover:underline flex items-center justify-center gap-1"
@@ -714,7 +840,8 @@ export default function FloatingChatWidget({
             </div>
           )}
         </div>
-      )}
-    </div>
+      </div>
+    )}
+  </>
   );
 }

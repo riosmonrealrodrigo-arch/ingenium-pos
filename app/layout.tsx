@@ -6,6 +6,7 @@ import { ProductProvider } from '@/context/ProductContext';
 import { CartProvider } from '@/context/CartContext';
 import { SalesProvider } from '@/context/SalesContext';
 import { ClientProvider } from '@/context/ClientContext';
+import { StoreThemeProvider } from '@/context/StoreThemeContext';
 import OfflineNoticeModal from '@/components/OfflineNoticeModal';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -25,8 +26,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <CartProvider>
               <SalesProvider>
                 <ClientProvider>
-                  <OfflineNoticeModal />
-                  {children}
+                  <StoreThemeProvider>
+                    <OfflineNoticeModal />
+                    {children}
+                  </StoreThemeProvider>
                 </ClientProvider>
               </SalesProvider>
             </CartProvider>

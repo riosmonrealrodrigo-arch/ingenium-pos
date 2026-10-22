@@ -94,7 +94,7 @@ export default function EditarProductoPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col pb-20 lg:pb-0">
+      <div className="flex-1 lg:ml-52 flex flex-col pb-20 lg:pb-0">
         <Header title="Editar Producto" />
         <main className="p-4 lg:p-6 max-w-2xl mx-auto w-full">
           <button
@@ -192,7 +192,7 @@ export default function EditarProductoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
-                  P. Compra ({business?.currency ?? 'Q'})
+                  P. Compra ({business?.currency ?? '$'})
                 </label>
                 <input
                   type="number"
@@ -204,7 +204,7 @@ export default function EditarProductoPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
-                  P. Venta ({business?.currency ?? 'Q'}) *
+                  P. Venta ({business?.currency ?? '$'}) *
                 </label>
                 <input
                   required

@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useProducts } from '@/context/ProductContext';
+import { useStoreTheme } from '@/context/StoreThemeContext';
 import { Product, StorefrontCustomer } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import ClientAuthModal from '@/components/store/ClientAuthModal';
@@ -27,6 +28,7 @@ import {
 
 export default function TiendaPage() {
   const { products, loadProducts } = useProducts();
+  const { currentTheme, themeId } = useStoreTheme();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [customer, setCustomer] = useState<StorefrontCustomer | null>(null);
@@ -182,7 +184,7 @@ export default function TiendaPage() {
             />
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-black text-[#1e3a5f] tracking-tight">INGENIUM MÓVIL</span>
+                <span className="text-xl font-black text-[#1e3a5f] tracking-tight">INGENIUM MOBILE</span>
                 <span className="text-[10px] bg-blue-100 text-[#2563eb] font-bold px-1.5 py-0.5 rounded">TIENDA</span>
               </div>
               <p className="text-xs text-gray-500 font-medium">Repuestos, accesorios y reparaciones</p>
@@ -263,20 +265,63 @@ export default function TiendaPage() {
         </div>
       </header>
 
-      {/* Hero Banner */}
-      <section className="bg-gradient-to-r from-[#1e3a5f] via-[#224570] to-[#2563eb] text-white py-10 px-4 sm:px-6 lg:px-8 shadow-inner">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* Hero Banner (Themed dynamically from POS) */}
+      <section className={`relative bg-gradient-to-r ${currentTheme.bannerGradient} text-white py-10 px-4 sm:px-6 lg:px-8 shadow-inner overflow-hidden transition-all duration-500`}>
+        {/* Festive theme ambient particles */}
+        {themeId === 'halloween' && (
+          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-30 text-2xl">
+            <span className="absolute top-4 left-10 animate-bounce" style={{ animationDuration: '4s' }}>🦇</span>
+            <span className="absolute top-12 right-20 animate-pulse" style={{ animationDuration: '3s' }}>🎃</span>
+            <span className="absolute bottom-6 left-1/3 animate-bounce" style={{ animationDuration: '5s' }}>👻</span>
+            <span className="absolute top-8 left-2/3 animate-pulse">🕷️</span>
+          </div>
+        )}
+        {themeId === 'navidad' && (
+          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-35 text-2xl">
+            <span className="absolute top-3 left-12 animate-pulse">❄️</span>
+            <span className="absolute top-10 right-24 animate-bounce" style={{ animationDuration: '4s' }}>🎄</span>
+            <span className="absolute bottom-4 left-1/2 animate-pulse" style={{ animationDuration: '3s' }}>🎅</span>
+            <span className="absolute top-6 left-3/4 animate-bounce">🎁</span>
+          </div>
+        )}
+        {themeId === 'san_valentin' && (
+          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-30 text-2xl">
+            <span className="absolute top-4 left-10 animate-bounce" style={{ animationDuration: '3s' }}>💖</span>
+            <span className="absolute top-10 right-20 animate-pulse" style={{ animationDuration: '4s' }}>💕</span>
+            <span className="absolute bottom-6 left-1/3 animate-bounce">💘</span>
+            <span className="absolute top-8 left-2/3 animate-pulse">✨</span>
+          </div>
+        )}
+        {themeId === 'black_friday' && (
+          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-25 text-2xl">
+            <span className="absolute top-4 left-12 animate-pulse">🔥</span>
+            <span className="absolute top-12 right-24 animate-bounce" style={{ animationDuration: '2s' }}>⚡</span>
+            <span className="absolute bottom-5 left-1/2 animate-pulse">🛒</span>
+            <span className="absolute top-8 left-2/3 animate-bounce">💥</span>
+          </div>
+        )}
+        {themeId === 'fiestas_patrias' && (
+          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-35 text-2xl">
+            <span className="absolute top-4 left-10 animate-bounce">🇲🇽</span>
+            <span className="absolute top-10 right-20 animate-pulse">🎉</span>
+            <span className="absolute bottom-5 left-1/3 animate-bounce">🎊</span>
+            <span className="absolute top-8 left-2/3 animate-pulse">🇲🇽</span>
+          </div>
+        )}
+
+        <div className="relative max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-3 max-w-xl text-center md:text-left">
-            <div className="inline-flex items-center gap-1.5 bg-amber-400/20 text-amber-300 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">
-              <Sparkles size={14} /> Catálogo Oficial & Tienda Virtual
+            <div className="inline-flex items-center gap-1.5 bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm border border-white/20 shadow-xs">
+              <Sparkles size={14} className="text-amber-300" />
+              <span>{currentTheme.badge}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
-              Repuestos y Servicio Técnico para Celulares
+              {currentTheme.headline}
             </h1>
-            <p className="text-blue-100 text-sm leading-relaxed">
-              Explora refacciones originales, pantallas OLED, baterías y accesorios con garantía certificada en moneda nacional ($ MXN).
+            <p className="text-white/90 text-sm leading-relaxed">
+              {currentTheme.tagline}
             </p>
-            <div className="pt-2 flex flex-wrap gap-2.5">
+            <div className="pt-2 flex flex-wrap gap-2.5 justify-center md:justify-start">
               <a
                 href="https://wa.me/528139629319?text=Hola%20INGENIUM%20MOBILE%2C%20me%20comunico%20desde%20la%20p%C3%A1gina%20web.%20Necesito%20cotizar%2Frevisar%20la%20reparaci%C3%B3n%20de%20un%20equipo.%20Marca%2FModelo%3A%20%5B%20%5D%20Falla%3A%20%5B%20%5D"
                 target="_blank"
@@ -447,7 +492,7 @@ export default function TiendaPage() {
                 </div>
                 <h4 className="font-black text-lg text-gray-800">¡Pedido Enviado a WhatsApp!</h4>
                 <p className="text-xs text-gray-500">
-                  Un asesor de INGENIUM MÓVIL ya recibió el detalle para apartar tus piezas o coordinar entrega.
+                  Un asesor de INGENIUM MOBILE ya recibió el detalle para apartar tus piezas o coordinar entrega.
                 </p>
                 <button
                   onClick={() => {
@@ -506,7 +551,7 @@ export default function TiendaPage() {
       )}
 
       {/* Floating Chat Widget */}
-      <FloatingChatWidget businessName="INGENIUM MÓVIL" businessPhone="+52 81 3962 9319" />
+      <FloatingChatWidget businessName="INGENIUM MOBILE" businessPhone="+52 81 3962 9319" />
 
       {/* Client Registration / Login Modal */}
       <ClientAuthModal
@@ -525,7 +570,7 @@ export default function TiendaPage() {
               className="w-10 h-10 rounded-full object-cover border border-white/20"
             />
             <div>
-              <p className="font-bold text-white text-sm">INGENIUM MÓVIL</p>
+              <p className="font-bold text-white text-sm">INGENIUM MOBILE</p>
               <p className="text-[11px] text-white/50">Repuestos garantizados y servicio técnico</p>
             </div>
           </div>

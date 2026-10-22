@@ -19,8 +19,10 @@ import {
 import SocialNetworksBar from '@/components/SocialNetworksBar';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
 import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
+import { useStoreTheme } from '@/context/StoreThemeContext';
 
 export default function WelcomeHomePage() {
+  const { currentTheme, themeId } = useStoreTheme();
   const [activeTab, setActiveTab] = useState<'tienda' | 'reparaciones' | 'redes'>('tienda');
 
   return (
@@ -113,7 +115,7 @@ export default function WelcomeHomePage() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold backdrop-blur-md shadow-sm">
                 <Sparkles size={14} className="text-amber-400" />
-                <span>Tienda Oficial & Taller Especializado de Celulares</span>
+                <span>{currentTheme.badge}</span>
               </div>
 
               {/* Title */}
@@ -289,7 +291,7 @@ export default function WelcomeHomePage() {
                   </div>
 
                   <div className="mt-1 bg-white text-gray-900 p-2 rounded-lg shadow-inner text-[9px] leading-tight space-y-1">
-                    <p className="font-black text-center text-[10px]">INGENIUM MÓVIL</p>
+                    <p className="font-black text-center text-[10px]">INGENIUM MOBILE</p>
                     <p className="text-center text-[8px] text-gray-600">RFC: IME240101XYZ · MTY NL</p>
                     <div className="border-t border-dashed border-gray-300 pt-1">
                       <div className="flex justify-between">
@@ -399,7 +401,7 @@ export default function WelcomeHomePage() {
       </footer>
 
       {/* Floating Cute Robot WhatsApp Assistant */}
-      <FloatingChatWidget businessName="INGENIUM MÓVIL" businessPhone="+52 81 3962 9319" />
+      <FloatingChatWidget businessName="INGENIUM MOBILE" businessPhone="+52 81 3962 9319" />
     </div>
   );
 }

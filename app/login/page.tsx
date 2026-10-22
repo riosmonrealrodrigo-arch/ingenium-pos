@@ -66,7 +66,7 @@ export default function LoginPage() {
       router.replace('/pos');
     } catch {
       // Fallback para modo offline en escritorio
-      enterDemoMode('Rodrigo Ríos (Administrador)', 'INGENIUM MÓVIL');
+      enterDemoMode('Rodrigo Ríos (Administrador)', 'INGENIUM MOBILE');
       router.replace('/pos');
     } finally {
       setLoading(false);
@@ -82,7 +82,7 @@ export default function LoginPage() {
       }
       await signInWithGoogle();
     } catch {
-      enterDemoMode('Administrador Google', 'INGENIUM MÓVIL');
+      enterDemoMode('Administrador Google', 'INGENIUM MOBILE');
       router.replace('/pos');
     } finally {
       setGoogleLoading(false);
