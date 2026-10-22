@@ -49,37 +49,6 @@ export default function WelcomeHomePage() {
         />
       </div>
 
-      {/* Admin Floating Quick Bar (permite cambiar temas y editar catálogo desde teléfono) */}
-      {profile?.role === 'admin' && (
-        <div className="relative z-30 bg-[#1e3a5f] text-white px-3 sm:px-6 py-1.5 flex items-center justify-between text-xs border-b border-amber-400/40 sticky top-0 shadow-md">
-          <div className="flex items-center gap-1.5 text-amber-300 font-bold">
-            <Sparkles size={13} className="shrink-0" />
-            <span className="text-[11px] truncate">Admin · Editar Web</span>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setThemeModalOpen(true)}
-              className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 transition shadow-xs cursor-pointer"
-            >
-              <Palette size={12} /> {currentTheme.emoji} <span className="hidden sm:inline">Cambiar</span> Tema
-            </button>
-            <Link
-              href="/productos"
-              className="px-2.5 py-1 bg-[#2563eb] hover:bg-blue-600 text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 transition shadow-xs"
-            >
-              <Package size={12} /> <span className="hidden sm:inline">Editar</span> Catálogo
-            </Link>
-            <Link
-              href="/dashboard"
-              className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10.5px] font-bold transition"
-            >
-              POS
-            </Link>
-          </div>
-        </div>
-      )}
-
       {/* Top Navbar (100% Customer & Shop Oriented - No POS Access in plain sight) */}
       <header className="relative z-20 border-b border-white/10 bg-[#0d1b2a]/85 backdrop-blur-xl sticky top-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
@@ -243,23 +212,6 @@ export default function WelcomeHomePage() {
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 via-transparent to-amber-500/20 rounded-3xl blur-2xl pointer-events-none" />
 
               <div className="relative w-full max-w-lg p-2 sm:p-4">
-                {/* Official Logo Floating Pin */}
-                <div className="absolute -top-6 -left-4 sm:-top-8 sm:-left-6 z-30 flex items-center gap-2.5 p-2 pr-4 rounded-full bg-[#1e3a5f]/95 border-2 border-amber-400/80 shadow-2xl backdrop-blur-md animate-bounce-slow">
-                  <img
-                    src="/images/logo.jpg"
-                    alt="Logo INGENIUM"
-                    className="w-10 h-10 rounded-full object-cover border border-white/40"
-                  />
-                  <div>
-                    <span className="text-[11px] font-black text-white block leading-tight">
-                      INGENIUM MOBILE
-                    </span>
-                    <span className="text-[9px] text-amber-300 font-bold uppercase tracking-wider block">
-                      Certificado Oficial
-                    </span>
-                  </div>
-                </div>
-
                 {/* Modern Laptop Mockup */}
                 <div className="relative z-10 bg-gray-900 rounded-2xl border-4 border-gray-700 shadow-2xl overflow-hidden transform hover:scale-[1.01] transition-transform">
                   <div className="bg-[#1e3a5f] px-3 py-2 flex items-center justify-between border-b border-white/10">

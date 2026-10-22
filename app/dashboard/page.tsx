@@ -27,7 +27,7 @@ export default function DashboardPage() {
 
   const today = todayISO();
   const todaySales = sales.filter(s => isSameDay(s.created_at, today));
-  const todayRevenue = todaySales.reduce((s, v) => s + v.total, 0);
+  const todayRevenue = todaySales.filter(s => s.status !== 'cancelled' && s.status !== 'refunded').reduce((s, v) => s + v.total, 0);
   const lowStock = products.filter(p => p.active && p.stock <= p.min_stock);
   const recentSales = sales.slice(0, 5);
 

@@ -51,7 +51,7 @@ export default function PrintTicketModal({
     if (sale) {
       text = `*${settings.business_name}*\nTicket: #${sale.id.slice(-6).toUpperCase()}\nFecha: ${formatDateTime(sale.created_at)}\nCliente: ${sale.client_name || 'Consumidor Final'}\nTotal: ${formatCurrency(sale.total, currency)}\nPago: ${sale.payment_method}`;
     } else if (repair) {
-      text = `*${settings.business_name} - ORDEN DE SERVICIO*\nFolio: ${repair.folio}\nEquipo: ${repair.device_brand} ${repair.device_model}\nFalla: ${repair.issue_reported}\nPresupuesto: ${formatCurrency(repair.estimated_cost, currency)}\nAnticipo: ${formatCurrency(repair.advance_payment, currency)}\nSaldo pendiente: ${formatCurrency(repair.estimated_cost - repair.advance_payment, currency)}`;
+      text = `*${settings.business_name} - ORDEN DE SERVICIO*\nFolio: ${repair.folio}\nEquipo: ${repair.device_brand} ${repair.device_model}\nFalla: ${repair.issue_reported}\nPresupuesto: ${formatCurrency(repair.estimated_cost, currency)}\nAnticipo: ${formatCurrency(repair.advance_payment, currency)}\nSaldo pendiente: ${formatCurrency(repair.estimated_cost - repair.advance_payment, currency)}\nGarantía: ${repair.warranty_days || 30} días`;
     }
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -316,6 +316,17 @@ export default function PrintTicketModal({
                     <p className="text-gray-600 bg-gray-50 p-1.5 rounded">{repair.technician_diagnosis}</p>
                   </div>
                 )}
+
+                {/* Warranty details in print ticket */}
+                <div className="bg-gray-50 p-2 rounded border border-gray-200 text-[11px] font-sans space-y-0.5">
+                  <p className="font-black flex items-center justify-between text-gray-900">
+                    <span>🛡️ GARANTÍA ESCRITA:</span>
+                    <span>{repair.warranty_days || 30} DÍAS</span>
+                  </p>
+                  <p className="text-[10px] text-gray-500">
+                    Válida por defectos de fabricación del repuesto o mano de obra técnica.
+                  </p>
+                </div>
 
                 {/* Balance breakdown */}
                 <div className="pt-2 border-t border-gray-200 space-y-1 text-xs">

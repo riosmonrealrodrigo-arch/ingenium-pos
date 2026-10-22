@@ -11,7 +11,7 @@ import {
   Wrench, Plus, Search, Filter, Phone, MessageCircle, Printer,
   CheckCircle2, Clock, AlertCircle, PackageCheck, Smartphone,
   User, ShieldCheck, DollarSign, Calendar, Edit3, X, ChevronRight,
-  ExternalLink
+  ExternalLink, RotateCcw, AlertTriangle, Check
 } from 'lucide-react';
 import { RepairOrder, RepairStatus } from '@/types';
 import { DEMO_REPAIRS } from '@/lib/mockData';
@@ -40,6 +40,17 @@ export default function ReparacionesPage() {
   const [printRepair, setPrintRepair] = useState<RepairOrder | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
+  // Warranty Days Modifier Modal
+  const [warrantyModalRepair, setWarrantyModalRepair] = useState<RepairOrder | null>(null);
+  const [editWarrantyDays, setEditWarrantyDays] = useState<string>('30');
+  const [savingWarranty, setSavingWarranty] = useState(false);
+
+  // Cancellation / Refund Modal
+  const [cancelModalRepair, setCancelModalRepair] = useState<RepairOrder | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>('Cliente desistió / no autorizó reparación');
+  const [refundAmount, setRefundAmount] = useState<string>('0.00');
+  const [processingCancel, setProcessingCancel] = useState(false);
+
   // Form state
   const [formData, setFormData] = useState({
     client_name: '',
@@ -55,6 +66,7 @@ export default function ReparacionesPage() {
     estimated_cost: '',
     advance_payment: '',
     assigned_technician: '',
+    warranty_days: '30',
     status: 'recibido' as RepairStatus,
   });
 
@@ -62,7 +74,6 @@ export default function ReparacionesPage() {
     if (!loading && !profile) router.replace('/login');
   }, [profile, loading, router]);
 
-  // Load repairs from Supabase or localStorage
   useEffect(() => {
     loadRepairs();
   }, [business]);
@@ -106,6 +117,33 @@ export default function ReparacionesPage() {
     }
   };
 
+  // Helper to calculate Warranty countdown and dates
+  const getWarrantyInfo = (rep: RepairOrder) => {
+    const days = rep.warranty_days ?? 30;
+    const startsAt = rep.warranty_starts_at || rep.delivered_at || rep.completed_at || rep.received_at || rep.created_at;
+    const startDate = new Date(startsAt);
+    const expiresDate = rep.warranty_expires_at
+      ? new Date(rep.warranty_expires_at)
+      : new Date(startDate.getTime() + days * 86400000);
+
+    const now = new Date().getTime();
+    const diffMs = expiresDate.getTime() - now;
+    const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    const isExpired = daysRemaining < 0;
+
+    const formatDateShort = (d: Date) => {
+      return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    return {
+      days,
+      startsAtFormatted: formatDateShort(startDate),
+      expiresAtFormatted: formatDateShort(expiresDate),
+      daysRemaining,
+      isExpired,
+    };
+  };
+
   const handleOpenCreateModal = () => {
     setEditingRepair(null);
     setFormData({
@@ -122,6 +160,7 @@ export default function ReparacionesPage() {
       estimated_cost: '',
       advance_payment: '',
       assigned_technician: profile?.name || 'Técnico General',
+      warranty_days: '30',
       status: 'recibido',
     });
     setIsModalOpen(true);
@@ -143,6 +182,7 @@ export default function ReparacionesPage() {
       estimated_cost: rep.estimated_cost.toString(),
       advance_payment: rep.advance_payment.toString(),
       assigned_technician: rep.assigned_technician || '',
+      warranty_days: (rep.warranty_days || 30).toString(),
       status: rep.status,
     });
     setIsModalOpen(true);
@@ -154,14 +194,25 @@ export default function ReparacionesPage() {
 
     const estCost = parseFloat(formData.estimated_cost) || 0;
     const advPayment = parseFloat(formData.advance_payment) || 0;
+    const wDays = parseInt(formData.warranty_days) || 30;
 
     let updatedList: RepairOrder[] = [];
 
     if (editingRepair) {
-      // Update
+      // Calculate updated warranty if delivering now
+      const isNowDelivered = formData.status === 'entregado' && editingRepair.status !== 'entregado';
+      const wStarts = isNowDelivered
+        ? new Date().toISOString()
+        : editingRepair.warranty_starts_at || (formData.status === 'entregado' ? editingRepair.delivered_at || new Date().toISOString() : null);
+
+      const wExpires = wStarts ? new Date(new Date(wStarts).getTime() + wDays * 86400000).toISOString() : null;
+
       const updatedRepair: RepairOrder = {
         ...editingRepair,
         ...formData,
+        warranty_days: wDays,
+        warranty_starts_at: wStarts,
+        warranty_expires_at: wExpires,
         estimated_cost: estCost,
         advance_payment: advPayment,
         completed_at: formData.status === 'listo_entrega' && !editingRepair.completed_at ? new Date().toISOString() : editingRepair.completed_at,
@@ -171,7 +222,6 @@ export default function ReparacionesPage() {
       updatedList = repairs.map(r => (r.id === editingRepair.id ? updatedRepair : r));
       saveToStorage(updatedList);
 
-      // Save to Supabase in background
       if (business && business.id !== 'demo-biz-1') {
         try {
           await supabase.from('repair_orders').update({
@@ -198,6 +248,7 @@ export default function ReparacionesPage() {
       // Create new
       const nextFolioNumber = 1000 + repairs.length + 1;
       const newFolio = `ORD-${nextFolioNumber}`;
+      const nowIso = new Date().toISOString();
 
       const newRepair: RepairOrder = {
         id: `rep-${Date.now()}`,
@@ -215,20 +266,21 @@ export default function ReparacionesPage() {
         technician_diagnosis: formData.technician_diagnosis,
         estimated_cost: estCost,
         advance_payment: advPayment,
+        warranty_days: wDays,
+        warranty_starts_at: null,
+        warranty_expires_at: null,
         status: formData.status,
         assigned_technician: formData.assigned_technician,
-        received_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
+        received_at: nowIso,
+        created_at: nowIso,
       };
 
       updatedList = [newRepair, ...repairs];
       saveToStorage(updatedList);
 
-      // Offer printing immediately
       setPrintRepair(newRepair);
       setIsPrintModalOpen(true);
 
-      // Save to Supabase
       if (business && business.id !== 'demo-biz-1') {
         try {
           await supabase.from('repair_orders').insert([{
@@ -258,11 +310,27 @@ export default function ReparacionesPage() {
   };
 
   const handleQuickStatusChange = async (rep: RepairOrder, newStatus: RepairStatus) => {
+    if (newStatus === 'cancelado') {
+      setCancelModalRepair(rep);
+      setRefundAmount((rep.advance_payment || 0).toString());
+      return;
+    }
+
+    const isNowDelivered = newStatus === 'entregado' && rep.status !== 'entregado';
+    const wStarts = isNowDelivered
+      ? new Date().toISOString()
+      : rep.warranty_starts_at || (newStatus === 'entregado' ? new Date().toISOString() : null);
+
+    const wDays = rep.warranty_days || 30;
+    const wExpires = wStarts ? new Date(new Date(wStarts).getTime() + wDays * 86400000).toISOString() : rep.warranty_expires_at;
+
     const updated = repairs.map(r => {
       if (r.id === rep.id) {
         return {
           ...r,
           status: newStatus,
+          warranty_starts_at: wStarts,
+          warranty_expires_at: wExpires,
           completed_at: newStatus === 'listo_entrega' ? new Date().toISOString() : r.completed_at,
           delivered_at: newStatus === 'entregado' ? new Date().toISOString() : r.delivered_at,
         };
@@ -285,132 +353,185 @@ export default function ReparacionesPage() {
     }
   };
 
-  const handleSendWhatsAppNotification = (rep: RepairOrder) => {
-    const cleanPhone = rep.client_phone.replace(/[^0-9]/g, '');
-    const bizName = business?.name || 'INGENIUM MOBILE';
-    const statusText = STATUS_CONFIG[rep.status].label;
+  const handleSaveWarrantyModal = () => {
+    if (!warrantyModalRepair) return;
+    setSavingWarranty(true);
+    const days = parseInt(editWarrantyDays) || 30;
 
-    let msg = `Hola *${rep.client_name}*, te saludamos de *${bizName}*.\n\n`;
+    const starts = warrantyModalRepair.warranty_starts_at || warrantyModalRepair.delivered_at || warrantyModalRepair.received_at || new Date().toISOString();
+    const expires = new Date(new Date(starts).getTime() + days * 86400000).toISOString();
+
+    const updated = repairs.map(r => {
+      if (r.id === warrantyModalRepair.id) {
+        return {
+          ...r,
+          warranty_days: days,
+          warranty_starts_at: starts,
+          warranty_expires_at: expires,
+        };
+      }
+      return r;
+    });
+
+    saveToStorage(updated);
+    setSavingWarranty(false);
+    setWarrantyModalRepair(null);
+  };
+
+  const handleConfirmCancelRepair = () => {
+    if (!cancelModalRepair) return;
+    setProcessingCancel(true);
+
+    const refunded = parseFloat(refundAmount) || 0;
+
+    const updated = repairs.map(r => {
+      if (r.id === cancelModalRepair.id) {
+        return {
+          ...r,
+          status: 'cancelado' as RepairStatus,
+          cancellation_reason: cancelReason,
+          refund_amount: refunded,
+        };
+      }
+      return r;
+    });
+
+    saveToStorage(updated);
+    setProcessingCancel(false);
+    setCancelModalRepair(null);
+  };
+
+  const handleSendWhatsAppNotification = (rep: RepairOrder) => {
+    const cleanPhone = rep.client_phone.replace(/\D/g, '');
+    const balance = Math.max(0, rep.estimated_cost - rep.advance_payment);
+    const statusText = STATUS_CONFIG[rep.status].label;
+    const wInfo = getWarrantyInfo(rep);
+
+    let msg = `*INGENIUM MOBILE - Actualización de Reparación*\n\n`;
+    msg += `Hola *${rep.client_name}*,\n`;
     msg += `Te informamos que tu equipo *${rep.device_brand} ${rep.device_model}* (Folio: *${rep.folio}*) se encuentra en estado: *${statusText.toUpperCase()}*.\n`;
 
     if (rep.status === 'listo_entrega') {
-      const balance = Math.max(0, rep.estimated_cost - rep.advance_payment);
       msg += `\n🎉 ¡Tu dispositivo ya está reparado y probado con éxito!\nPuedes pasar a retirarlo a nuestro taller.\nSaldo pendiente a cancelar: *${formatCurrency(balance, business?.currency)}*`;
+      msg += `\n🛡️ *Garantía Incluida:* ${wInfo.days} días de cobertura escrita.`;
+    } else if (rep.status === 'entregado') {
+      msg += `\n✅ Tu equipo ha sido entregado exitosamente.\n🛡️ *Garantía Oficial:* ${wInfo.days} días (Vigente hasta el ${wInfo.expiresAtFormatted}).`;
     } else if (rep.status === 'en_diagnostico') {
-      msg += `\nNuestros técnicos están revisando minuciosamente la falla reportada: "${rep.issue_reported}". Te contactaremos con el diagnóstico en breve.`;
+      msg += `\n🔬 Nuestro equipo técnico se encuentra realizando pruebas de diagnóstico. Te avisaremos en breve.`;
     } else if (rep.status === 'esperando_repuesto') {
-      msg += `\nHemos solicitado la refacción original requerida. Te avisaremos en cuanto esté instalada y lista.`;
+      msg += `\n📦 Estamos esperando el arribo de la refacción original correspondiente para proceder con el ensamble final.`;
+    } else if (rep.status === 'cancelado') {
+      msg += `\n⚠️ Tu orden ha sido cancelada. Motivo: ${rep.cancellation_reason || 'Cancelación de servicio'}.`;
     }
 
-    msg += `\n\n¡Gracias por tu confianza!`;
+    msg += `\n\n_INGENIUM MOBILE · Servicio Técnico Especializado_`;
 
     const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
   };
 
-  // Filtered list
+  // Filter repairs
   const filteredRepairs = repairs.filter(r => {
     const matchSearch =
       r.folio.toLowerCase().includes(search.toLowerCase()) ||
       r.client_name.toLowerCase().includes(search.toLowerCase()) ||
-      r.client_phone.toLowerCase().includes(search.toLowerCase()) ||
-      r.device_model.toLowerCase().includes(search.toLowerCase()) ||
-      (r.imei_serial && r.imei_serial.toLowerCase().includes(search.toLowerCase()));
+      r.client_phone.includes(search) ||
+      `${r.device_brand} ${r.device_model}`.toLowerCase().includes(search.toLowerCase());
 
     const matchStatus = selectedStatus === 'todos' || r.status === selectedStatus;
     return matchSearch && matchStatus;
   });
 
-  // Metrics
-  const totalRepairs = repairs.length;
   const inWorkshop = repairs.filter(r => ['recibido', 'en_diagnostico', 'esperando_repuesto'].includes(r.status)).length;
   const readyForPickup = repairs.filter(r => r.status === 'listo_entrega').length;
   const completed = repairs.filter(r => r.status === 'entregado').length;
+  const activeWarrantiesCount = repairs.filter(r => r.status === 'entregado' && !getWarrantyInfo(r).isExpired).length;
 
   if (loading || !profile) return null;
 
   return (
-    <div className="flex min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 lg:ml-52 min-w-0 max-w-full flex flex-col pb-20 lg:pb-0 overflow-x-hidden">
         <Header
-          title="Taller y Reparaciones"
-          subtitle="Control de órdenes de servicio, diagnósticos técnicos y entregas"
+          title="Taller & Reparaciones"
+          subtitle="Control de órdenes de servicio, presupuestos, devoluciones y garantías"
         />
 
-        <main className="p-3 sm:p-4 lg:p-5 space-y-4 max-w-7xl mx-auto w-full">
-          
-          {/* Top Stat Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563eb] flex items-center justify-center font-bold">
-                <Wrench size={20} />
-              </div>
+        <main className="p-3 sm:p-4 lg:p-6 space-y-5 max-w-7xl mx-auto w-full">
+
+          {/* Operational Metrics Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-400 font-semibold uppercase">Total Órdenes</p>
-                <p className="text-xl font-black text-gray-900">{totalRepairs}</p>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">En Reparación</p>
+                <p className="text-xl sm:text-2xl font-black text-amber-600 mt-0.5">{inWorkshop}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <Wrench size={18} />
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                <Clock size={20} />
-              </div>
+            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-400 font-semibold uppercase">En Taller</p>
-                <p className="text-xl font-black text-amber-600">{inWorkshop}</p>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Listos para Entrega</p>
+                <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-0.5">{readyForPickup}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 size={18} />
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                <CheckCircle2 size={20} />
-              </div>
+            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-400 font-semibold uppercase">Listos p/ Entrega</p>
-                <p className="text-xl font-black text-emerald-600">{readyForPickup}</p>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Equipos Entregados</p>
+                <p className="text-xl sm:text-2xl font-black text-blue-600 mt-0.5">{completed}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <PackageCheck size={18} />
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-600 flex items-center justify-center font-bold">
-                <PackageCheck size={20} />
-              </div>
+            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-400 font-semibold uppercase">Entregados</p>
-                <p className="text-xl font-black text-gray-700">{completed}</p>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Garantías Activas</p>
+                <p className="text-xl sm:text-2xl font-black text-emerald-700 mt-0.5">{activeWarrantiesCount}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                <ShieldCheck size={18} />
               </div>
             </div>
           </div>
 
-          {/* Action and Filter Controls */}
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          {/* Action Header: Search & Create */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-xs">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar por cliente, teléfono, modelo, IMEI o folio (ej. ORD-1001)..."
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                placeholder="Buscar por folio, cliente, teléfono o modelo de celular..."
+                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
               />
             </div>
 
             <button
               onClick={handleOpenCreateModal}
-              className="px-5 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition active:scale-95 whitespace-nowrap"
+              className="px-5 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-95 transition whitespace-nowrap cursor-pointer"
             >
-              <Plus size={18} /> Nueva Orden de Reparación
+              <Plus size={16} />
+              <span>Nueva Orden de Taller</span>
             </button>
           </div>
 
           {/* Status Filter Pills */}
-          <div className="flex gap-2 overflow-x-auto pb-1 text-xs">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
             <button
               onClick={() => setSelectedStatus('todos')}
-              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition ${
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                 selectedStatus === 'todos'
-                  ? 'bg-gray-900 text-white shadow-sm'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+                  ? 'bg-gray-900 text-white shadow-xs'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
               }`}
             >
               Todos ({repairs.length})
@@ -422,14 +543,14 @@ export default function ReparacionesPage() {
                 <button
                   key={statusKey}
                   onClick={() => setSelectedStatus(statusKey)}
-                  className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     isSelected
-                      ? 'bg-[#2563eb] text-white shadow-sm'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+                      ? 'bg-[#2563eb] text-white shadow-xs'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}
                 >
                   <span>{conf.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
                     {count}
                   </span>
                 </button>
@@ -438,16 +559,18 @@ export default function ReparacionesPage() {
           </div>
 
           {/* Repair Orders List */}
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             {filteredRepairs.map(rep => {
               const status = STATUS_CONFIG[rep.status] || STATUS_CONFIG.recibido;
               const StatusIcon = status.icon;
               const pendingBalance = Math.max(0, rep.estimated_cost - rep.advance_payment);
+              const wInfo = getWarrantyInfo(rep);
+              const isCancelled = rep.status === 'cancelado';
 
               return (
                 <div
                   key={rep.id}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 hover:border-blue-200 transition space-y-4"
+                  className="bg-white rounded-2xl border border-gray-100 shadow-xs p-4 sm:p-5 hover:border-blue-200 transition space-y-4"
                 >
                   {/* Top Row: Folio, Status Pill & Date */}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
@@ -459,6 +582,11 @@ export default function ReparacionesPage() {
                         <StatusIcon size={12} />
                         {status.label}
                       </span>
+                      {isCancelled && rep.cancellation_reason && (
+                        <span className="text-[10.5px] bg-red-100 text-red-800 font-semibold px-2 py-0.5 rounded-full">
+                          Motivo: {rep.cancellation_reason}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -515,8 +643,72 @@ export default function ReparacionesPage() {
                         <span>Saldo por cobrar:</span>
                         <span>{formatCurrency(pendingBalance, business?.currency)}</span>
                       </div>
+                      {isCancelled && rep.refund_amount !== undefined && rep.refund_amount > 0 && (
+                        <div className="text-[10.5px] text-red-600 font-bold pt-0.5">
+                          Devolución efectuada: {formatCurrency(rep.refund_amount, business?.currency)}
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {/* LIVE WARRANTY STRIP & COUNTDOWN */}
+                  {!isCancelled && (
+                    <div
+                      className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs ${
+                        rep.status === 'entregado'
+                          ? wInfo.isExpired
+                            ? 'bg-amber-50/80 border-amber-200 text-amber-950'
+                            : 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                          : 'bg-blue-50/50 border-blue-100 text-blue-900'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-1.5 rounded-lg ${
+                          rep.status === 'entregado'
+                            ? wInfo.isExpired ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          <ShieldCheck size={18} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-xs">
+                              Garantía Oficial: {wInfo.days} días
+                            </span>
+                            {rep.status === 'entregado' && (
+                              <span
+                                className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                  wInfo.isExpired ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-900'
+                                }`}
+                              >
+                                {wInfo.isExpired
+                                  ? `Venció hace ${Math.abs(wInfo.daysRemaining)} día(s)`
+                                  : `🟢 Activa · Quedan ${wInfo.daysRemaining} día(s)`}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] opacity-75 mt-0.5">
+                            {rep.status === 'entregado'
+                              ? `Cobertura vigente desde el ${wInfo.startsAtFormatted} hasta el ${wInfo.expiresAtFormatted}`
+                              : `La garantía de ${wInfo.days} días comenzará a contar al entregar el equipo reparado.`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWarrantyModalRepair(rep);
+                            setEditWarrantyDays((rep.warranty_days || 30).toString());
+                          }}
+                          className="px-2.5 py-1 bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 rounded-lg text-xs font-bold transition cursor-pointer shadow-xs"
+                        >
+                          Modificar días
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Actions Bar */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100">
@@ -533,7 +725,7 @@ export default function ReparacionesPage() {
                         <option value="esperando_repuesto">Esperando Repuesto</option>
                         <option value="listo_entrega">Listo para Entrega</option>
                         <option value="entregado">Entregado</option>
-                        <option value="cancelado">Cancelado</option>
+                        <option value="cancelado">Cancelado / Devolución</option>
                       </select>
                     </div>
 
@@ -542,7 +734,7 @@ export default function ReparacionesPage() {
                       {/* WhatsApp Notify */}
                       <button
                         onClick={() => handleSendWhatsAppNotification(rep)}
-                        className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition"
+                        className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                         title="Enviar actualización por WhatsApp"
                       >
                         <MessageCircle size={14} className="text-emerald-600" />
@@ -555,7 +747,7 @@ export default function ReparacionesPage() {
                           setPrintRepair(rep);
                           setIsPrintModalOpen(true);
                         }}
-                        className="px-3 py-1.5 bg-blue-50 text-[#2563eb] hover:bg-blue-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition"
+                        className="px-3 py-1.5 bg-blue-50 text-[#2563eb] hover:bg-blue-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                         title="Imprimir comprobante para el cliente"
                       >
                         <Printer size={14} />
@@ -565,7 +757,7 @@ export default function ReparacionesPage() {
                       {/* Edit */}
                       <button
                         onClick={() => handleOpenEditModal(rep)}
-                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition cursor-pointer"
                         title="Editar detalles de la orden"
                       >
                         <Edit3 size={15} />
@@ -577,39 +769,218 @@ export default function ReparacionesPage() {
             })}
 
             {filteredRepairs.length === 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400 space-y-3">
+              <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 p-8 space-y-3">
                 <Wrench size={48} className="mx-auto text-gray-300" />
-                <p className="font-bold text-gray-700">No se encontraron órdenes de reparación</p>
-                <p className="text-xs">Crea una nueva orden para comenzar a gestionar el taller.</p>
+                <h3 className="font-bold text-gray-700 text-base">No hay órdenes de reparación con estos criterios</h3>
+                <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                  Crea una nueva orden de servicio ingresando los datos del cliente y el dispositivo celular.
+                </p>
+                <button
+                  onClick={handleOpenCreateModal}
+                  className="px-5 py-2 bg-[#2563eb] text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow"
+                >
+                  <Plus size={14} />
+                  <span>Crear Primera Orden</span>
+                </button>
               </div>
             )}
           </div>
         </main>
       </div>
 
-      {/* CREATE / EDIT MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden border border-gray-100">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 text-[#2563eb] flex items-center justify-center">
-                  <Wrench size={18} />
+      {/* MODAL: MODIFICAR DÍAS DE GARANTÍA */}
+      {warrantyModalRepair && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                  <ShieldCheck size={20} />
                 </div>
-                <h3 className="font-black text-gray-900 text-sm sm:text-base">
-                  {editingRepair ? `Editar Orden ${editingRepair.folio}` : 'Nueva Orden de Reparación'}
-                </h3>
+                <div>
+                  <h3 className="font-black text-gray-900 text-base">Modificar Garantía</h3>
+                  <p className="text-xs text-gray-500">
+                    {warrantyModalRepair.device_brand} {warrantyModalRepair.device_model} ({warrantyModalRepair.folio})
+                  </p>
+                </div>
               </div>
               <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg transition"
+                onClick={() => setWarrantyModalRepair(null)}
+                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveRepair} className="flex-1 overflow-y-auto p-5 space-y-5">
-              
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Selecciona o escribe los días de cobertura:
+                </label>
+                <div className="grid grid-cols-4 gap-2 mb-2">
+                  {['15', '30', '60', '90'].map(d => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setEditWarrantyDays(d)}
+                      className={`py-2 rounded-xl text-xs font-bold border transition ${
+                        editWarrantyDays === d
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {d} días
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={editWarrantyDays}
+                    onChange={e => setEditWarrantyDays(e.target.value)}
+                    className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 text-center"
+                    placeholder="Días personalizados"
+                  />
+                  <span className="font-bold text-gray-500">días en total</span>
+                </div>
+              </div>
+
+              {/* Previsualización en vivo del contador */}
+              <div className="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200 text-emerald-950 space-y-1">
+                <p className="font-black text-xs flex items-center gap-1.5 text-emerald-900">
+                  <Check size={14} /> Cálculo automático en vivo
+                </p>
+                <p className="text-[11px]">
+                  <strong>Fecha de inicio:</strong>{' '}
+                  {new Date(
+                    warrantyModalRepair.warranty_starts_at || warrantyModalRepair.delivered_at || new Date()
+                  ).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </p>
+                <p className="text-[11px]">
+                  <strong>Vencimiento estimado:</strong>{' '}
+                  {new Date(
+                    new Date(
+                      warrantyModalRepair.warranty_starts_at || warrantyModalRepair.delivered_at || new Date()
+                    ).getTime() + (parseInt(editWarrantyDays) || 30) * 86400000
+                  ).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setWarrantyModalRepair(null)}
+                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveWarrantyModal}
+                disabled={savingWarranty}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20"
+              >
+                {savingWarranty ? 'Guardando...' : 'Aplicar Garantía'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CANCELACIÓN Y DEVOLUCIÓN DE REPARACIÓN */}
+      {cancelModalRepair && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-red-100 space-y-4">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="w-10 h-10 rounded-2xl bg-red-100 flex items-center justify-center shrink-0">
+                <RotateCcw size={20} />
+              </div>
+              <div>
+                <h3 className="font-black text-base text-gray-900">Cancelar Trabajo de Taller</h3>
+                <p className="text-xs text-gray-500">Orden: {cancelModalRepair.folio}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Motivo de la cancelación / devolución:</label>
+                <select
+                  value={cancelReason}
+                  onChange={e => setCancelReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
+                >
+                  <option value="Cliente desistió / no autorizó reparación">Cliente desistió / no autorizó reparación</option>
+                  <option value="Refacción no disponible en mercado">Refacción no disponible en mercado</option>
+                  <option value="Equipo irreparable / placa con daño severo">Equipo irreparable / placa con daño severo</option>
+                  <option value="Devolución de anticipo solicitada">Devolución de anticipo solicitada</option>
+                  <option value="Otro motivo">Otro motivo</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Monto a reembolsar al cliente ({business?.currency ?? '$ MXN'}):
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={refundAmount}
+                  onChange={e => setRefundAmount(e.target.value)}
+                  className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Anticipo original pagado: {formatCurrency(cancelModalRepair.advance_payment, business?.currency)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setCancelModalRepair(null)}
+                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancelRepair}
+                disabled={processingCancel}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50"
+              >
+                {processingCancel ? 'Cancelando...' : 'Confirmar Cancelación'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE & EDIT REPAIR ORDER MODAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto backdrop-blur-xs">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-5 sm:p-6 max-h-[92vh] overflow-y-auto border border-gray-100 animate-slideUp">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563eb] flex items-center justify-center">
+                  <Wrench size={18} />
+                </div>
+                <h3 className="font-black text-gray-900 text-base">
+                  {editingRepair ? `Editar Orden: ${editingRepair.folio}` : 'Nueva Orden de Reparación'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRepair} className="space-y-4 mt-4">
               {/* Client Info */}
               <div className="space-y-3">
                 <p className="text-xs font-black text-gray-400 uppercase tracking-wider">1. Datos del Cliente</p>
@@ -620,7 +991,7 @@ export default function ReparacionesPage() {
                       required
                       value={formData.client_name}
                       onChange={e => setFormData({ ...formData, client_name: e.target.value })}
-                      placeholder="Ej: Carlos Mendoza"
+                      placeholder="Ej. Juan Pérez"
                       className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
                   </div>
@@ -631,21 +1002,10 @@ export default function ReparacionesPage() {
                       required
                       value={formData.client_phone}
                       onChange={e => setFormData({ ...formData, client_phone: e.target.value })}
-                      placeholder="Ej: +502 4123-4567"
+                      placeholder="+52 81 0000 0000"
                       className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Correo Electrónico (opcional)</label>
-                  <input
-                    type="email"
-                    value={formData.client_email}
-                    onChange={e => setFormData({ ...formData, client_email: e.target.value })}
-                    placeholder="cliente@ejemplo.com"
-                    className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                  />
                 </div>
               </div>
 
@@ -654,12 +1014,11 @@ export default function ReparacionesPage() {
                 <p className="text-xs font-black text-gray-400 uppercase tracking-wider">2. Datos del Dispositivo</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Marca *</label>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Marca</label>
                     <input
-                      required
                       value={formData.device_brand}
                       onChange={e => setFormData({ ...formData, device_brand: e.target.value })}
-                      placeholder="Ej: Apple, Samsung, Xiaomi"
+                      placeholder="Apple, Samsung, Xiaomi..."
                       className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
                   </div>
@@ -670,17 +1029,17 @@ export default function ReparacionesPage() {
                       required
                       value={formData.device_model}
                       onChange={e => setFormData({ ...formData, device_model: e.target.value })}
-                      placeholder="Ej: iPhone 13 Pro"
+                      placeholder="iPhone 13, Galaxy A54..."
                       className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Color</label>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Color / Detalles</label>
                     <input
                       value={formData.device_color}
                       onChange={e => setFormData({ ...formData, device_color: e.target.value })}
-                      placeholder="Ej: Azul Sierra"
+                      placeholder="Azul, Negro, Gris..."
                       className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
                   </div>
@@ -688,12 +1047,12 @@ export default function ReparacionesPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">IMEI o Número de Serie</label>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">IMEI / Número de Serie</label>
                     <input
                       value={formData.imei_serial}
                       onChange={e => setFormData({ ...formData, imei_serial: e.target.value })}
-                      placeholder="Ej: 354892019283741"
-                      className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                      placeholder="Opcional pero recomendado"
+                      className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
                   </div>
 
@@ -702,14 +1061,14 @@ export default function ReparacionesPage() {
                     <input
                       value={formData.unlock_pattern}
                       onChange={e => setFormData({ ...formData, unlock_pattern: e.target.value })}
-                      placeholder="Ej: PIN 1234 o Patrón en forma de L"
+                      placeholder="Ej. PIN: 1234 o Sin código"
                       className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Technical diagnosis */}
+              {/* Diagnosis and Issue */}
               <div className="space-y-3 pt-3 border-t border-gray-100">
                 <p className="text-xs font-black text-gray-400 uppercase tracking-wider">3. Falla y Diagnóstico</p>
                 <div>
@@ -738,7 +1097,7 @@ export default function ReparacionesPage() {
 
               {/* Financials & Status */}
               <div className="space-y-3 pt-3 border-t border-gray-100">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-wider">4. Presupuesto y Estado</p>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-wider">4. Presupuesto, Garantía y Estado</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Presupuesto Estimado</label>
@@ -780,6 +1139,43 @@ export default function ReparacionesPage() {
                     </select>
                   </div>
                 </div>
+
+                {/* Warranty Days Input */}
+                <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-black text-emerald-900">
+                      🛡️ Días de Garantía del Trabajo:
+                    </label>
+                    <span className="text-xs font-bold text-emerald-700">
+                      {formData.warranty_days} días
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {['15', '30', '60', '90'].map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, warranty_days: d })}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                          formData.warranty_days === d
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {d} días
+                      </button>
+                    ))}
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={formData.warranty_days}
+                      onChange={e => setFormData({ ...formData, warranty_days: e.target.value })}
+                      placeholder="Días"
+                      className="w-20 px-2 py-1.5 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 text-center bg-white"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Submit Button */}
@@ -793,7 +1189,7 @@ export default function ReparacionesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-[#2563eb] text-white rounded-xl text-sm font-bold hover:bg-[#1d4ed8] shadow-lg shadow-blue-500/20 active:scale-95 transition"
+                  className="px-6 py-2 bg-[#2563eb] text-white rounded-xl text-sm font-bold hover:bg-[#1d4ed8] shadow-lg shadow-blue-500/20 active:scale-95 transition cursor-pointer"
                 >
                   {editingRepair ? 'Guardar Cambios' : 'Crear e Imprimir Orden'}
                 </button>

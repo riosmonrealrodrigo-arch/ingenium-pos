@@ -17,6 +17,8 @@ interface SalesContextType {
     clientName?: string,
     cashGiven?: number
   ) => Promise<Sale>;
+  cancelSale: (saleId: string, reason?: string, returnStock?: boolean) => Promise<void>;
+  resetSalesAndAccounting: () => Promise<void>;
 }
 
 const SalesContext = createContext<SalesContextType | null>(null);
@@ -163,8 +165,74 @@ export function SalesProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const cancelSale = async (saleId: string, reason: string = 'Devolución / Cancelación', returnStock: boolean = true) => {
+    const targetSale = sales.find(s => s.id === saleId);
+    if (!targetSale) return;
+
+    // Return stock if requested
+    if (returnStock && targetSale.status !== 'cancelled' && targetSale.status !== 'refunded') {
+      for (const item of targetSale.items) {
+        await updateStock(item.product_id, item.quantity);
+      }
+    }
+
+    const updatedSale: Sale = {
+      ...targetSale,
+      status: 'cancelled',
+      cancellation_reason: reason,
+      cancelled_at: new Date().toISOString(),
+      returned_to_stock: returnStock,
+    };
+
+    const newSales = sales.map(s => s.id === saleId ? updatedSale : s);
+    saveSalesToStorage(newSales);
+
+    if (!isDemo && business) {
+      try {
+        await supabase
+          .from('sales')
+          .update({
+            status: 'cancelled',
+            cancellation_reason: reason,
+          })
+          .eq('id', saleId);
+
+        if (returnStock) {
+          for (const item of targetSale.items) {
+            await supabase.from('stock_movements').insert({
+              business_id: business.id,
+              product_id: item.product_id,
+              product_name: item.product_name,
+              type: 'entrada',
+              quantity: item.quantity,
+              note: `Devolución / Cancelación Venta #${saleId.slice(-6).toUpperCase()}: ${reason}`,
+            });
+            await supabase.rpc('increment_stock', { product_id: item.product_id, amount: item.quantity });
+          }
+        }
+      } catch (err) {
+        console.warn('Error syncing cancelled sale to Supabase:', err);
+      }
+    }
+  };
+
+  const resetSalesAndAccounting = async () => {
+    setSales([]);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ingenium_demo_sales');
+      localStorage.setItem('ingenium_demo_sales', JSON.stringify([]));
+    }
+    if (!isDemo && business) {
+      try {
+        await supabase.from('sales').delete().eq('business_id', business.id);
+      } catch (err) {
+        console.warn('Error clearing sales in Supabase:', err);
+      }
+    }
+  };
+
   return (
-    <SalesContext.Provider value={{ sales, loading, loadSales, createSale }}>
+    <SalesContext.Provider value={{ sales, loading, loadSales, createSale, cancelSale, resetSalesAndAccounting }}>
       {children}
     </SalesContext.Provider>
   );

@@ -2,11 +2,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useSales } from '@/context/SalesContext';
 import { supabase } from '@/lib/supabase';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { Save, Check, Printer, ChevronRight, Palette } from 'lucide-react';
+import { Save, Check, Printer, ChevronRight, Palette, RotateCcw, AlertTriangle, Trash2, X, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useStoreTheme } from '@/context/StoreThemeContext';
 import StoreThemeModal from '@/components/store/StoreThemeModal';
@@ -14,11 +15,17 @@ import StoreThemeModal from '@/components/store/StoreThemeModal';
 export default function ConfiguracionPage() {
   const { profile, business, loading } = useAuth();
   const { currentTheme } = useStoreTheme();
+  const { resetSalesAndAccounting } = useSales();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
   const [form, setForm] = useState({ name: '', address: '', phone: '', email: '', currency: '$ MXN', tax_rate: '16' });
+
+  // Reset modal state
+  const [resetModalType, setResetModalType] = useState<'ventas' | 'reparaciones' | 'todo' | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => { if (!loading && !profile) router.replace('/login'); }, [profile, loading, router]);
   useEffect(() => {
@@ -45,6 +52,47 @@ export default function ConfiguracionPage() {
     setTimeout(() => setSaved(false), 3000);
   };
 
+  const handleExecuteReset = async () => {
+    if (!resetModalType) return;
+    setResetting(true);
+
+    try {
+      if (resetModalType === 'ventas' || resetModalType === 'todo') {
+        await resetSalesAndAccounting();
+      }
+
+      if (resetModalType === 'reparaciones' || resetModalType === 'todo') {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ingenium_repairs', JSON.stringify([]));
+        }
+        if (business && business.id !== 'demo-biz-1') {
+          try {
+            await supabase.from('repair_orders').delete().eq('business_id', business.id);
+          } catch (err) {
+            console.warn('Error clearing repair orders in Supabase:', err);
+          }
+        }
+      }
+
+      let msg = '';
+      if (resetModalType === 'ventas') {
+        msg = 'Contabilidad y registro de ventas reiniciados a $0.00 MXN correctamente.';
+      } else if (resetModalType === 'reparaciones') {
+        msg = 'Historial de reparaciones y trabajos técnicos reiniciado a 0 correctamente.';
+      } else {
+        msg = 'Reinicio total completado: Contabilidad a $0.00 y reparaciones en blanco.';
+      }
+
+      setResetSuccessMessage(msg);
+      setTimeout(() => setResetSuccessMessage(null), 5000);
+    } catch (e) {
+      console.error('Error during reset:', e);
+    } finally {
+      setResetting(false);
+      setResetModalType(null);
+    }
+  };
+
   if (loading || !profile) return null;
 
   return (
@@ -57,6 +105,13 @@ export default function ConfiguracionPage() {
           {saved && (
             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2">
               <Check size={16} /> Configuración guardada correctamente
+            </div>
+          )}
+
+          {resetSuccessMessage && (
+            <div className="bg-emerald-50 border-2 border-emerald-300 text-emerald-800 px-4 py-3.5 rounded-2xl text-sm font-bold flex items-center gap-2.5 shadow-sm animate-fade-in">
+              <Check size={18} className="text-emerald-600 shrink-0" />
+              <span>{resetSuccessMessage}</span>
             </div>
           )}
 
@@ -162,6 +217,53 @@ export default function ConfiguracionPage() {
               <Save size={18} /> {saving ? 'Guardando...' : 'Guardar configuración'}
             </button>
           </form>
+
+          {/* Zona de Gestión y Reinicio de Datos Operativos */}
+          <div className="bg-white rounded-2xl border-2 border-red-100 shadow-sm p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h2 className="font-bold text-gray-900 text-base">Reinicio de Contabilidad y Operaciones</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Limpia ventas de prueba, resetea la contabilidad a $0.00 o vacía los trabajos de taller para iniciar operaciones reales.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setResetModalType('ventas')}
+                className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-red-200 bg-red-50/50 hover:bg-red-100/70 text-red-700 transition group cursor-pointer text-center"
+              >
+                <RotateCcw size={20} className="mb-1 text-red-600 group-hover:rotate-[-45deg] transition" />
+                <span className="text-xs font-black">Reiniciar Contabilidad</span>
+                <span className="text-[10px] text-red-600/80">Pone ventas y caja en $0.00</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setResetModalType('reparaciones')}
+                className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-amber-200 bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 transition group cursor-pointer text-center"
+              >
+                <RefreshCw size={20} className="mb-1 text-amber-600 group-hover:rotate-180 transition duration-300" />
+                <span className="text-xs font-black">Reiniciar Taller</span>
+                <span className="text-[10px] text-amber-700/80">Borra órdenes de reparación</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setResetModalType('todo')}
+                className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-red-300 bg-red-600 hover:bg-red-700 text-white transition group cursor-pointer text-center shadow-sm"
+              >
+                <Trash2 size={20} className="mb-1 text-white/90 group-hover:scale-110 transition" />
+                <span className="text-xs font-black">Reinicio Completo</span>
+                <span className="text-[10px] text-white/80">Ventas + Taller en blanco</span>
+              </button>
+            </div>
+          </div>
         </main>
       </div>
       <BottomNav />
@@ -169,6 +271,79 @@ export default function ConfiguracionPage() {
         isOpen={themeModalOpen}
         onClose={() => setThemeModalOpen(false)}
       />
+
+      {/* Safety Confirmation Modal for Reset */}
+      {resetModalType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <div className="flex items-center gap-2.5 text-red-600">
+                <AlertTriangle size={22} />
+                <h3 className="font-black text-gray-900 text-base">
+                  {resetModalType === 'ventas'
+                    ? '¿Reiniciar Contabilidad y Ventas?'
+                    : resetModalType === 'reparaciones'
+                    ? '¿Reiniciar Trabajos de Taller?'
+                    : '¿Reinicio Total de Operaciones?'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setResetModalType(null)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bg-red-50 p-3.5 rounded-2xl border border-red-100 text-xs text-red-800 space-y-2">
+              <p className="font-bold">Esta acción borrará de forma permanente:</p>
+              <ul className="list-disc list-inside space-y-1">
+                {(resetModalType === 'ventas' || resetModalType === 'todo') && (
+                  <li>Todo el historial de ventas registradas y devoluciones</li>
+                )}
+                {(resetModalType === 'ventas' || resetModalType === 'todo') && (
+                  <li>El balance acumulado en caja y métricas de ingresos del dashboard (volverán a $0.00 MXN)</li>
+                )}
+                {(resetModalType === 'reparaciones' || resetModalType === 'todo') && (
+                  <li>Todas las órdenes de servicio de taller, diagnósticos y garantías activas</li>
+                )}
+              </ul>
+              <p className="text-[11px] text-red-600 font-semibold pt-1">
+                ℹ️ Los productos de tu inventario y catálogo de la tienda web no se perderán.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setResetModalType(null)}
+                disabled={resetting}
+                className="flex-1 py-3 px-4 border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition text-sm disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteReset}
+                disabled={resetting}
+                className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl transition shadow-md flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+              >
+                {resetting ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    <span>Reiniciando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    <span>Sí, reiniciar</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

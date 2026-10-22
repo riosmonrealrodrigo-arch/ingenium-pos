@@ -82,7 +82,10 @@ export interface Sale {
   payment_method: PaymentMethod;
   cash_given?: number | null;
   change?: number | null;
-  status: 'completed' | 'cancelled';
+  status: 'completed' | 'cancelled' | 'refunded';
+  cancellation_reason?: string | null;
+  cancelled_at?: string | null;
+  returned_to_stock?: boolean;
   created_at: string;
 }
 
@@ -161,6 +164,11 @@ export interface RepairOrder {
   advance_payment: number;
   status: RepairStatus;
   assigned_technician?: string;
+  warranty_days?: number;
+  warranty_starts_at?: string | null;
+  warranty_expires_at?: string | null;
+  cancellation_reason?: string | null;
+  refund_amount?: number;
   received_at: string;
   completed_at?: string | null;
   delivered_at?: string | null;
