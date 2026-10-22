@@ -387,16 +387,33 @@ export default function FloatingChatWidget({
       return {
         left: `${position.x}px`,
         top: `${position.y}px`,
+        width: '56px',
+        height: '56px',
       };
     }
     return {
       right: '20px',
       bottom: '20px',
+      width: '56px',
+      height: '56px',
     };
   };
 
   const getModalStyle = (): React.CSSProperties => {
-    if (typeof window === 'undefined' || !isCustomPosition) {
+    if (typeof window === 'undefined') {
+      return { right: '20px', bottom: '20px' };
+    }
+    const isMobile = window.innerWidth < 640;
+    if (isMobile) {
+      return {
+        position: 'fixed',
+        left: '12px',
+        right: '12px',
+        bottom: '12px',
+        margin: '0 auto',
+      };
+    }
+    if (!isCustomPosition) {
       return { right: '20px', bottom: '20px' };
     }
     const modalWidth = Math.min(390, window.innerWidth - 20);
@@ -423,11 +440,11 @@ export default function FloatingChatWidget({
       {!isOpen && (
         <div
           style={getBubbleStyle()}
-          className="fixed z-50 select-none touch-none"
+          className="fixed z-50 select-none touch-none w-14 h-14"
         >
-          <div className="relative group">
+          <div className="relative group w-14 h-14">
             {/* Tooltip flotante amigable */}
-            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-[#0d1b2a] text-white text-xs font-bold py-1.5 px-3 rounded-2xl shadow-xl border border-emerald-400/30 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none flex items-center gap-1.5">
+            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-[#0d1b2a] text-white text-xs font-bold py-1.5 px-3 rounded-2xl shadow-xl border border-emerald-400/30 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none hidden sm:flex items-center gap-1.5">
               <span>¡Hola! Cotiza por WhatsApp</span>
               <span className="text-[10px] text-gray-400 font-normal">(Arrastra para mover)</span>
               <span className="text-emerald-400">🤖💬</span>
@@ -441,7 +458,16 @@ export default function FloatingChatWidget({
               role="button"
               tabIndex={0}
               aria-label="Abrir Asistente WhatsApp (Arrastrable)"
-              className={`relative w-15 h-15 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-[#128C7E] via-[#25D366] to-[#34D399] p-0.5 shadow-2xl shadow-emerald-900/40 hover:scale-105 active:scale-95 transition-transform duration-200 flex items-center justify-center border-2 border-white/60 group select-none ${
+              style={{
+                width: '56px',
+                height: '56px',
+                minWidth: '56px',
+                minHeight: '56px',
+                maxWidth: '56px',
+                maxHeight: '56px',
+                touchAction: 'none',
+              }}
+              className={`relative w-14 h-14 rounded-full bg-gradient-to-tr from-[#128C7E] via-[#25D366] to-[#34D399] p-0.5 shadow-2xl shadow-emerald-900/40 hover:scale-105 active:scale-95 transition-transform duration-200 flex items-center justify-center border-2 border-white/70 select-none shrink-0 ${
                 isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'
               }`}
             >
@@ -449,9 +475,13 @@ export default function FloatingChatWidget({
               <span className="absolute -inset-1 rounded-full bg-emerald-400/30 animate-ping pointer-events-none" style={{ animationDuration: '3s' }} />
 
               {/* Robot SVG Animado y Cute */}
-              <div className="w-full h-full rounded-full bg-gradient-to-b from-[#1e3a5f] to-[#0d1b2a] flex items-center justify-center p-2.5 overflow-hidden pointer-events-none">
+              <div
+                style={{ width: '48px', height: '48px' }}
+                className="w-12 h-12 rounded-full bg-gradient-to-b from-[#1e3a5f] to-[#0d1b2a] flex items-center justify-center p-1.5 overflow-hidden pointer-events-none shrink-0"
+              >
                 <svg
-                  className="w-full h-full transform group-hover:rotate-6 transition-transform duration-300"
+                  style={{ width: '32px', height: '32px' }}
+                  className="w-8 h-8 transform group-hover:rotate-6 transition-transform duration-300"
                   viewBox="0 0 64 64"
                   fill="none"
                 >
@@ -485,8 +515,8 @@ export default function FloatingChatWidget({
               </div>
 
               {/* Mini badge oficial de WhatsApp en la esquina */}
-              <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-[#25D366] border-2 border-white flex items-center justify-center shadow-md pointer-events-none">
-                <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
+              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#25D366] border-2 border-white flex items-center justify-center shadow-md pointer-events-none">
+                <svg className="w-3 h-3 fill-white" viewBox="0 0 24 24">
                   <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.584 1.777.818 2.796.818 3.179 0 5.765-2.587 5.766-5.766.001-3.182-2.585-5.769-5.766-5.769zm3.393 8.163c-.144.405-.837.774-1.17.822-.312.043-.637.067-1.802-.416-.838-.348-1.465-.898-1.89-1.328l-.022-.022c-.419-.44-1.077-1.285-1.077-2.316 0-1.026.54-1.53.734-1.741.194-.212.423-.264.564-.264.141 0 .283.003.407.009.131.006.304-.05.476.363.177.426.602 1.468.654 1.574.053.106.089.23.018.371-.071.141-.106.23-.212.353-.106.124-.222.277-.318.371-.106.106-.217.221-.093.434.124.212.551.909 1.18 1.469.811.722 1.494.945 1.706 1.051.212.106.336.089.459-.053.124-.141.53-.618.672-.83.141-.212.283-.177.476-.106.195.071 1.237.583 1.449.689.212.106.353.159.407.247.053.088.053.512-.091.917z" />
                 </svg>
               </div>

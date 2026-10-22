@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useProducts } from '@/context/ProductContext';
 import { useStoreTheme } from '@/context/StoreThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import StoreThemeModal from '@/components/store/StoreThemeModal';
 import { Product, StorefrontCustomer } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import ClientAuthModal from '@/components/store/ClientAuthModal';
@@ -24,12 +26,17 @@ import {
   PhoneCall,
   ExternalLink,
   ChevronRight,
-  PackageCheck
+  PackageCheck,
+  Palette,
+  Settings,
+  Package
 } from 'lucide-react';
 
 export default function TiendaPage() {
   const { products, loadProducts } = useProducts();
   const { currentTheme, themeId } = useStoreTheme();
+  const { profile } = useAuth();
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [customer, setCustomer] = useState<StorefrontCustomer | null>(null);
@@ -176,6 +183,37 @@ export default function TiendaPage() {
         </div>
       </div>
 
+      {/* Barra de Edición Rápida Web para el Administrador (Móvil y Computadora) */}
+      {profile?.role === 'admin' && (
+        <div className="bg-[#1e3a5f] text-white px-3 sm:px-6 py-1.5 flex items-center justify-between text-xs border-b border-amber-400/40 sticky top-0 z-50 shadow-md">
+          <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+            <Sparkles size={13} className="shrink-0" />
+            <span className="text-[11px] truncate">Admin · Editar Web</span>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setThemeModalOpen(true)}
+              className="px-2 sm:px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 transition shadow-xs cursor-pointer"
+            >
+              <Palette size={12} /> {currentTheme.emoji} <span className="hidden sm:inline">Cambiar</span> Tema
+            </button>
+            <Link
+              href="/productos"
+              className="px-2 sm:px-2.5 py-1 bg-[#2563eb] hover:bg-blue-600 text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 transition shadow-xs"
+            >
+              <Package size={12} /> <span className="hidden sm:inline">Editar</span> Catálogo
+            </Link>
+            <Link
+              href="/dashboard"
+              className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10.5px] font-bold transition"
+            >
+              POS
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Main Navbar */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-xs border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
@@ -213,7 +251,7 @@ export default function TiendaPage() {
           </div>
 
           {/* Actions: Client Profile & Cart */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {customer ? (
               <div className="flex items-center gap-1.5 bg-blue-50/80 px-2.5 py-1 rounded-full border border-blue-100 text-[11px]">
                 <User size={13} className="text-[#2563eb]" />
@@ -233,6 +271,17 @@ export default function TiendaPage() {
               >
                 <User size={13} /> Iniciar Sesión
               </button>
+            )}
+
+            {/* Acceso Rápido Admin cuando no ha iniciado sesión */}
+            {!profile && (
+              <Link
+                href="/login"
+                className="p-1.5 text-gray-400 hover:text-[#2563eb] rounded-full hover:bg-gray-100 transition"
+                title="Acceso Administrador POS / Editar Web"
+              >
+                <Settings size={17} />
+              </Link>
             )}
 
             {/* Cart Trigger */}
@@ -541,6 +590,12 @@ export default function TiendaPage() {
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
+      />
+
+      {/* Store Theme Modal (Permite cambiar el tema directamente desde la tienda web) */}
+      <StoreThemeModal
+        isOpen={themeModalOpen}
+        onClose={() => setThemeModalOpen(false)}
       />
 
       {/* Footer */}

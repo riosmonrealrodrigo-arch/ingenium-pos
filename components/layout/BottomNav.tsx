@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingCart, Wrench, Package, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Wrench, Package, ClipboardList, Settings } from 'lucide-react';
 
 const items = [
   { href: '/dashboard', label: 'Inicio', icon: LayoutDashboard },
@@ -9,6 +9,7 @@ const items = [
   { href: '/reparaciones', label: 'Taller', icon: Wrench },
   { href: '/productos', label: 'Productos', icon: Package },
   { href: '/ventas', label: 'Ventas', icon: ClipboardList },
+  { href: '/configuracion', label: 'Ajustes', icon: Settings },
 ];
 
 export default function BottomNav() {
@@ -19,9 +20,14 @@ export default function BottomNav() {
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
           return (
-            <Link key={href} href={href}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] transition-colors ${active ? 'text-[#2563eb]' : 'text-gray-400'}`}>
-              <Icon size={21} strokeWidth={active ? 2.5 : 1.8} />
+            <Link
+              key={href}
+              href={href}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[9.5px] transition-colors ${
+                active ? 'text-[#2563eb]' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <Icon size={19} strokeWidth={active ? 2.5 : 1.8} />
               <span className={active ? 'font-bold' : 'font-medium'}>{label}</span>
             </Link>
           );

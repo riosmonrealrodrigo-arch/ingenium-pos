@@ -20,10 +20,15 @@ import SocialNetworksBar from '@/components/SocialNetworksBar';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
 import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
 import SeasonalAmbiance from '@/components/store/SeasonalAmbiance';
+import StoreThemeModal from '@/components/store/StoreThemeModal';
 import { useStoreTheme } from '@/context/StoreThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { Palette, Settings } from 'lucide-react';
 
 export default function WelcomeHomePage() {
   const { currentTheme, themeId } = useStoreTheme();
+  const { profile } = useAuth();
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'tienda' | 'reparaciones' | 'redes'>('tienda');
 
   return (
@@ -43,6 +48,37 @@ export default function WelcomeHomePage() {
           }}
         />
       </div>
+
+      {/* Admin Floating Quick Bar (permite cambiar temas y editar catálogo desde teléfono) */}
+      {profile?.role === 'admin' && (
+        <div className="relative z-30 bg-[#1e3a5f] text-white px-3 sm:px-6 py-1.5 flex items-center justify-between text-xs border-b border-amber-400/40 sticky top-0 shadow-md">
+          <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+            <Sparkles size={13} className="shrink-0" />
+            <span className="text-[11px] truncate">Admin · Editar Web</span>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setThemeModalOpen(true)}
+              className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 transition shadow-xs cursor-pointer"
+            >
+              <Palette size={12} /> {currentTheme.emoji} <span className="hidden sm:inline">Cambiar</span> Tema
+            </button>
+            <Link
+              href="/productos"
+              className="px-2.5 py-1 bg-[#2563eb] hover:bg-blue-600 text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 transition shadow-xs"
+            >
+              <Package size={12} /> <span className="hidden sm:inline">Editar</span> Catálogo
+            </Link>
+            <Link
+              href="/dashboard"
+              className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10.5px] font-bold transition"
+            >
+              POS
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Top Navbar (100% Customer & Shop Oriented - No POS Access in plain sight) */}
       <header className="relative z-20 border-b border-white/10 bg-[#0d1b2a]/85 backdrop-blur-xl sticky top-0">
@@ -414,6 +450,12 @@ export default function WelcomeHomePage() {
 
       {/* Floating Cute Robot WhatsApp Assistant */}
       <FloatingChatWidget businessName="INGENIUM MOBILE" businessPhone="+52 81 3962 9319" />
+
+      {/* Modal Selector de Temas */}
+      <StoreThemeModal
+        isOpen={themeModalOpen}
+        onClose={() => setThemeModalOpen(false)}
+      />
     </div>
   );
 }

@@ -8,8 +8,9 @@ import {
   MessageSquare, Globe, Wrench, Sparkles, Palette, Check, X
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useStoreTheme, STORE_THEMES, StoreThemeId } from '@/context/StoreThemeContext';
+import { useStoreTheme, STORE_THEMES } from '@/context/StoreThemeContext';
 import WelcomeScreen from '@/components/WelcomeScreen';
+import StoreThemeModal from '@/components/store/StoreThemeModal';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,16 +28,9 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { business, profile, signOut } = useAuth();
-  const { themeId, setTheme } = useStoreTheme();
+  const { themeId } = useStoreTheme();
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
-  const [themeSuccess, setThemeSuccess] = useState('');
-
-  const handleSelectTheme = async (id: StoreThemeId) => {
-    await setTheme(id);
-    setThemeSuccess(`¡Tema "${STORE_THEMES[id].name}" activado en la tienda web!`);
-    setTimeout(() => setThemeSuccess(''), 3000);
-  };
 
   const businessDisplayName = 'INGENIUM MOBILE';
 
@@ -135,79 +129,10 @@ export default function Sidebar() {
       </aside>
 
       {/* Modal Selector de Temáticas Web */}
-      {themeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 overflow-hidden">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                  <Palette size={20} />
-                </div>
-                <div>
-                  <h3 className="font-black text-gray-900 text-base">Temáticas de la Tienda Web</h3>
-                  <p className="text-xs text-gray-500">Elige la ambientación festiva para el catálogo público</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setThemeModalOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {themeSuccess && (
-              <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-2">
-                <Check size={16} /> {themeSuccess}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 max-h-[60vh] overflow-y-auto p-1">
-              {Object.values(STORE_THEMES).map(t => {
-                const isSelected = themeId === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => handleSelectTheme(t.id)}
-                    className={`p-3.5 rounded-2xl border-2 text-left transition-all flex flex-col justify-between cursor-pointer ${
-                      isSelected
-                        ? 'border-purple-600 bg-purple-50/60 shadow-md ring-2 ring-purple-600/20'
-                        : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-2xl">{t.emoji}</span>
-                      {isSelected ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-black bg-purple-600 text-white px-2 py-0.5 rounded-full">
-                          <Check size={10} /> ACTIVO
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-gray-400 font-bold">Clic para activar</span>
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-xs">{t.name}</h4>
-                      <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5">{t.headline}</p>
-                    </div>
-                    {/* Visual color preview strip */}
-                    <div className="h-3 rounded-full mt-2.5 shadow-xs border border-black/10" style={{ background: t.cssGradient }} />
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-              <span>Los cambios se ven al instante en la tienda en línea.</span>
-              <button
-                onClick={() => setThemeModalOpen(false)}
-                className="px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-gray-800 transition cursor-pointer"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <StoreThemeModal
+        isOpen={themeModalOpen}
+        onClose={() => setThemeModalOpen(false)}
+      />
 
       {/* Welcome Screen Modal */}
       <WelcomeScreen

@@ -6,14 +6,18 @@ import { supabase } from '@/lib/supabase';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { Save, Check, Printer, ChevronRight } from 'lucide-react';
+import { Save, Check, Printer, ChevronRight, Palette } from 'lucide-react';
 import Link from 'next/link';
+import { useStoreTheme } from '@/context/StoreThemeContext';
+import StoreThemeModal from '@/components/store/StoreThemeModal';
 
 export default function ConfiguracionPage() {
   const { profile, business, loading } = useAuth();
+  const { currentTheme } = useStoreTheme();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
   const [form, setForm] = useState({ name: '', address: '', phone: '', email: '', currency: '$ MXN', tax_rate: '16' });
 
   useEffect(() => { if (!loading && !profile) router.replace('/login'); }, [profile, loading, router]);
@@ -55,6 +59,36 @@ export default function ConfiguracionPage() {
               <Check size={16} /> Configuración guardada correctamente
             </div>
           )}
+
+          {/* Quick link to Web Themes (Visible en celular y PC) */}
+          <button
+            type="button"
+            onClick={() => setThemeModalOpen(true)}
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 via-pink-50 to-indigo-50 border border-purple-200/80 rounded-2xl hover:border-purple-400 transition group shadow-sm text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-md shrink-0">
+                <Palette size={20} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-gray-900 text-sm group-hover:text-purple-700 transition">
+                    Temáticas de la Tienda Web
+                  </p>
+                  <span className="text-[11px] bg-purple-200/80 text-purple-900 font-black px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {currentTheme?.emoji} {currentTheme?.name}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 truncate">
+                  Halloween, Navidad, Buen Fin o Cyber Blue en tiempo real
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-bold text-purple-700 shrink-0 ml-2">
+              <span>Cambiar</span>
+              <ChevronRight size={16} />
+            </div>
+          </button>
 
           {/* Quick link to ticket format settings */}
           <Link
@@ -131,6 +165,10 @@ export default function ConfiguracionPage() {
         </main>
       </div>
       <BottomNav />
+      <StoreThemeModal
+        isOpen={themeModalOpen}
+        onClose={() => setThemeModalOpen(false)}
+      />
     </div>
   );
 }
