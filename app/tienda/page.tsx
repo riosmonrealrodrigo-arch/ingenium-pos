@@ -205,7 +205,7 @@ export default function TiendaPage() {
           {/* Search bar desktop */}
           <div className="hidden md:flex flex-1 max-w-sm mx-4">
             <div className="relative w-full">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none flex items-center">
                 <Search size={14} />
               </span>
               <input
@@ -214,7 +214,7 @@ export default function TiendaPage() {
                 value={search}
                 onChange={e => handleSearchChange(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') scrollToCatalog(); }}
-                className="w-full pl-8.5 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-xs outline-none focus:ring-2 focus:ring-[#2563eb] focus:bg-white transition"
+                className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-full text-xs outline-none focus:ring-2 focus:ring-[#2563eb] focus:bg-white transition"
               />
             </div>
           </div>
@@ -261,16 +261,16 @@ export default function TiendaPage() {
         {/* Search bar mobile */}
         <div className="md:hidden px-3 pb-2 pt-0.5">
           <div className="relative w-full">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none flex items-center">
               <Search size={14} />
             </span>
             <input
               type="text"
-              placeholder="Buscar productos..."
+              placeholder="Buscar pantalla, batería, cargador..."
               value={search}
               onChange={e => handleSearchChange(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') scrollToCatalog(); }}
-              className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
+              className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
         </div>

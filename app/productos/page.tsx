@@ -57,9 +57,9 @@ export default function ProductosPage() {
 
           <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
             <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre o código SKU..."
-                className="w-full pl-8 pr-3 py-2 border border-gray-200 bg-white rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#2563eb]" />
+                className="w-full pl-9 pr-3 py-2 border border-gray-200 bg-white rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#2563eb]" />
             </div>
             
             <div className="flex items-center gap-2">
