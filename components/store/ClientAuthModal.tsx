@@ -41,7 +41,7 @@ export default function ClientAuthModal({
       }
       const redirectUrl = typeof window !== 'undefined'
         ? `${window.location.origin}/auth/callback`
-        : 'https://ingenium-pos.vercel.app/auth/callback';
+        : 'https://ingeniummobileshop.vercel.app/auth/callback';
 
       const { error: oauthErr } = await supabase.auth.signInWithOAuth({
         provider: 'google',

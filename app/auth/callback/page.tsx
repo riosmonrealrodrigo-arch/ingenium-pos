@@ -8,6 +8,22 @@ export default function AuthCallback() {
   const router = useRouter();
 
   useEffect(() => {
+    // Check if there is an error in the callback URL parameters
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get('error') || params.get('error_description');
+      if (error) {
+        console.warn('Auth error received:', error);
+        const target = sessionStorage.getItem('ingenium_auth_target');
+        if (target === 'client') {
+          router.replace('/tienda');
+        } else {
+          router.replace('/login');
+        }
+        return;
+      }
+    }
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) {
         router.replace('/login');
