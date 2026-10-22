@@ -207,107 +207,109 @@ export default function WelcomeHomePage() {
               </div>
             </div>
 
-            {/* Columna Derecha: Composición Gráfica Tecnológica (Laptop + Phone + Ticket) */}
+            {/* Columna Derecha: Tarjeta Oficial de Especialidades & Servicios */}
             <div className="lg:col-span-6 relative flex items-center justify-center">
-              <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 via-transparent to-amber-500/20 rounded-3xl blur-2xl pointer-events-none" />
+              <div className="w-full max-w-lg bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+                {/* Decorative glow */}
+                <div className="absolute -top-24 -right-24 w-60 h-60 bg-[#2563eb]/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-[#f59e0b]/15 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="relative w-full max-w-lg p-2 sm:p-4">
-                {/* Modern Laptop Mockup */}
-                <div className="relative z-10 bg-gray-900 rounded-2xl border-4 border-gray-700 shadow-2xl overflow-hidden transform hover:scale-[1.01] transition-transform">
-                  <div className="bg-[#1e3a5f] px-3 py-2 flex items-center justify-between border-b border-white/10">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
-                      <span className="text-[10px] text-white/60 font-mono ml-2">ingenium-pos.app/tienda</span>
-                    </div>
-                    <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
-                      ● Tienda Abierta
-                    </span>
-                  </div>
-
-                  <div className="bg-[#0f172a] p-4 text-xs space-y-3">
-                    <div className="flex items-center justify-between border-b border-gray-800 pb-2">
+                <div className="relative z-10 space-y-6">
+                  {/* Header de la tarjeta con Logo oficial */}
+                  <div className="flex items-center gap-4 pb-4 border-b border-white/10">
+                    <img
+                      src="/images/logo.jpg"
+                      alt="INGENIUM MOBILE"
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-white/20 shadow-lg"
+                    />
+                    <div>
                       <div className="flex items-center gap-2">
-                        <ShoppingCart size={15} className="text-[#2563eb]" />
-                        <span className="font-bold text-gray-200">Catálogo de Reparación & Venta</span>
+                        <h3 className="font-black text-lg text-white tracking-wide">INGENIUM MOBILE</h3>
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       </div>
-                      <span className="text-[11px] text-amber-400 font-mono font-bold">MONEDA: $ MXN</span>
-                    </div>
-
-                    <div className="space-y-1.5 text-[11px]">
-                      <div className="flex justify-between items-center bg-gray-800/60 p-2 rounded-lg border border-gray-700/50">
-                        <span className="text-gray-300 font-medium">1x Pantalla OLED iPhone 13 Pro (Original)</span>
-                        <span className="font-bold text-white font-mono">$1,850.00 MXN</span>
-                      </div>
-                      <div className="flex justify-between items-center bg-gray-800/60 p-2 rounded-lg border border-gray-700/50">
-                        <span className="text-gray-300 font-medium">1x Batería Original Samsung A54</span>
-                        <span className="font-bold text-white font-mono">$650.00 MXN</span>
-                      </div>
-                      <div className="flex justify-between items-center bg-gray-800/60 p-2 rounded-lg border border-gray-700/50">
-                        <span className="text-gray-300 font-medium">1x Mano de Obra Reparación Express</span>
-                        <span className="font-bold text-white font-mono">$350.00 MXN</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-gradient-to-r from-blue-900/60 to-indigo-900/60 p-3 rounded-xl border border-blue-500/30 flex items-center justify-between">
-                      <span className="font-bold text-gray-300">Total Garantizado:</span>
-                      <span className="text-lg font-black text-amber-400 font-mono">$2,850.00 MXN</span>
+                      <p className="text-xs text-blue-300 font-semibold">Taller Especializado & Venta de Refacciones</p>
+                      <p className="text-[11px] text-gray-400 flex items-center gap-1 mt-0.5">
+                        <span className="text-emerald-400 font-bold">● Abierto</span> · Monterrey, N.L.
+                      </p>
                     </div>
                   </div>
-                </div>
 
-                <div className="h-3 bg-gray-700 rounded-b-xl max-w-[85%] mx-auto shadow-md" />
+                  {/* Servicios destacados reales */}
+                  <div className="space-y-2.5">
+                    <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                      Nuestras Especialidades
+                    </p>
 
-                {/* Floating Smartphone Mockup (Storefront & Chat Widget) */}
-                <div className="absolute -bottom-8 -right-2 sm:-bottom-10 sm:-right-4 z-20 w-44 sm:w-52 bg-gray-950 rounded-3xl border-4 border-gray-800 shadow-2xl p-2.5 backdrop-blur-md transform hover:scale-105 transition">
-                  <div className="w-16 h-3 bg-gray-800 rounded-full mx-auto mb-2" />
-                  <div className="space-y-2 text-[10px]">
-                    <div className="bg-[#1e3a5f] p-2 rounded-xl text-white">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-[10px]">Tienda Web</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                    <Link
+                      href="/tienda"
+                      className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-blue-500/40 transition group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold text-sm">
+                          📱
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-white group-hover:text-blue-300 transition">
+                            Pantallas OLED & Displays
+                          </p>
+                          <p className="text-[11px] text-gray-400">iPhone, Samsung, Xiaomi, Motorola y más</p>
+                        </div>
                       </div>
-                      <p className="text-[9px] text-blue-200 mt-0.5">Catálogo en Línea</p>
-                    </div>
+                      <ArrowRight size={15} className="text-gray-400 group-hover:text-white group-hover:translate-x-1 transition" />
+                    </Link>
 
-                    <div className="bg-white/10 p-1.5 rounded-lg border border-white/10">
-                      <p className="font-semibold text-white truncate">Centro de Carga Tipo C</p>
-                      <p className="text-amber-400 font-bold font-mono">$180.00 MXN</p>
-                    </div>
+                    <Link
+                      href="/tienda"
+                      className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-amber-500/40 transition group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">
+                          🔋
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-white group-hover:text-amber-300 transition">
+                            Baterías & Centros de Carga
+                          </p>
+                          <p className="text-[11px] text-gray-400">Reemplazo express y reparación de carga</p>
+                        </div>
+                      </div>
+                      <ArrowRight size={15} className="text-gray-400 group-hover:text-white group-hover:translate-x-1 transition" />
+                    </Link>
 
-                    <div className="p-1.5 bg-[#25D366] text-white rounded-lg flex items-center gap-1 font-bold text-[9px] shadow">
-                      <MessageSquare size={11} />
-                      <span>Chat en Vivo Activo</span>
-                    </div>
+                    <Link
+                      href="/tienda"
+                      className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-emerald-500/40 transition group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
+                          🛡️
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition">
+                            Garantía Escrita Oficial
+                          </p>
+                          <p className="text-[11px] text-gray-400">Cobertura en piezas instaladas y soporte garantizado</p>
+                        </div>
+                      </div>
+                      <ArrowRight size={15} className="text-gray-400 group-hover:text-white group-hover:translate-x-1 transition" />
+                    </Link>
                   </div>
-                </div>
 
-                {/* Thermal Ticket Printer Simulation */}
-                <div className="absolute -bottom-10 -left-2 sm:-bottom-12 sm:-left-4 z-20 w-44 sm:w-48 bg-gray-900 border-2 border-gray-700 rounded-2xl p-2.5 shadow-2xl text-[9px] font-mono">
-                  <div className="flex items-center gap-1.5 text-gray-300 pb-1.5 border-b border-gray-700">
-                    <Printer size={13} className="text-blue-400" />
-                    <span className="font-bold">Ticket de Garantía</span>
-                  </div>
-
-                  <div className="mt-1 bg-white text-gray-900 p-2 rounded-lg shadow-inner text-[9px] leading-tight space-y-1">
-                    <p className="font-black text-center text-[10px]">INGENIUM MOBILE</p>
-                    <p className="text-center text-[8px] text-gray-600">RFC: IME240101XYZ · MTY NL</p>
-                    <div className="border-t border-dashed border-gray-300 pt-1">
-                      <div className="flex justify-between">
-                        <span>PANTALLA OLED</span>
-                        <span className="font-bold">$1,850.00</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>SERVICIO TÉC</span>
-                        <span className="font-bold">$350.00</span>
-                      </div>
+                  {/* Banner de confianza inferior */}
+                  <div className="p-3.5 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={18} className="text-blue-400 shrink-0" />
+                      <span className="text-xs font-bold text-blue-200">
+                        Atención directa con técnicos capacitados
+                      </span>
                     </div>
-                    <div className="border-t border-dashed border-gray-300 pt-1 flex justify-between font-black text-[10px]">
-                      <span>TOTAL:</span>
-                      <span className="text-blue-800">$2,200.00 MXN</span>
-                    </div>
-                    <p className="text-center text-[8px] text-gray-500 pt-0.5">¡Gracias por su preferencia!</p>
+                    <Link
+                      href="/tienda"
+                      className="text-xs font-black text-amber-400 hover:text-amber-300 flex items-center gap-1 transition"
+                    >
+                      <span>Catálogo</span>
+                      <ArrowRight size={13} />
+                    </Link>
                   </div>
                 </div>
               </div>
