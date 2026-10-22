@@ -234,68 +234,56 @@ export default function WelcomeHomePage() {
                     </div>
                   </div>
 
-                  {/* Servicios destacados reales */}
+                  {/* Servicios destacados reales (Informativo, sin enlaces ni flechas) */}
                   <div className="space-y-2.5">
                     <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
                       Nuestras Especialidades
                     </p>
 
-                    <Link
-                      href="/tienda"
-                      className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-blue-500/40 transition group cursor-pointer"
-                    >
+                    <div className="flex items-center p-3 rounded-2xl bg-white/5 border border-white/5">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold text-sm">
                           📱
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-white group-hover:text-blue-300 transition">
+                          <p className="text-xs font-bold text-white">
                             Pantallas OLED & Displays
                           </p>
                           <p className="text-[11px] text-gray-400">iPhone, Samsung, Xiaomi, Motorola y más</p>
                         </div>
                       </div>
-                      <ArrowRight size={15} className="text-gray-400 group-hover:text-white group-hover:translate-x-1 transition" />
-                    </Link>
+                    </div>
 
-                    <Link
-                      href="/tienda"
-                      className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-amber-500/40 transition group cursor-pointer"
-                    >
+                    <div className="flex items-center p-3 rounded-2xl bg-white/5 border border-white/5">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">
                           🔋
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-white group-hover:text-amber-300 transition">
+                          <p className="text-xs font-bold text-white">
                             Baterías & Centros de Carga
                           </p>
                           <p className="text-[11px] text-gray-400">Reemplazo express y reparación de carga</p>
                         </div>
                       </div>
-                      <ArrowRight size={15} className="text-gray-400 group-hover:text-white group-hover:translate-x-1 transition" />
-                    </Link>
+                    </div>
 
-                    <Link
-                      href="/tienda"
-                      className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-emerald-500/40 transition group cursor-pointer"
-                    >
+                    <div className="flex items-center p-3 rounded-2xl bg-white/5 border border-white/5">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
                           🛡️
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition">
+                          <p className="text-xs font-bold text-white">
                             Garantía Escrita Oficial
                           </p>
                           <p className="text-[11px] text-gray-400">Cobertura en piezas instaladas y soporte garantizado</p>
                         </div>
                       </div>
-                      <ArrowRight size={15} className="text-gray-400 group-hover:text-white group-hover:translate-x-1 transition" />
-                    </Link>
+                    </div>
                   </div>
 
-                  {/* Banner de confianza inferior */}
+                  {/* Banner de confianza inferior (Solo informativo) */}
                   <div className="p-3.5 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <ShieldCheck size={18} className="text-blue-400 shrink-0" />
@@ -303,13 +291,9 @@ export default function WelcomeHomePage() {
                         Atención directa con técnicos capacitados
                       </span>
                     </div>
-                    <Link
-                      href="/tienda"
-                      className="text-xs font-black text-amber-400 hover:text-amber-300 flex items-center gap-1 transition"
-                    >
-                      <span>Catálogo</span>
-                      <ArrowRight size={13} />
-                    </Link>
+                    <span className="text-[11px] font-bold text-amber-400/90 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                      Garantizado
+                    </span>
                   </div>
                 </div>
               </div>
