@@ -108,19 +108,35 @@ export default function NuevoProductoPage() {
                     <p className="text-[11px] text-gray-500">¿Este producto estará visible para clientes en internet?</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, visible_en_tienda: !f.visible_en_tienda }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#2563eb] ${
-                    form.visible_en_tienda ? 'bg-[#2563eb]' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                      form.visible_en_tienda ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
+                <div className="flex items-center gap-2.5">
+                  <span className={`text-xs font-bold select-none ${form.visible_en_tienda ? 'text-[#2563eb]' : 'text-gray-400'}`}>
+                    {form.visible_en_tienda ? 'Activo' : 'Desactivado'}
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={form.visible_en_tienda}
+                    onClick={() => setForm(f => ({ ...f, visible_en_tienda: !f.visible_en_tienda }))}
+                    className="relative cursor-pointer transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] rounded-full shrink-0"
+                    style={{
+                      width: '48px',
+                      height: '28px',
+                      backgroundColor: form.visible_en_tienda ? '#2563eb' : '#d1d5db',
+                      borderRadius: '9999px',
+                    }}
+                  >
+                    <span
+                      className="absolute bg-white shadow-md transition-all duration-200 ease-in-out pointer-events-none"
+                      style={{
+                        top: '4px',
+                        left: form.visible_en_tienda ? '24px' : '4px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '9999px',
+                      }}
+                    />
+                  </button>
+                </div>
               </div>
 
               {form.visible_en_tienda && (
@@ -189,19 +205,35 @@ export default function NuevoProductoPage() {
                 <p className="text-sm font-semibold text-gray-700">Producto activo en POS</p>
                 <p className="text-xs text-gray-400">Aparece en el buscador de ventas</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setForm(f => ({ ...f, active: !f.active }))}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#2563eb] ${
-                  form.active ? 'bg-[#2563eb]' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                    form.active ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
+              <div className="flex items-center gap-2.5">
+                <span className={`text-xs font-bold select-none ${form.active ? 'text-[#2563eb]' : 'text-gray-400'}`}>
+                  {form.active ? 'Activo' : 'Inactivo'}
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.active}
+                  onClick={() => setForm(f => ({ ...f, active: !f.active }))}
+                  className="relative cursor-pointer transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] rounded-full shrink-0"
+                  style={{
+                    width: '48px',
+                    height: '28px',
+                    backgroundColor: form.active ? '#2563eb' : '#d1d5db',
+                    borderRadius: '9999px',
+                  }}
+                >
+                  <span
+                    className="absolute bg-white shadow-md transition-all duration-200 ease-in-out pointer-events-none"
+                    style={{
+                      top: '4px',
+                      left: form.active ? '24px' : '4px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '9999px',
+                    }}
+                  />
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-2">
