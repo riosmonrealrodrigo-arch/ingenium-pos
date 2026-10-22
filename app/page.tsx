@@ -19,6 +19,7 @@ import {
 import SocialNetworksBar from '@/components/SocialNetworksBar';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
 import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
+import SeasonalAmbiance from '@/components/store/SeasonalAmbiance';
 import { useStoreTheme } from '@/context/StoreThemeContext';
 
 export default function WelcomeHomePage() {
@@ -107,13 +108,23 @@ export default function WelcomeHomePage() {
       </header>
 
       {/* Main Hero Section (2-Column Responsive) */}
-      <main className="relative z-10 flex-1">
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20 lg:pt-16 lg:pb-28">
+      <main className="relative z-10 flex-1 overflow-hidden">
+        {/* Seasonal Theme Ambiance Overlay */}
+        <SeasonalAmbiance themeId={themeId} />
+
+        <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20 lg:pt-16 lg:pb-28">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             {/* Columna Izquierda: Mensaje de Bienvenida a la Tienda */}
             <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold backdrop-blur-md shadow-sm">
+              <div
+                style={{
+                  backgroundColor: currentTheme.badgeBg,
+                  borderColor: currentTheme.badgeBorder,
+                  color: currentTheme.badgeText,
+                }}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black backdrop-blur-md border shadow-md transition-all"
+              >
                 <Sparkles size={14} className="text-amber-400" />
                 <span>{currentTheme.badge}</span>
               </div>
@@ -140,7 +151,8 @@ export default function WelcomeHomePage() {
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5 pt-2">
                 <Link
                   href="/tienda"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#2563eb] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-extrabold text-sm shadow-xl shadow-blue-500/30 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                  style={{ background: currentTheme.cssGradient }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl text-white font-extrabold text-sm shadow-xl transition-all transform hover:-translate-y-0.5 cursor-pointer border border-white/20"
                 >
                   <Package size={17} />
                   <span>Ver Catálogo de Productos y Refacciones</span>

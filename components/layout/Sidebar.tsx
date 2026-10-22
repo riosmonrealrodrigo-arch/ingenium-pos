@@ -190,7 +190,7 @@ export default function Sidebar() {
                       <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5">{t.headline}</p>
                     </div>
                     {/* Visual color preview strip */}
-                    <div className={`h-2 rounded-full mt-2.5 bg-gradient-to-r ${t.bannerGradient}`} />
+                    <div className="h-3 rounded-full mt-2.5 shadow-xs border border-black/10" style={{ background: t.cssGradient }} />
                   </button>
                 );
               })}

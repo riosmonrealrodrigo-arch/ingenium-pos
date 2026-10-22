@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/utils';
 import ClientAuthModal from '@/components/store/ClientAuthModal';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
 import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
+import SeasonalAmbiance from '@/components/store/SeasonalAmbiance';
 import { supabase } from '@/lib/supabase';
 import {
   ShoppingBag,
@@ -158,8 +159,11 @@ export default function TiendaPage() {
       {/* Animated Intro Loader on Entry */}
       <AnimatedIntroLoader />
 
-      {/* Top Banner (100% Tienda Orientada al Cliente - Sin accesos POS) */}
-      <div className="bg-[#1e3a5f] text-white text-xs py-2 px-4 border-b border-white/10 flex justify-between items-center">
+      {/* Top Banner (100% Tienda Orientada al Cliente - Themed) */}
+      <div
+        style={{ background: currentTheme.navTopGradient }}
+        className="text-white text-xs py-2 px-4 border-b border-white/10 flex justify-between items-center transition-colors duration-500"
+      >
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1 text-amber-400 font-semibold">
             <Sparkles size={14} /> Taller Especializado & Tienda de Repuestos
@@ -265,85 +269,71 @@ export default function TiendaPage() {
         </div>
       </header>
 
-      {/* Hero Banner (Themed dynamically from POS) */}
-      <section className={`relative bg-gradient-to-r ${currentTheme.bannerGradient} text-white py-10 px-4 sm:px-6 lg:px-8 shadow-inner overflow-hidden transition-all duration-500`}>
-        {/* Festive theme ambient particles */}
-        {themeId === 'halloween' && (
-          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-30 text-2xl">
-            <span className="absolute top-4 left-10 animate-bounce" style={{ animationDuration: '4s' }}>🦇</span>
-            <span className="absolute top-12 right-20 animate-pulse" style={{ animationDuration: '3s' }}>🎃</span>
-            <span className="absolute bottom-6 left-1/3 animate-bounce" style={{ animationDuration: '5s' }}>👻</span>
-            <span className="absolute top-8 left-2/3 animate-pulse">🕷️</span>
-          </div>
-        )}
-        {themeId === 'navidad' && (
-          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-35 text-2xl">
-            <span className="absolute top-3 left-12 animate-pulse">❄️</span>
-            <span className="absolute top-10 right-24 animate-bounce" style={{ animationDuration: '4s' }}>🎄</span>
-            <span className="absolute bottom-4 left-1/2 animate-pulse" style={{ animationDuration: '3s' }}>🎅</span>
-            <span className="absolute top-6 left-3/4 animate-bounce">🎁</span>
-          </div>
-        )}
-        {themeId === 'san_valentin' && (
-          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-30 text-2xl">
-            <span className="absolute top-4 left-10 animate-bounce" style={{ animationDuration: '3s' }}>💖</span>
-            <span className="absolute top-10 right-20 animate-pulse" style={{ animationDuration: '4s' }}>💕</span>
-            <span className="absolute bottom-6 left-1/3 animate-bounce">💘</span>
-            <span className="absolute top-8 left-2/3 animate-pulse">✨</span>
-          </div>
-        )}
-        {themeId === 'black_friday' && (
-          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-25 text-2xl">
-            <span className="absolute top-4 left-12 animate-pulse">🔥</span>
-            <span className="absolute top-12 right-24 animate-bounce" style={{ animationDuration: '2s' }}>⚡</span>
-            <span className="absolute bottom-5 left-1/2 animate-pulse">🛒</span>
-            <span className="absolute top-8 left-2/3 animate-bounce">💥</span>
-          </div>
-        )}
-        {themeId === 'fiestas_patrias' && (
-          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden opacity-35 text-2xl">
-            <span className="absolute top-4 left-10 animate-bounce">🇲🇽</span>
-            <span className="absolute top-10 right-20 animate-pulse">🎉</span>
-            <span className="absolute bottom-5 left-1/3 animate-bounce">🎊</span>
-            <span className="absolute top-8 left-2/3 animate-pulse">🇲🇽</span>
-          </div>
-        )}
+      {/* Hero Banner (Themed dynamically from POS with guaranteed CSS linear-gradient) */}
+      <section
+        style={{ background: currentTheme.cssGradient }}
+        className="relative text-white py-12 px-4 sm:px-6 lg:px-8 shadow-2xl overflow-hidden transition-all duration-700"
+      >
+        {/* Festive Ambiance Overlay */}
+        <SeasonalAmbiance themeId={themeId} />
 
-        <div className="relative max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-3 max-w-xl text-center md:text-left">
-            <div className="inline-flex items-center gap-1.5 bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm border border-white/20 shadow-xs">
+        <div className="relative z-10 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-4 max-w-xl text-center md:text-left">
+            <div
+              style={{
+                backgroundColor: currentTheme.badgeBg,
+                borderColor: currentTheme.badgeBorder,
+                color: currentTheme.badgeText,
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black backdrop-blur-md border shadow-md transition-all"
+            >
               <Sparkles size={14} className="text-amber-300" />
               <span>{currentTheme.badge}</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
+
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.15] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
               {currentTheme.headline}
             </h1>
-            <p className="text-white/90 text-sm leading-relaxed">
+
+            <p className="text-white/90 text-sm sm:text-base leading-relaxed drop-shadow-[0_1px_5px_rgba(0,0,0,0.5)]">
               {currentTheme.tagline}
             </p>
+
             <div className="pt-2 flex flex-wrap gap-2.5 justify-center md:justify-start">
               <a
                 href="https://wa.me/528139629319?text=Hola%20INGENIUM%20MOBILE%2C%20me%20comunico%20desde%20la%20p%C3%A1gina%20web.%20Necesito%20cotizar%2Frevisar%20la%20reparaci%C3%B3n%20de%20un%20equipo.%20Marca%2FModelo%3A%20%5B%20%5D%20Falla%3A%20%5B%20%5D"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold rounded-xl text-xs transition shadow-lg active:scale-95"
+                className="inline-flex items-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#20ba5a] text-white font-extrabold rounded-2xl text-xs sm:text-sm transition-all shadow-xl shadow-green-950/40 hover:scale-105 active:scale-95"
               >
-                <PhoneCall size={14} />
+                <PhoneCall size={16} />
                 <span>Cotizar Reparación por WhatsApp (+52 81 3962 9319)</span>
               </a>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
-            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center">
-              <Smartphone size={24} className="mx-auto text-amber-400 mb-1" />
-              <p className="font-black text-lg">100%</p>
-              <p className="text-[11px] text-blue-200">Garantía Escrita</p>
+          <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
+            <div
+              style={{
+                backgroundColor: currentTheme.cardBg,
+                borderColor: currentTheme.badgeBorder,
+              }}
+              className="backdrop-blur-md p-5 rounded-3xl border shadow-2xl text-center transform hover:scale-105 transition-all duration-300"
+            >
+              <Smartphone size={28} className="mx-auto text-amber-300 mb-2 drop-shadow" />
+              <p className="font-black text-xl text-white">100%</p>
+              <p className="text-xs text-white/90 font-medium">Garantía Escrita</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center">
-              <Wrench size={24} className="mx-auto text-amber-400 mb-1" />
-              <p className="font-black text-lg">Taller</p>
-              <p className="text-[11px] text-blue-200">En el acto</p>
+            <div
+              style={{
+                backgroundColor: currentTheme.cardBg,
+                borderColor: currentTheme.badgeBorder,
+              }}
+              className="backdrop-blur-md p-5 rounded-3xl border shadow-2xl text-center transform hover:scale-105 transition-all duration-300"
+            >
+              <Wrench size={28} className="mx-auto text-amber-300 mb-2 drop-shadow" />
+              <p className="font-black text-xl text-white">Taller</p>
+              <p className="text-xs text-white/90 font-medium">En el acto</p>
             </div>
           </div>
         </div>
@@ -364,9 +354,14 @@ export default function TiendaPage() {
                 setSelectedCategory(cat.id);
                 scrollToCatalog();
               }}
+              style={
+                selectedCategory === cat.id
+                  ? { backgroundColor: currentTheme.accentColor, color: '#ffffff' }
+                  : {}
+              }
               className={`px-4 py-2 rounded-full text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                 selectedCategory === cat.id
-                  ? 'bg-[#2563eb] text-white shadow-sm'
+                  ? 'shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
