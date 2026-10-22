@@ -1,11 +1,12 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useProducts } from '@/context/ProductContext';
 import { Product, StorefrontCustomer } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import ClientAuthModal from '@/components/store/ClientAuthModal';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
+import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
 import { supabase } from '@/lib/supabase';
 import {
   ShoppingBag,
@@ -34,6 +35,20 @@ export default function TiendaPage() {
   const [cart, setCart] = useState<{ product: Product; quantity: number }[]>([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
+  const catalogSectionRef = useRef<HTMLElement>(null);
+
+  const scrollToCatalog = () => {
+    if (catalogSectionRef.current) {
+      catalogSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    if (val.trim().length > 0) {
+      scrollToCatalog();
+    }
+  };
 
   useEffect(() => {
     loadProducts();
@@ -138,7 +153,10 @@ export default function TiendaPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
-      {/* Top Banner */}
+      {/* Animated Intro Loader on Entry */}
+      <AnimatedIntroLoader />
+
+      {/* Top Banner (100% Tienda Orientada al Cliente - Sin accesos POS) */}
       <div className="bg-[#1e3a5f] text-white text-xs py-2 px-4 border-b border-white/10 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1 text-amber-400 font-semibold">
@@ -147,13 +165,8 @@ export default function TiendaPage() {
           <span className="hidden sm:inline text-white/60">|</span>
           <span className="hidden sm:inline text-white/80">Envíos a todo el país y retiro en sucursal</span>
         </div>
-        <div className="flex items-center gap-4">
-          <Link
-            href="/login"
-            className="text-amber-300 hover:text-white font-bold transition flex items-center gap-1"
-          >
-            Acceso Personal POS <ChevronRight size={13} />
-          </Link>
+        <div className="hidden sm:flex items-center gap-2 text-white/70 text-[11px]">
+          <span>Moneda Oficial: <strong className="text-amber-400">$ MXN</strong></span>
         </div>
       </div>
 
@@ -186,7 +199,8 @@ export default function TiendaPage() {
                 type="text"
                 placeholder="Buscar pantalla, batería, cargador, servicio..."
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={e => handleSearchChange(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') scrollToCatalog(); }}
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-full text-sm outline-none focus:ring-2 focus:ring-[#2563eb] focus:bg-white transition"
               />
             </div>
@@ -241,7 +255,8 @@ export default function TiendaPage() {
               type="text"
               placeholder="Buscar productos..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => handleSearchChange(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') scrollToCatalog(); }}
               className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
@@ -300,8 +315,11 @@ export default function TiendaPage() {
           ].map(cat => (
             <button
               key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 rounded-full text-xs font-bold transition whitespace-nowrap ${
+              onClick={() => {
+                setSelectedCategory(cat.id);
+                scrollToCatalog();
+              }}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                 selectedCategory === cat.id
                   ? 'bg-[#2563eb] text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -314,12 +332,16 @@ export default function TiendaPage() {
       </div>
 
       {/* Product Catalog Grid */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <main
+        ref={catalogSectionRef}
+        id="catalogo-productos"
+        className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full scroll-mt-36"
+      >
         <div className="flex items-center justify-between mb-6">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
             Mostrando {filtered.length} productos disponibles
           </p>
-          <span className="text-xs text-gray-400">Precios en Quetzales (Q)</span>
+          <span className="text-xs text-gray-400">Precios en Moneda Nacional ($ MXN)</span>
         </div>
 
         {filtered.length === 0 ? (
@@ -512,13 +534,14 @@ export default function TiendaPage() {
             <Link href="/" className="hover:text-amber-400 transition font-medium">
               Inicio
             </Link>
-            {/* Camouflaged Taller link for POS Access */}
+            {/* Invisible Access to POS */}
             <Link
               href="/login"
-              aria-label="Taller"
-              className="text-[#1e3a5f] hover:text-white/40 transition-colors select-none text-xs"
+              aria-label="Acceso"
+              tabIndex={-1}
+              className="opacity-0 w-8 h-4 inline-block select-none cursor-default"
             >
-              Taller
+              ·
             </Link>
           </div>
         </div>

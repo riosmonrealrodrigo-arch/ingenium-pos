@@ -17,12 +17,16 @@ import {
   Lock
 } from 'lucide-react';
 import SocialNetworksBar from '@/components/SocialNetworksBar';
+import FloatingChatWidget from '@/components/store/FloatingChatWidget';
+import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
 
 export default function WelcomeHomePage() {
   const [activeTab, setActiveTab] = useState<'tienda' | 'reparaciones' | 'redes'>('tienda');
 
   return (
     <div className="min-h-screen bg-[#0d1b2a] text-white flex flex-col selection:bg-[#2563eb] selection:text-white font-sans overflow-x-hidden">
+      {/* Animated Intro Loader */}
+      <AnimatedIntroLoader />
       {/* Decorative Background Lighting & Cyber Grid */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-[#1e3a5f]/50 rounded-full blur-[140px]" />
@@ -376,13 +380,14 @@ export default function WelcomeHomePage() {
             <Link href="/tienda" className="hover:text-white transition text-xs font-semibold">
               Catálogo Tienda
             </Link>
-            {/* Camouflaged Taller link blending with background */}
+            {/* Invisible Access to POS */}
             <Link
               href="/login"
-              aria-label="Taller"
-              className="text-[#0e1b29] hover:text-gray-400 transition-colors select-none text-xs"
+              aria-label="Acceso"
+              tabIndex={-1}
+              className="opacity-0 w-8 h-4 inline-block select-none cursor-default"
             >
-              Taller
+              ·
             </Link>
           </div>
         </div>
@@ -392,6 +397,9 @@ export default function WelcomeHomePage() {
           <span className="text-[10px] text-gray-700">Versión 1.0.4 Oficial</span>
         </div>
       </footer>
+
+      {/* Floating Cute Robot WhatsApp Assistant */}
+      <FloatingChatWidget businessName="INGENIUM MÓVIL" businessPhone="+52 81 3962 9319" />
     </div>
   );
 }

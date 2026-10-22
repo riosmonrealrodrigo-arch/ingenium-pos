@@ -11,7 +11,13 @@ import {
   Sparkles,
   Search,
   Bot,
-  RotateCcw
+  RotateCcw,
+  Smartphone,
+  Wrench,
+  HelpCircle,
+  ShieldCheck,
+  Flame,
+  ArrowRight
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { ChatMessage, ChatConversation, StorefrontCustomer } from '@/types';
@@ -27,25 +33,48 @@ const isValidUUID = (str?: string | null): boolean => {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 };
 
+const COMMON_FAULTS = [
+  { id: 'pantalla', label: 'Pantalla / Display roto o sin imagen', icon: '📱' },
+  { id: 'bateria', label: 'Batería se descarga rápido o inflada', icon: '🔋' },
+  { id: 'carga', label: 'No carga / Centro de carga flojo', icon: '🔌' },
+  { id: 'mojado', label: 'Equipo mojado o no enciende', icon: '💧' },
+  { id: 'camara', label: 'Cámara no enfoca o cristal estrellado', icon: '📷' },
+  { id: 'refaccion', label: 'Cotizar refacción o accesorio', icon: '🧩' },
+  { id: 'otro', label: 'Otra falla / Diagnóstico general', icon: '🛠️' },
+];
+
 export default function FloatingChatWidget({
   businessPhone = '+52 81 3962 9319',
   businessName = 'INGENIUM MÓVIL',
 }: FloatingChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'whatsapp_form' | 'pos_chat' | 'rastreo'>('whatsapp_form');
+
+  // WhatsApp Guided Questionnaire States
+  const [waName, setWaName] = useState('');
+  const [waDevice, setWaDevice] = useState('');
+  const [waFault, setWaFault] = useState('Pantalla / Display roto o sin imagen');
+  const [waDetail, setWaDetail] = useState('');
+  const [waSent, setWaSent] = useState(false);
+
+  // Live POS Chat & Tracking States
   const [customer, setCustomer] = useState<StorefrontCustomer | null>(null);
   const [conversation, setConversation] = useState<ChatConversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMsg, setInputMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [unreadBadge, setUnreadBadge] = useState(0);
+  const [trackingCode, setTrackingCode] = useState('');
+  const [trackingResult, setTrackingResult] = useState<any>(null);
+  const [trackingError, setTrackingError] = useState('');
 
-  // Form states if not identified
+  // Form states if identifying for internal chat
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load customer and existing conversation with UUID validation
+  // Load customer info if saved in storage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('ingenium_store_customer');
@@ -55,6 +84,7 @@ export default function FloatingChatWidget({
           setCustomer(parsed);
           setName(parsed.name || '');
           setPhone(parsed.phone || '');
+          if (parsed.name && !waName) setWaName(parsed.name);
         } catch {}
       }
 
@@ -66,7 +96,6 @@ export default function FloatingChatWidget({
             setConversation(parsed);
             loadMessages(parsed.id);
           } else {
-            // Remove legacy or mock non-UUID conversation ID
             localStorage.removeItem('ingenium_client_chat_conv');
             setConversation(null);
           }
@@ -80,9 +109,9 @@ export default function FloatingChatWidget({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isOpen]);
+  }, [messages, isOpen, activeTab]);
 
-  // Real-time listener for incoming messages from Staff/Admin in POS
+  // Real-time listener for POS internal chat messages
   useEffect(() => {
     if (!conversation?.id || !isValidUUID(conversation.id)) return;
 
@@ -101,16 +130,8 @@ export default function FloatingChatWidget({
             const newMsg = payload.new as ChatMessage;
             setMessages(prev => {
               if (prev.some(m => m.id === newMsg.id)) return prev;
-              // Check if replacing an optimistic message
-              const tempMatch = prev.find(
-                m => m.id.startsWith('temp-') && m.sender_type === newMsg.sender_type && m.message === newMsg.message
-              );
-              if (tempMatch) {
-                return prev.map(m => m.id === tempMatch.id ? newMsg : m);
-              }
               return [...prev, newMsg];
             });
-
             if (!isOpen && newMsg.sender_type !== 'client') {
               setUnreadBadge(b => b + 1);
             }
@@ -121,14 +142,11 @@ export default function FloatingChatWidget({
       return () => {
         supabase.removeChannel(channel);
       };
-    } catch (err) {
-      console.warn('Realtime channel subscription error:', err);
-    }
+    } catch {}
   }, [conversation?.id, isOpen]);
 
   const loadMessages = async (convId: string) => {
     if (!isValidUUID(convId)) return;
-
     try {
       const { data, error } = await supabase
         .from('chat_messages')
@@ -136,503 +154,564 @@ export default function FloatingChatWidget({
         .eq('conversation_id', convId)
         .order('created_at', { ascending: true });
 
-      if (error || !data || data.length === 0) {
-        const local = localStorage.getItem(`ingenium_chat_msgs_${convId}`);
-        if (local) {
-          try {
-            setMessages(JSON.parse(local));
-          } catch {}
-        }
-      } else {
+      if (!error && data) {
         setMessages(data);
       }
-    } catch {
-      const local = localStorage.getItem(`ingenium_chat_msgs_${convId}`);
-      if (local) {
-        try {
-          setMessages(JSON.parse(local));
-        } catch {}
-      }
-    }
+    } catch {}
   };
 
-  const createSupabaseConversation = async (cust: StorefrontCustomer): Promise<ChatConversation | null> => {
+  // Compile and send WhatsApp Message
+  const handleSendWhatsApp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!waName.trim() || !waDevice.trim()) return;
+
+    const compiledMessage =
+      `*¡HOLA INGENIUM MÓVIL!* 🤖📱\n` +
+      `Vengo desde la tienda en línea y solicito atención técnica:\n\n` +
+      `👤 *Cliente:* ${waName.trim()}\n` +
+      `📱 *Equipo / Modelo:* ${waDevice.trim()}\n` +
+      `🔧 *Falla o Servicio:* ${waFault}\n` +
+      (waDetail.trim() ? `📝 *Detalle:* ${waDetail.trim()}\n\n` : `\n`) +
+      `¿Me podrían apoyar con la cotización estimada y tiempo de reparación? ¡Muchas gracias!`;
+
+    const cleanPhone = businessPhone.replace(/[^0-9]/g, '');
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(compiledMessage)}`;
+    
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank');
+    }
+    setWaSent(true);
+    setTimeout(() => setWaSent(false), 5000);
+  };
+
+  // Tracking functionality
+  const handleTrackRepair = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTrackingError('');
+    setTrackingResult(null);
+    const code = trackingCode.trim().toUpperCase();
+    if (!code) return;
+
     try {
       const { data, error } = await supabase
-        .from('chat_conversations')
-        .insert({
-          client_name: cust.name,
-          client_phone: cust.phone,
-          client_email: cust.email,
-          status: 'open',
-          unread_admin_count: 1,
-          unread_client_count: 0,
-          last_message: 'Inició chat con asistente virtual',
-          last_message_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+        .from('repairs')
+        .select('*')
+        .ilike('order_number', `%${code}%`)
+        .limit(1);
 
-      if (error) {
-        console.error('Error insertando chat_conversation:', error);
-        return null;
+      if (!error && data && data.length > 0) {
+        setTrackingResult(data[0]);
+        return;
       }
-      return data;
-    } catch (err) {
-      console.error('Error en createSupabaseConversation:', err);
-      return null;
+
+      const local = DEMO_REPAIRS.find(r => ((r.folio || (r as any).order_number || '') as string).toUpperCase().includes(code));
+      if (local) {
+        setTrackingResult(local);
+        return;
+      }
+
+      setTrackingError('No se encontró ninguna orden con ese folio. Verifica tu ticket.');
+    } catch {
+      setTrackingError('Error al consultar. Por favor intenta de nuevo.');
     }
   };
 
+  // Start internal chat conversation
   const startConversation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !phone.trim() || loading) return;
+    if (!name.trim() || !phone.trim()) return;
 
     setLoading(true);
-    const newCust: StorefrontCustomer = {
-      id: 'cust-' + Date.now(),
+    const cust: StorefrontCustomer = {
+      id: customer?.id || 'cust-' + Date.now(),
       name: name.trim(),
       phone: phone.trim(),
       email: `${phone.trim()}@cliente.com`,
     };
 
-    setCustomer(newCust);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('ingenium_store_customer', JSON.stringify(newCust));
+      localStorage.setItem('ingenium_store_customer', JSON.stringify(cust));
     }
-
-    const realConv = await createSupabaseConversation(newCust);
-    const convToUse: ChatConversation = realConv || {
-      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '00000000-0000-0000-0000-000000000001',
-      client_name: newCust.name,
-      client_phone: newCust.phone,
-      client_email: newCust.email,
-      status: 'open',
-      unread_admin_count: 1,
-      unread_client_count: 0,
-      last_message: 'Inició chat con asistente virtual',
-      last_message_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    };
-
-    setConversation(convToUse);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(convToUse));
-    }
-
-    const welcomeText = `¡Hola ${newCust.name}! 👋 Bienvenido a ${businessName}. ¿En qué podemos ayudarte hoy? Un asesor técnico en nuestro punto de venta (POS) también responderá tus dudas aquí mismo o por WhatsApp.`;
-
-    if (isValidUUID(convToUse.id)) {
-      try {
-        await supabase.from('chat_messages').insert({
-          conversation_id: convToUse.id,
-          sender_type: 'bot',
-          sender_name: 'Asistente Virtual INGENIUM',
-          message: welcomeText,
-        });
-      } catch (err) {
-        console.warn('Error guardando mensaje bot inicial:', err);
-      }
-    }
-
-    const welcomeMsg: ChatMessage = {
-      id: 'bot-welcome-' + Date.now(),
-      conversation_id: convToUse.id,
-      sender_type: 'bot',
-      sender_name: 'Asistente Virtual INGENIUM',
-      message: welcomeText,
-      created_at: new Date().toISOString(),
-    };
-
-    setMessages([welcomeMsg]);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`ingenium_chat_msgs_${convToUse.id}`, JSON.stringify([welcomeMsg]));
-    }
-    setLoading(false);
-  };
-
-  const handleQuickBotAction = async (option: 'reparacion' | 'cotizar' | 'humano') => {
-    if (!customer) return;
-
-    let userText = '';
-    let botReply = '';
-
-    if (option === 'reparacion') {
-      userText = '🔍 Consultar estado o cotizar reparación';
-      botReply = '¡Hola! Para cotizar la reparación de tu equipo o consultar el avance, puedes usar el botón verde de WhatsApp (+52 81 3962 9319) o dejar aquí mismo la Marca, Modelo y Falla. Un técnico del POS te responderá de inmediato.';
-    } else if (option === 'cotizar') {
-      userText = '📱 Cotizar un repuesto o pantalla';
-      botReply = 'Escríbenos la marca y modelo exacto de tu celular (ej. iPhone 13 Pro o Samsung A54). Contamos con pantallas OLED, baterías y refacciones garantizadas con precios en $ MXN.';
-    } else {
-      userText = '👤 Quiero hablar con un asesor técnico';
-      botReply = '¡Entendido! Hemos alertado al personal técnico en el POS de escritorio. Tu consulta está en cola prioritaria. También puedes pulsar el botón de WhatsApp si deseas respuesta directa.';
-    }
-
-    await appendMessage(userText, 'client', customer.name);
-
-    setTimeout(async () => {
-      await appendMessage(botReply, 'bot', 'Asistente Virtual INGENIUM');
-    }, 600);
-  };
-
-  const appendMessage = async (text: string, senderType: 'client' | 'admin' | 'bot', senderName: string) => {
-    let activeConv = conversation;
-
-    // Self-healing: if no active conversation or not a valid UUID, create a real one in Supabase
-    if (!activeConv || !isValidUUID(activeConv.id)) {
-      const activeCust = customer || {
-        id: 'cust-' + Date.now(),
-        name: name.trim() || 'Cliente Web',
-        phone: phone.trim() || '+528139629319',
-        email: 'cliente@ingenium.com',
-      };
-      activeConv = await createSupabaseConversation(activeCust);
-      if (activeConv) {
-        setConversation(activeConv);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(activeConv));
-        }
-      } else {
-        console.error('No se pudo establecer conversación en Supabase.');
-        return;
-      }
-    }
-
-    const tempId = 'temp-' + Date.now();
-    const optimisticMsg: ChatMessage = {
-      id: tempId,
-      conversation_id: activeConv.id,
-      sender_type: senderType,
-      sender_name: senderName,
-      message: text,
-      created_at: new Date().toISOString(),
-    };
-
-    setMessages(prev => {
-      const updated = [...prev, optimisticMsg];
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(`ingenium_chat_msgs_${activeConv.id}`, JSON.stringify(updated));
-      }
-      return updated;
-    });
+    setCustomer(cust);
 
     try {
-      const { data, error } = await supabase
-        .from('chat_messages')
+      const { data: conv, error: convErr } = await supabase
+        .from('chat_conversations')
         .insert({
-          conversation_id: activeConv.id,
-          sender_type: senderType,
-          sender_name: senderName,
-          message: text,
+          client_name: cust.name,
+          client_phone: cust.phone,
+          status: 'open',
+          unread_admin_count: 1,
+          unread_client_count: 0,
         })
         .select()
         .single();
 
-      if (error) {
-        console.error('Error insertando chat_message:', error);
-      } else if (data) {
-        setMessages(prev => prev.map(m => m.id === tempId ? data : m));
+      if (!convErr && conv && isValidUUID(conv.id)) {
+        setConversation(conv);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(conv));
+        }
+
+        const welcomeText = `¡Hola ${cust.name.split(' ')[0]}! 👋 Soy el asistente virtual de INGENIUM MÓVIL. Un técnico en el Punto de Venta te atenderá en unos momentos.`;
+        await supabase.from('chat_messages').insert({
+          conversation_id: conv.id,
+          sender_name: 'Robot INGENIUM',
+          sender_type: 'bot',
+          message: welcomeText,
+        });
+
+        loadMessages(conv.id);
       }
+    } catch {} finally {
+      setLoading(false);
+    }
+  };
+
+  // Send message in POS internal chat
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMsg.trim() || !conversation?.id || !isValidUUID(conversation.id)) return;
+
+    const text = inputMsg.trim();
+    setInputMsg('');
+
+    const tempMsg: ChatMessage = {
+      id: 'temp-' + Date.now(),
+      conversation_id: conversation.id,
+      sender_name: customer?.name || 'Cliente',
+      sender_type: 'client',
+      message: text,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, tempMsg]);
+
+    try {
+      await supabase.from('chat_messages').insert({
+        conversation_id: conversation.id,
+        sender_name: customer?.name || 'Cliente',
+        sender_type: 'client',
+        message: text,
+      });
 
       await supabase
         .from('chat_conversations')
         .update({
           last_message: text,
           last_message_at: new Date().toISOString(),
-          unread_admin_count: senderType === 'client' ? (activeConv.unread_admin_count || 0) + 1 : 0,
+          unread_admin_count: ((conversation as any).unread_admin_count || 0) + 1,
         })
-        .eq('id', activeConv.id);
-    } catch (err) {
-      console.error('Excepción al enviar mensaje a Supabase:', err);
-    }
+        .eq('id', conversation.id);
+    } catch {}
   };
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMsg.trim()) return;
-
-    const userText = inputMsg.trim();
-    setInputMsg('');
-
-    const sender = customer?.name || name.trim() || 'Cliente Web';
-    await appendMessage(userText, 'client', sender);
-
-    // Auto bot logic if user is searching for a repair order
-    const upperText = userText.toUpperCase();
-    if (upperText.includes('ORD-') || upperText.match(/\d{8,10}/)) {
-      setTimeout(async () => {
-        const found = DEMO_REPAIRS.find(
-          r => r.folio.toUpperCase() === upperText || r.client_phone.includes(userText)
-        );
-
-        if (found) {
-          const statusLabels: Record<string, string> = {
-            recibido: '🟡 Recibido en recepción',
-            en_diagnostico: '🔍 En diagnóstico en mesa de trabajo',
-            esperando_repuesto: '⏳ Esperando pieza o repuesto en camino',
-            listo_entrega: '🟢 ¡LISTO PARA ENTREGA! Puedes pasar a recogerlo.',
-            entregado: '✅ Entregado al cliente con garantía',
-          };
-
-          const balance = (found.estimated_cost - found.advance_payment).toFixed(2);
-          const reply = `📱 *Información de Orden ${found.folio}:*\n• Dispositivo: ${found.device_brand} ${found.device_model}\n• Estado actual: ${statusLabels[found.status] || found.status}\n• Falla: ${found.issue_reported}\n• Diagnóstico: ${found.technician_diagnosis || 'En revisión'}\n• Saldo pendiente: $${balance} MXN`;
-          await appendMessage(reply, 'bot', 'Sistema de Taller INGENIUM');
-        } else {
-          await appendMessage(
-            'No encontramos una orden con ese folio exacto en el sistema. Puedes escribirnos a WhatsApp al +52 81 3962 9319 o un técnico humano revisará tus datos en el POS y te responderá en breve.',
-            'bot',
-            'Asistente Virtual INGENIUM'
-          );
-        }
-      }, 800);
-    }
-  };
-
-  const resetChat = () => {
-    if (confirm('¿Deseas reiniciar la sesión de chat e iniciar como nuevo visitante?')) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('ingenium_client_chat_conv');
-      }
-      setConversation(null);
-      setMessages([]);
-    }
-  };
-
-  const whatsappRepairUrl = `https://wa.me/528139629319?text=${encodeURIComponent(
-    'Hola INGENIUM MOBILE, me comunico desde la página web. Necesito cotizar/revisar la reparación de un equipo. Marca/Modelo: [ ] Falla: [ ]'
-  )}`;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      {/* Floating Toggle Button */}
+    <div className="fixed bottom-5 right-5 z-50">
+      {/* CUTE ROBOT CIRCULAR FLOATING BUBBLE */}
       {!isOpen && (
-        <button
-          onClick={() => {
-            setIsOpen(true);
-            setUnreadBadge(0);
-          }}
-          className="relative flex items-center gap-2.5 px-5 py-3.5 bg-gradient-to-r from-emerald-600 to-[#128C7E] text-white font-bold rounded-full shadow-2xl hover:scale-105 active:scale-95 transition group border-2 border-white/40 cursor-pointer"
-        >
-          <div className="w-2.5 h-2.5 bg-green-300 rounded-full animate-ping" />
-          <MessageSquare size={19} />
-          <span className="text-sm font-semibold tracking-wide">WhatsApp / Asistente Online</span>
-          {unreadBadge > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-black flex items-center justify-center animate-pulse border-2 border-white">
-              {unreadBadge}
-            </span>
-          )}
-        </button>
+        <div className="relative group">
+          {/* Tooltip flotante amigable */}
+          <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-[#0d1b2a] text-white text-xs font-bold py-1.5 px-3 rounded-2xl shadow-xl border border-emerald-400/30 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none flex items-center gap-1.5">
+            <span>¡Hola! Cotiza por WhatsApp</span>
+            <span className="text-emerald-400">🤖💬</span>
+          </div>
+
+          <button
+            onClick={() => {
+              setIsOpen(true);
+              setUnreadBadge(0);
+            }}
+            aria-label="Abrir Asistente WhatsApp"
+            className="relative w-15 h-15 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-[#128C7E] via-[#25D366] to-[#34D399] p-0.5 shadow-2xl shadow-emerald-900/40 hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer border-2 border-white/60 group"
+          >
+            {/* Anillo de pulso sutil */}
+            <span className="absolute -inset-1 rounded-full bg-emerald-400/30 animate-ping pointer-events-none" style={{ animationDuration: '3s' }} />
+
+            {/* Robot SVG Animado y Cute */}
+            <div className="w-full h-full rounded-full bg-gradient-to-b from-[#1e3a5f] to-[#0d1b2a] flex items-center justify-center p-2.5 overflow-hidden">
+              <svg
+                className="w-full h-full transform group-hover:rotate-6 transition-transform duration-300"
+                viewBox="0 0 64 64"
+                fill="none"
+              >
+                {/* Antena del Robot con esfera luminosa */}
+                <line x1="32" y1="13" x2="32" y2="5" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" />
+                <circle cx="32" cy="5" r="3.5" fill="#34D399" className="animate-pulse" />
+
+                {/* Orejas de audífono */}
+                <rect x="7" y="23" width="5" height="14" rx="2" fill="#F59E0B" />
+                <rect x="52" y="23" width="5" height="14" rx="2" fill="#F59E0B" />
+
+                {/* Cabeza del Robot */}
+                <rect x="12" y="13" width="40" height="34" rx="10" fill="#1E3A5F" stroke="#38BDF8" strokeWidth="2.2" />
+
+                {/* Pantalla digital oscura */}
+                <rect x="18" y="20" width="28" height="18" rx="6" fill="#0D1B2A" />
+
+                {/* Ojos expresivos cyan estilo anime */}
+                <ellipse cx="25" cy="27" rx="3.5" ry="4" fill="#38BDF8" />
+                <circle cx="26" cy="25.5" r="1.2" fill="#FFFFFF" />
+                <ellipse cx="39" cy="27" rx="3.5" ry="4" fill="#38BDF8" />
+                <circle cx="40" cy="25.5" r="1.2" fill="#FFFFFF" />
+
+                {/* Sonrisa robótica tierna */}
+                <path d="M28 32 Q32 35.5 36 32" stroke="#34D399" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+
+                {/* Mejillas sonrojadas rosas */}
+                <circle cx="21" cy="31" r="2" fill="#F43F5E" opacity="0.75" />
+                <circle cx="43" cy="31" r="2" fill="#F43F5E" opacity="0.75" />
+              </svg>
+            </div>
+
+            {/* Mini badge oficial de WhatsApp en la esquina */}
+            <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-[#25D366] border-2 border-white flex items-center justify-center shadow-md">
+              <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
+                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.584 1.777.818 2.796.818 3.179 0 5.765-2.587 5.766-5.766.001-3.182-2.585-5.769-5.766-5.769zm3.393 8.163c-.144.405-.837.774-1.17.822-.312.043-.637.067-1.802-.416-.838-.348-1.465-.898-1.89-1.328l-.022-.022c-.419-.44-1.077-1.285-1.077-2.316 0-1.026.54-1.53.734-1.741.194-.212.423-.264.564-.264.141 0 .283.003.407.009.131.006.304-.05.476.363.177.426.602 1.468.654 1.574.053.106.089.23.018.371-.071.141-.106.23-.212.353-.106.124-.222.277-.318.371-.106.106-.217.221-.093.434.124.212.551.909 1.18 1.469.811.722 1.494.945 1.706 1.051.212.106.336.089.459-.053.124-.141.53-.618.672-.83.141-.212.283-.177.476-.106.195.071 1.237.583 1.449.689.212.106.353.159.407.247.053.088.053.512-.091.917z" />
+              </svg>
+            </div>
+
+            {/* Indicador de mensaje no leído */}
+            {unreadBadge > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-bounce border-2 border-white">
+                {unreadBadge}
+              </span>
+            )}
+          </button>
+        </div>
       )}
 
-      {/* WhatsApp Style Chat Window */}
+      {/* ASISTENTE MODAL / DIALOG */}
       {isOpen && (
-        <div className="w-[360px] sm:w-[410px] h-[550px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-slide-up">
-          {/* Header */}
-          <div className="bg-[#075E54] p-4 text-white flex items-center justify-between shadow-md">
+        <div className="w-[92vw] max-w-[390px] h-[580px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-slideUp">
+          {/* Header Tecnológico */}
+          <div className="bg-gradient-to-r from-[#1e3a5f] via-[#162e4c] to-[#075E54] p-4 text-white flex items-center justify-between shadow-md">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-[#25D366] text-[#075E54] font-black flex items-center justify-center text-sm shadow">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 border-2 border-white/60 flex items-center justify-center shadow">
                   <Bot size={22} className="text-white" />
                 </div>
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#075E54]"></span>
+                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#1e3a5f] animate-pulse"></span>
               </div>
               <div>
                 <h4 className="font-bold text-sm leading-tight flex items-center gap-1.5">
-                  {businessName}
-                  <span className="text-[10px] bg-emerald-700 text-emerald-100 px-1.5 py-0.5 rounded font-mono">BOT & POS</span>
+                  Asistente INGENIUM 🤖
                 </h4>
-                <p className="text-[11px] text-emerald-200">En línea · Conectado con POS</p>
+                <p className="text-[11px] text-emerald-200">Atención Directa por WhatsApp</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={resetChat}
-                title="Reiniciar chat / Nuevo visitante"
-                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
-              >
-                <RotateCcw size={15} />
-              </button>
-              <a
-                href={whatsappRepairUrl}
-                target="_blank"
-                rel="noreferrer"
-                title="Abrir en WhatsApp Web / App"
-                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
-              >
-                <ExternalLink size={16} />
-              </a>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
-              >
-                <X size={19} />
-              </button>
-            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              title="Cerrar ventana"
+            >
+              <X size={19} />
+            </button>
           </div>
 
-          {/* Body */}
-          {!conversation ? (
-            /* Express ID Form */
-            <div className="flex-1 p-6 flex flex-col justify-center bg-gray-50/50">
-              <div className="text-center mb-5">
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto mb-2.5 shadow-sm">
-                  <Bot size={26} />
-                </div>
-                <h5 className="font-bold text-gray-800 text-base">Asistente Virtual & Soporte POS</h5>
-                <p className="text-xs text-gray-500 mt-1">
-                  Ingresa tus datos una sola vez para consultar reparaciones, cotizar repuestos o chatear con un técnico.
-                </p>
-              </div>
+          {/* Selector de pestañas */}
+          <div className="flex bg-gray-100 p-1 border-b border-gray-200 text-xs font-bold text-gray-600">
+            <button
+              onClick={() => setActiveTab('whatsapp_form')}
+              className={`flex-1 py-1.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === 'whatsapp_form' ? 'bg-white text-emerald-700 shadow-xs' : 'hover:text-gray-900'
+              }`}
+            >
+              <Phone size={13} className="text-[#25D366]" />
+              <span>WhatsApp</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('pos_chat')}
+              className={`flex-1 py-1.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === 'pos_chat' ? 'bg-white text-[#2563eb] shadow-xs' : 'hover:text-gray-900'
+              }`}
+            >
+              <MessageSquare size={13} />
+              <span>Chat POS</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('rastreo')}
+              className={`flex-1 py-1.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === 'rastreo' ? 'bg-white text-amber-600 shadow-xs' : 'hover:text-gray-900'
+              }`}
+            >
+              <Search size={13} />
+              <span>Rastreo</span>
+            </button>
+          </div>
 
-              <form onSubmit={startConversation} className="space-y-3.5">
+          {/* PESTAÑA 1: CUESTIONARIO GUIADO PARA WHATSAPP */}
+          {activeTab === 'whatsapp_form' && (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-slate-50 flex flex-col justify-between">
+              <form onSubmit={handleSendWhatsApp} className="space-y-3.5">
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-3 rounded-2xl text-xs leading-relaxed flex items-start gap-2">
+                  <span className="text-base">🤖</span>
+                  <div>
+                    <strong className="block font-bold">¡Hola! Te armo tu consulta técnica:</strong>
+                    <span className="text-[11px] text-emerald-800">
+                      Completa estas breves preguntas y te redirigiré a WhatsApp con todo redactado y listo para enviar.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Pregunta 1: Nombre */}
                 <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                    1. ¿Cuál es tu nombre? *
+                  </label>
                   <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                      <User size={15} />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <User size={14} />
                     </span>
                     <input
                       type="text"
-                      placeholder="Tu nombre completo *"
-                      value={name}
-                      onChange={e => setName(e.target.value)}
+                      placeholder="Ej. Rodrigo Pérez"
+                      value={waName}
+                      onChange={e => setWaName(e.target.value)}
                       required
-                      className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-600 outline-none"
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#25D366] outline-none"
                     />
                   </div>
                 </div>
 
+                {/* Pregunta 2: Dispositivo / Modelo */}
                 <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                    2. ¿Qué celular o equipo tienes? *
+                  </label>
                   <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                      <Phone size={15} />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Smartphone size={14} />
                     </span>
+                    <input
+                      type="text"
+                      placeholder="Ej. iPhone 13, Samsung S22, Redmi Note 11..."
+                      value={waDevice}
+                      onChange={e => setWaDevice(e.target.value)}
+                      required
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#25D366] outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Pregunta 3: Falla o Motivo */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                    3. ¿Qué problema o falla presenta? *
+                  </label>
+                  <select
+                    value={waFault}
+                    onChange={e => setWaFault(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#25D366] outline-none font-medium text-gray-700"
+                  >
+                    {COMMON_FAULTS.map(f => (
+                      <option key={f.id} value={f.label}>
+                        {f.icon} {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Pregunta 4: Detalle adicional */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                    4. Detalle o síntoma adicional (opcional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Ej. Se cayó al agua, parpadea la pantalla, no retiene carga..."
+                    value={waDetail}
+                    onChange={e => setWaDetail(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#25D366] outline-none resize-none"
+                  />
+                </div>
+
+                {/* Botón Principal de Envío a WhatsApp */}
+                <button
+                  type="submit"
+                  disabled={!waName.trim() || !waDevice.trim()}
+                  className="w-full py-3 bg-[#25D366] hover:bg-[#20ba5a] text-white font-black rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.584 1.777.818 2.796.818 3.179 0 5.765-2.587 5.766-5.766.001-3.182-2.585-5.769-5.766-5.769zm3.393 8.163c-.144.405-.837.774-1.17.822-.312.043-.637.067-1.802-.416-.838-.348-1.465-.898-1.89-1.328l-.022-.022c-.419-.44-1.077-1.285-1.077-2.316 0-1.026.54-1.53.734-1.741.194-.212.423-.264.564-.264.141 0 .283.003.407.009.131.006.304-.05.476.363.177.426.602 1.468.654 1.574.053.106.089.23.018.371-.071.141-.106.23-.212.353-.106.124-.222.277-.318.371-.106.106-.217.221-.093.434.124.212.551.909 1.18 1.469.811.722 1.494.945 1.706 1.051.212.106.336.089.459-.053.124-.141.53-.618.672-.83.141-.212.283-.177.476-.106.195.071 1.237.583 1.449.689.212.106.353.159.407.247.053.088.053.512-.091.917z" />
+                  </svg>
+                  <span>Enviar Consulta a WhatsApp Oficial 🚀</span>
+                </button>
+              </form>
+
+              {waSent && (
+                <p className="text-center text-[11px] font-bold text-emerald-700 bg-emerald-100 p-2 rounded-xl mt-2 animate-bounce">
+                  ✓ ¡Abriendo WhatsApp con tu mensaje recopilado!
+                </p>
+              )}
+
+              <p className="text-center text-[10px] text-gray-400 mt-2">
+                Atención oficial: +52 81 3962 9319 · Monterrey, NL.
+              </p>
+            </div>
+          )}
+
+          {/* PESTAÑA 2: CHAT INTERNO EN VIVO CON EL POS */}
+          {activeTab === 'pos_chat' && (
+            <div className="flex-1 flex flex-col h-full overflow-hidden bg-gray-50">
+              {!conversation ? (
+                /* Identificación para chat interno */
+                <div className="flex-1 p-5 flex flex-col justify-center">
+                  <div className="text-center mb-4">
+                    <div className="w-12 h-12 bg-blue-100 text-[#2563eb] rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-xs">
+                      <MessageSquare size={24} />
+                    </div>
+                    <h5 className="font-bold text-gray-800 text-sm">Chat en Vivo con Mostrador POS</h5>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Tus mensajes llegarán directamente a la pantalla del técnico en la tienda.
+                    </p>
+                  </div>
+
+                  <form onSubmit={startConversation} className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Tu nombre *"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
+                    />
                     <input
                       type="tel"
                       placeholder="WhatsApp / Teléfono *"
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
                       required
-                      className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-600 outline-none"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-2.5 bg-[#1e3a5f] hover:bg-[#2563eb] text-white font-bold rounded-xl text-xs transition shadow cursor-pointer disabled:opacity-50"
+                    >
+                      {loading ? 'Conectando...' : 'Iniciar Conversación'}
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                /* Ventana de mensajes activos */
+                <>
+                  <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5">
+                    {messages.map(m => {
+                      const isMe = m.sender_type === 'client';
+                      const isBot = m.sender_type === 'bot';
+                      return (
+                        <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                          <span className="text-[9px] text-gray-400 px-1 font-semibold">
+                            {isBot ? '🤖 Robot' : isMe ? 'Tú' : m.sender_name}
+                          </span>
+                          <div
+                            className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs shadow-xs leading-relaxed whitespace-pre-line ${
+                              isMe
+                                ? 'bg-[#2563eb] text-white rounded-br-none'
+                                : isBot
+                                ? 'bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-bl-none'
+                                : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
+                            }`}
+                          >
+                            {m.message}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
                   </div>
+
+                  <form onSubmit={handleSendMessage} className="p-2.5 bg-white border-t border-gray-200 flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Escribe tu mensaje al técnico..."
+                      value={inputMsg}
+                      onChange={e => setInputMsg(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!inputMsg.trim()}
+                      className="p-2 bg-[#2563eb] text-white rounded-xl disabled:opacity-40 transition"
+                    >
+                      <Send size={15} />
+                    </button>
+                  </form>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* PESTAÑA 3: RASTREO DE ORDEN DE REPARACIÓN */}
+          {activeTab === 'rastreo' && (
+            <div className="flex-1 p-5 overflow-y-auto bg-slate-50 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-xs">
+                    <Search size={22} />
+                  </div>
+                  <h5 className="font-bold text-gray-800 text-sm">Consultar Estado de Reparación</h5>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Ingresa el número de folio ORD que aparece en tu ticket impreso.
+                  </p>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-[#075E54] hover:bg-[#128C7E] text-white font-bold rounded-xl text-xs transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  <MessageSquare size={15} />
-                  {loading ? 'Iniciando conexión...' : 'Empezar a Chatear'}
-                </button>
-              </form>
+                <form onSubmit={handleTrackRepair} className="space-y-2.5">
+                  <input
+                    type="text"
+                    placeholder="Ej. ORD-001 o tu nombre..."
+                    value={trackingCode}
+                    onChange={e => setTrackingCode(e.target.value)}
+                    required
+                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-mono uppercase outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition shadow cursor-pointer"
+                  >
+                    Buscar Estado de mi Equipo
+                  </button>
+                </form>
 
-              <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+                {trackingError && (
+                  <p className="text-xs text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-100">
+                    ⚠️ {trackingError}
+                  </p>
+                )}
+
+                {trackingResult && (
+                  <div className="p-3.5 bg-white rounded-2xl border border-gray-200 shadow-sm space-y-2 text-xs">
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <span className="font-mono font-bold text-[#1e3a5f]">
+                        {trackingResult.folio || trackingResult.order_number || 'ORD-INFO'}
+                      </span>
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold uppercase">
+                        {trackingResult.status}
+                      </span>
+                    </div>
+                    <p className="text-gray-700"><strong>Equipo:</strong> {trackingResult.device_model || 'Dispositivo'}</p>
+                    <p className="text-gray-700"><strong>Falla:</strong> {trackingResult.issue_reported || trackingResult.issue_description || 'En diagnóstico'}</p>
+                    {trackingResult.estimated_cost && (
+                      <p className="text-emerald-700 font-bold">
+                        Costo Estimado: ${trackingResult.estimated_cost} MXN
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t text-center">
                 <a
-                  href={whatsappRepairUrl}
+                  href={`https://wa.me/528139629319?text=${encodeURIComponent('Hola INGENIUM MÓVIL, quiero consultar el estado de mi orden ORD.')}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center justify-center gap-1"
+                  className="text-xs font-bold text-emerald-700 hover:underline flex items-center justify-center gap-1"
                 >
-                  O escríbenos a WhatsApp Directo &rarr;
+                  ¿Dudas? Preguntar a un técnico por WhatsApp &rarr;
                 </a>
               </div>
             </div>
-          ) : (
-            /* Active Messages Window */
-            <>
-              {/* WhatsApp background pattern style */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#E5DDD5]/40 text-xs">
-                {/* Bot Quick Option Pills */}
-                <div className="p-3 bg-white/90 backdrop-blur-xs rounded-2xl border border-emerald-100 shadow-xs mb-2">
-                  <p className="text-[11px] font-bold text-gray-700 mb-2 flex items-center gap-1">
-                    <Sparkles size={13} className="text-amber-500" /> Opciones rápidas de atención:
-                  </p>
-                  <div className="flex flex-col gap-1.5">
-                    <a
-                      href={whatsappRepairUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-left px-3 py-2 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold rounded-xl text-[11px] transition flex items-center justify-between shadow-xs"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <Phone size={13} /> Contactar Taller por WhatsApp (+52 81 3962 9319)
-                      </span>
-                      <ExternalLink size={12} />
-                    </a>
-                    <button
-                      onClick={() => handleQuickBotAction('reparacion')}
-                      className="text-left px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#075E54] font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-emerald-200 cursor-pointer"
-                    >
-                      <Search size={12} /> 1. Consultar estado o cotizar en web
-                    </button>
-                    <button
-                      onClick={() => handleQuickBotAction('cotizar')}
-                      className="text-left px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-blue-200 cursor-pointer"
-                    >
-                      <Sparkles size={12} /> 2. Cotizar refacción ($ MXN)
-                    </button>
-                    <button
-                      onClick={() => handleQuickBotAction('humano')}
-                      className="text-left px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold rounded-xl text-[11px] transition flex items-center gap-1.5 border border-amber-200 cursor-pointer"
-                    >
-                      <User size={12} /> 3. Chatear con asesor en POS
-                    </button>
-                  </div>
-                </div>
-
-                {messages.map(m => {
-                  const isMe = m.sender_type === 'client';
-                  const isBot = m.sender_type === 'bot';
-                  return (
-                    <div
-                      key={m.id}
-                      className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-                    >
-                      <span className="text-[10px] text-gray-500 mb-0.5 px-1 font-semibold flex items-center gap-1">
-                        {isBot ? <Bot size={11} className="text-emerald-600" /> : null}
-                        {isMe ? 'Tú' : m.sender_name}
-                      </span>
-                      <div
-                        className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl shadow-xs leading-relaxed whitespace-pre-line ${
-                          isMe
-                            ? 'bg-[#E7FFDB] text-gray-900 rounded-br-none border border-emerald-200'
-                            : isBot
-                            ? 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
-                            : 'bg-[#1e3a5f] text-white rounded-bl-none shadow-sm'
-                        }`}
-                      >
-                        {m.message}
-                      </div>
-                      <span className="text-[9px] text-gray-400 mt-0.5 px-1 flex items-center gap-1">
-                        {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        {isMe && <CheckCheck size={12} className="text-emerald-600" />}
-                      </span>
-                    </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Message Input */}
-              <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-gray-200 flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Escribe tu mensaje o número de orden..."
-                  value={inputMsg}
-                  onChange={e => setInputMsg(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-full text-xs outline-none focus:border-emerald-600 focus:bg-white transition"
-                />
-                <button
-                  type="submit"
-                  disabled={!inputMsg.trim()}
-                  className="p-2.5 bg-[#075E54] hover:bg-[#128C7E] text-white rounded-full disabled:opacity-40 transition shadow-sm cursor-pointer"
-                >
-                  <Send size={15} />
-                </button>
-              </form>
-            </>
           )}
         </div>
       )}
