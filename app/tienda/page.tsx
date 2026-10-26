@@ -73,20 +73,6 @@ export default function TiendaPage() {
           // ignore
         }
       }
-
-      // Check if user authenticated via Google OAuth
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          const googleCustomer: StorefrontCustomer = {
-            id: session.user.id,
-            name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Cliente',
-            phone: session.user.user_metadata?.phone || '',
-            email: session.user.email || '',
-          };
-          setCustomer(googleCustomer);
-          localStorage.setItem('ingenium_store_customer', JSON.stringify(googleCustomer));
-        }
-      });
     }
   }, [loadProducts]);
 
@@ -229,8 +215,8 @@ export default function TiendaPage() {
                 <span className="font-bold text-[#1e3a5f] max-w-[100px] truncate">{customer.name}</span>
                 <button
                   onClick={handleLogoutCustomer}
-                  title="Cerrar sesión"
-                  className="text-gray-400 hover:text-red-500 ml-0.5"
+                  title="Cambiar datos / Salir"
+                  className="text-gray-400 hover:text-red-500 ml-0.5 cursor-pointer"
                 >
                   <LogOut size={12} />
                 </button>
@@ -238,9 +224,9 @@ export default function TiendaPage() {
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition cursor-pointer"
               >
-                <User size={13} /> Iniciar Sesión
+                <User size={13} /> Identificarme
               </button>
             )}
 
