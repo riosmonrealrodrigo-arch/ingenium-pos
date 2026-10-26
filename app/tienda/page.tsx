@@ -5,6 +5,7 @@ import { useProducts } from '@/context/ProductContext';
 import { useStoreTheme } from '@/context/StoreThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import StoreThemeModal from '@/components/store/StoreThemeModal';
+import Footer from '@/components/layout/Footer';
 import { Product, StorefrontCustomer } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import ClientAuthModal from '@/components/store/ClientAuthModal';
@@ -45,6 +46,7 @@ export default function TiendaPage() {
   const [cart, setCart] = useState<{ product: Product; quantity: number }[]>([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const catalogSectionRef = useRef<HTMLElement>(null);
 
   const scrollToCatalog = () => {
@@ -527,9 +529,31 @@ export default function TiendaPage() {
                     <span className="text-[#2563eb]">{formatCurrency(cartTotal)}</span>
                   </div>
 
+                  {/* Checkbox Obligatorio de Aceptación Legal (PROFECO & LFPDPPP) */}
+                  <label className="flex items-start gap-2.5 p-2.5 bg-gray-50 hover:bg-gray-100/80 rounded-xl border border-gray-200 text-xs text-gray-700 cursor-pointer select-none transition">
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={e => setTermsAccepted(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded text-[#2563eb] focus:ring-blue-500 border-gray-300 shrink-0 cursor-pointer"
+                    />
+                    <span className="leading-tight text-[11px] text-gray-600">
+                      He leído y acepto los{' '}
+                      <Link href="/terminos" target="_blank" className="font-bold text-[#2563eb] underline hover:text-blue-800">
+                        Términos y Condiciones
+                      </Link>{' '}
+                      y el{' '}
+                      <Link href="/privacidad" target="_blank" className="font-bold text-[#2563eb] underline hover:text-blue-800">
+                        Aviso de Privacidad
+                      </Link>.
+                    </span>
+                  </label>
+
                   <button
                     onClick={handleCheckoutWhatsApp}
-                    className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition"
+                    disabled={!termsAccepted}
+                    className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition"
+                    title={!termsAccepted ? 'Acepta los Términos y Condiciones para continuar' : 'Confirmar Pedido'}
                   >
                     Confirmar Pedido por WhatsApp
                   </button>
@@ -556,37 +580,8 @@ export default function TiendaPage() {
         onClose={() => setThemeModalOpen(false)}
       />
 
-      {/* Footer */}
-      <footer className="bg-[#1e3a5f] text-white py-10 px-4 sm:px-6 lg:px-8 border-t border-white/10 mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-white/70">
-          <div className="flex items-center gap-3">
-            <img
-              src="/images/logo.jpg"
-              alt="INGENIUM MOBILE"
-              className="w-10 h-10 rounded-full object-cover border border-white/20"
-            />
-            <div>
-              <p className="font-bold text-white text-sm">INGENIUM MOBILE</p>
-              <p className="text-[11px] text-white/50">Repuestos garantizados y servicio técnico</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs text-white/70">
-            <Link href="/" className="hover:text-amber-400 transition font-medium">
-              Inicio
-            </Link>
-            {/* Invisible Access to POS */}
-            <Link
-              href="/login"
-              aria-label="Acceso"
-              tabIndex={-1}
-              className="opacity-0 w-8 h-4 inline-block select-none cursor-default"
-            >
-              ·
-            </Link>
-          </div>
-        </div>
-      </footer>
+      {/* Footer Institucional & Legal (PROFECO & INAI) */}
+      <Footer />
     </div>
   );
 }

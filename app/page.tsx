@@ -21,6 +21,7 @@ import FloatingChatWidget from '@/components/store/FloatingChatWidget';
 import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
 import SeasonalAmbiance from '@/components/store/SeasonalAmbiance';
 import StoreThemeModal from '@/components/store/StoreThemeModal';
+import Footer from '@/components/layout/Footer';
 import { useStoreTheme } from '@/context/StoreThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { Palette, Settings } from 'lucide-react';
@@ -348,43 +349,8 @@ export default function WelcomeHomePage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-white/10 bg-[#09131d] py-10 px-4 sm:px-6 lg:px-8 text-xs text-gray-400">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <img
-              src="/images/logo.jpg"
-              alt="INGENIUM MOBILE"
-              className="w-10 h-10 rounded-full object-cover border border-white/30"
-            />
-            <div>
-              <p className="font-bold text-white text-sm">INGENIUM MOBILE SHOP</p>
-              <p className="text-[11px] text-gray-500">Reparación · Venta · Accesorios para Celulares</p>
-            </div>
-          </div>
-
-          {/* Links: Public Shop Link + Camouflaged Taller link for POS Access */}
-          <div className="flex items-center gap-3 text-gray-400">
-            <Link href="/tienda" className="hover:text-white transition text-xs font-semibold">
-              Catálogo Tienda
-            </Link>
-            {/* Invisible Access to POS */}
-            <Link
-              href="/login"
-              aria-label="Acceso"
-              tabIndex={-1}
-              className="opacity-0 w-8 h-4 inline-block select-none cursor-default"
-            >
-              ·
-            </Link>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto mt-6 pt-6 border-t border-white/5 text-center text-[11px] text-gray-600 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>© 2026 INGENIUM MOBILE SHOP. Todos los derechos reservados. Monterrey, NL. Precios en $ MXN.</span>
-          <span className="text-[10px] text-gray-700">Versión 1.0.4 Oficial</span>
-        </div>
-      </footer>
+      {/* Footer Institucional y Legal (PROFECO & INAI) */}
+      <Footer />
 
       {/* Floating Cute Robot WhatsApp Assistant */}
       <FloatingChatWidget businessName="INGENIUM MOBILE" businessPhone="+52 81 3962 9319" />

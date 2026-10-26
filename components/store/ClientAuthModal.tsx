@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { StorefrontCustomer } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { User, Phone, Mail, Lock, X, CheckCircle, Sparkles, ShieldCheck, Eye, EyeOff } from 'lucide-react';
@@ -29,6 +30,7 @@ export default function ClientAuthModal({
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [authTermsAccepted, setAuthTermsAccepted] = useState(false);
 
   if (!isOpen) return null;
 
@@ -267,9 +269,30 @@ export default function ClientAuthModal({
               <p className="text-xs text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-100">⚠️ {error}</p>
             )}
 
+            {/* Checkbox Obligatorio Legal */}
+            <label className="flex items-start gap-2 p-2 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-700 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={authTermsAccepted}
+                onChange={e => setAuthTermsAccepted(e.target.checked)}
+                className="mt-0.5 w-3.5 h-3.5 rounded text-[#2563eb] focus:ring-blue-500 border-gray-300 shrink-0 cursor-pointer"
+              />
+              <span className="text-[10px] text-gray-600 leading-tight">
+                He leído y acepto los{' '}
+                <Link href="/terminos" target="_blank" className="font-bold text-[#2563eb] underline hover:text-blue-800">
+                  Términos y Condiciones
+                </Link>{' '}
+                y el{' '}
+                <Link href="/privacidad" target="_blank" className="font-bold text-[#2563eb] underline hover:text-blue-800">
+                  Aviso de Privacidad
+                </Link>.
+              </span>
+            </label>
+
             <button
               type="submit"
-              className="w-full py-3 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer"
+              disabled={!authTermsAccepted}
+              className="w-full py-3 bg-[#2563eb] hover:bg-[#1d4ed8] disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <CheckCircle size={15} /> Continuar como Invitado
             </button>
@@ -384,10 +407,31 @@ export default function ClientAuthModal({
               </p>
             )}
 
+            {tab === 'register' && (
+              <label className="flex items-start gap-2 p-2 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={authTermsAccepted}
+                  onChange={e => setAuthTermsAccepted(e.target.checked)}
+                  className="mt-0.5 w-3.5 h-3.5 rounded text-[#2563eb] focus:ring-blue-500 border-gray-300 shrink-0 cursor-pointer"
+                />
+                <span className="text-[10px] text-gray-600 leading-tight">
+                  He leído y acepto los{' '}
+                  <Link href="/terminos" target="_blank" className="font-bold text-[#2563eb] underline hover:text-blue-800">
+                    Términos y Condiciones
+                  </Link>{' '}
+                  y el{' '}
+                  <Link href="/privacidad" target="_blank" className="font-bold text-[#2563eb] underline hover:text-blue-800">
+                    Aviso de Privacidad
+                  </Link>.
+                </span>
+              </label>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-[#1e3a5f] hover:bg-[#2563eb] text-white font-bold rounded-xl text-xs transition shadow mt-2 cursor-pointer disabled:opacity-60"
+              disabled={loading || (tab === 'register' && !authTermsAccepted)}
+              className="w-full py-3 bg-[#1e3a5f] hover:bg-[#2563eb] disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition shadow mt-2 cursor-pointer disabled:opacity-60"
             >
               {loading ? 'Procesando...' : tab === 'login' ? 'Iniciar Sesión' : 'Crear mi Cuenta de Cliente'}
             </button>

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import {
   MessageSquare,
   X,
@@ -56,6 +57,7 @@ export default function FloatingChatWidget({
   const [waFault, setWaFault] = useState('Pantalla / Display roto o sin imagen');
   const [waDetail, setWaDetail] = useState('');
   const [waSent, setWaSent] = useState(false);
+  const [waTermsAccepted, setWaTermsAccepted] = useState(false);
 
   // Live POS Chat & Tracking States
   const [customer, setCustomer] = useState<StorefrontCustomer | null>(null);
@@ -67,6 +69,7 @@ export default function FloatingChatWidget({
   const [trackingCode, setTrackingCode] = useState('');
   const [trackingResult, setTrackingResult] = useState<any>(null);
   const [trackingError, setTrackingError] = useState('');
+  const [chatTermsAccepted, setChatTermsAccepted] = useState(false);
 
   // Form states if identifying for internal chat
   const [name, setName] = useState('');
@@ -237,7 +240,7 @@ export default function FloatingChatWidget({
   // Compile and send WhatsApp Message
   const handleSendWhatsApp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!waName.trim() || !waDevice.trim()) return;
+    if (!waName.trim() || !waDevice.trim() || !waTermsAccepted) return;
 
     const compiledMessage =
       `*¡HOLA INGENIUM MOBILE!* 🤖📱\n` +
@@ -682,11 +685,31 @@ export default function FloatingChatWidget({
                   />
                 </div>
 
+                {/* Checkbox Obligatorio de Aceptación Legal (PROFECO & LFPDPPP) */}
+                <label className="flex items-start gap-2 p-2.5 bg-white rounded-xl border border-gray-200 text-xs text-gray-700 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={waTermsAccepted}
+                    onChange={e => setWaTermsAccepted(e.target.checked)}
+                    className="mt-0.5 w-3.5 h-3.5 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 shrink-0 cursor-pointer"
+                  />
+                  <span className="text-[10px] text-gray-600 leading-tight">
+                    He leído y acepto los{' '}
+                    <Link href="/terminos" target="_blank" className="font-bold text-emerald-700 underline hover:text-emerald-900">
+                      Términos y Condiciones
+                    </Link>{' '}
+                    y el{' '}
+                    <Link href="/privacidad" target="_blank" className="font-bold text-emerald-700 underline hover:text-emerald-900">
+                      Aviso de Privacidad
+                    </Link>.
+                  </span>
+                </label>
+
                 {/* Botón Principal de Envío a WhatsApp */}
                 <button
                   type="submit"
-                  disabled={!waName.trim() || !waDevice.trim()}
-                  className="w-full py-3 bg-[#25D366] hover:bg-[#20ba5a] text-white font-black rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                  disabled={!waName.trim() || !waDevice.trim() || !waTermsAccepted}
+                  className="w-full py-3 bg-[#25D366] hover:bg-[#20ba5a] text-white font-black rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
                     <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.584 1.777.818 2.796.818 3.179 0 5.765-2.587 5.766-5.766.001-3.182-2.585-5.769-5.766-5.769zm3.393 8.163c-.144.405-.837.774-1.17.822-.312.043-.637.067-1.802-.416-.838-.348-1.465-.898-1.89-1.328l-.022-.022c-.419-.44-1.077-1.285-1.077-2.316 0-1.026.54-1.53.734-1.741.194-.212.423-.264.564-.264.141 0 .283.003.407.009.131.006.304-.05.476.363.177.426.602 1.468.654 1.574.053.106.089.23.018.371-.071.141-.106.23-.212.353-.106.124-.222.277-.318.371-.106.106-.217.221-.093.434.124.212.551.909 1.18 1.469.811.722 1.494.945 1.706 1.051.212.106.336.089.459-.053.124-.141.53-.618.672-.83.141-.212.283-.177.476-.106.195.071 1.237.583 1.449.689.212.106.353.159.407.247.053.088.053.512-.091.917z" />
@@ -702,7 +725,7 @@ export default function FloatingChatWidget({
               )}
 
               <p className="text-center text-[10px] text-gray-400 mt-2">
-                Atención oficial: +52 81 3962 9319 · Monterrey, NL.
+                Atención oficial: +52 81 3962 9319 · Sombrerete, Zacatecas, México.
               </p>
             </div>
           )}
@@ -740,10 +763,31 @@ export default function FloatingChatWidget({
                       required
                       className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
+
+                    {/* Checkbox Obligatorio de Aceptación Legal */}
+                    <label className="flex items-start gap-2 p-2 bg-white rounded-xl border border-gray-200 text-xs text-gray-700 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={chatTermsAccepted}
+                        onChange={e => setChatTermsAccepted(e.target.checked)}
+                        className="mt-0.5 w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-gray-300 shrink-0 cursor-pointer"
+                      />
+                      <span className="text-[10px] text-gray-600 leading-tight">
+                        He leído y acepto los{' '}
+                        <Link href="/terminos" target="_blank" className="font-bold text-blue-600 underline hover:text-blue-800">
+                          Términos y Condiciones
+                        </Link>{' '}
+                        y el{' '}
+                        <Link href="/privacidad" target="_blank" className="font-bold text-blue-600 underline hover:text-blue-800">
+                          Aviso de Privacidad
+                        </Link>.
+                      </span>
+                    </label>
+
                     <button
                       type="submit"
-                      disabled={loading}
-                      className="w-full py-2.5 bg-[#1e3a5f] hover:bg-[#2563eb] text-white font-bold rounded-xl text-xs transition shadow cursor-pointer disabled:opacity-50"
+                      disabled={loading || !name.trim() || !phone.trim() || !chatTermsAccepted}
+                      className="w-full py-2.5 bg-[#1e3a5f] hover:bg-[#2563eb] text-white font-bold rounded-xl text-xs transition shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? 'Conectando...' : 'Iniciar Conversación'}
                     </button>
