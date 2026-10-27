@@ -12,7 +12,7 @@ import {
   Wrench, Plus, Search, Filter, Phone, MessageCircle, Printer,
   CheckCircle2, Clock, AlertCircle, PackageCheck, Smartphone,
   User, ShieldCheck, DollarSign, Calendar, Edit3, X, ChevronRight,
-  ExternalLink, RotateCcw, AlertTriangle, Check, RefreshCw
+  ExternalLink, RotateCcw, AlertTriangle, Check, RefreshCw, Trash2
 } from 'lucide-react';
 import { RepairOrder, RepairStatus } from '@/types';
 import { DEMO_REPAIRS } from '@/lib/mockData';
@@ -64,6 +64,10 @@ export default function ReparacionesPage() {
   const [cancelReason, setCancelReason] = useState<string>('Cliente desistió / no autorizó reparación');
   const [refundAmount, setRefundAmount] = useState<string>('0.00');
   const [processingCancel, setProcessingCancel] = useState(false);
+
+  // Delete Confirmation Modal
+  const [deleteModalRepair, setDeleteModalRepair] = useState<RepairOrder | null>(null);
+  const [processingDelete, setProcessingDelete] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -154,10 +158,45 @@ export default function ReparacionesPage() {
     }
   }, [loadRepairs]);
 
-  // Helper to calculate Warranty countdown and dates
+  // Helper to calculate Warranty countdown and dates - La garantía cuenta estrictamente a partir de la fecha de entrega
   const getWarrantyInfo = (rep: RepairOrder) => {
     const days = rep.warranty_days ?? 30;
-    const startsAt = rep.warranty_starts_at || rep.delivered_at || rep.completed_at || rep.received_at || rep.created_at;
+    const isDelivered = rep.status === 'entregado';
+    const isCancelled = rep.status === 'cancelado';
+
+    const formatDateShort = (d: Date) => {
+      return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    if (isCancelled) {
+      return {
+        days,
+        isDelivered: false,
+        isCancelled: true,
+        startsAtFormatted: 'Cancelada',
+        expiresAtFormatted: 'Sin cobertura',
+        daysRemaining: 0,
+        isExpired: true,
+        statusLabel: 'Cancelada',
+      };
+    }
+
+    // Si aún no se entrega, la garantía NO debe correr todavía
+    if (!isDelivered) {
+      return {
+        days,
+        isDelivered: false,
+        isCancelled: false,
+        startsAtFormatted: 'Al momento de entrega',
+        expiresAtFormatted: `Vigente por ${days} días tras entrega`,
+        daysRemaining: days,
+        isExpired: false,
+        statusLabel: `Inicia al entregar (${days} días)`,
+      };
+    }
+
+    // Equipo entregado: la garantía empezó a contar el día que se entregó físicamente al cliente
+    const startsAt = rep.delivered_at || rep.warranty_starts_at || new Date().toISOString();
     const startDate = new Date(startsAt);
     const expiresDate = rep.warranty_expires_at
       ? new Date(rep.warranty_expires_at)
@@ -165,19 +204,18 @@ export default function ReparacionesPage() {
 
     const now = new Date().getTime();
     const diffMs = expiresDate.getTime() - now;
-    const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    const isExpired = daysRemaining < 0;
-
-    const formatDateShort = (d: Date) => {
-      return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-    };
+    const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    const isExpired = diffMs <= 0;
 
     return {
       days,
+      isDelivered: true,
+      isCancelled: false,
       startsAtFormatted: formatDateShort(startDate),
       expiresAtFormatted: formatDateShort(expiresDate),
       daysRemaining,
       isExpired,
+      statusLabel: isExpired ? 'Garantía Vencida' : `🟢 Activa · Quedan ${daysRemaining} día(s)`,
     };
   };
 
@@ -237,12 +275,10 @@ export default function ReparacionesPage() {
     const bizId = business?.id && business.id !== 'demo-biz-1' ? business.id : OFFICIAL_BUSINESS_ID;
 
     if (editingRepair) {
-      // Calculate updated warranty if delivering now
-      const isNowDelivered = formData.status === 'entregado' && editingRepair.status !== 'entregado';
-      const wStarts = isNowDelivered
-        ? new Date().toISOString()
-        : editingRepair.warranty_starts_at || (formData.status === 'entregado' ? editingRepair.delivered_at || new Date().toISOString() : null);
-
+      // La garantía empieza a contar única y exclusivamente desde que se entrega el equipo:
+      const isDelivered = formData.status === 'entregado';
+      const delivAt = isDelivered ? (editingRepair.delivered_at || new Date().toISOString()) : null;
+      const wStarts = isDelivered ? (editingRepair.warranty_starts_at || delivAt) : null;
       const wExpires = wStarts ? new Date(new Date(wStarts).getTime() + wDays * 86400000).toISOString() : null;
 
       const updatedRepair: RepairOrder = {
@@ -254,7 +290,7 @@ export default function ReparacionesPage() {
         estimated_cost: estCost,
         advance_payment: advPayment,
         completed_at: formData.status === 'listo_entrega' && !editingRepair.completed_at ? new Date().toISOString() : editingRepair.completed_at,
-        delivered_at: formData.status === 'entregado' && !editingRepair.delivered_at ? new Date().toISOString() : editingRepair.delivered_at,
+        delivered_at: delivAt,
       };
 
       updatedList = repairs.map(r => (r.id === editingRepair.id ? updatedRepair : r));
@@ -360,17 +396,15 @@ export default function ReparacionesPage() {
       return;
     }
 
-    const isNowDelivered = newStatus === 'entregado' && rep.status !== 'entregado';
+    const isDelivered = newStatus === 'entregado';
     const isNowReady = newStatus === 'listo_entrega' && rep.status !== 'listo_entrega';
     const compAt = isNowReady ? new Date().toISOString() : rep.completed_at;
-    const delivAt = isNowDelivered ? new Date().toISOString() : rep.delivered_at;
-
-    const wStarts = isNowDelivered
-      ? new Date().toISOString()
-      : rep.warranty_starts_at || (newStatus === 'entregado' ? new Date().toISOString() : null);
+    const delivAt = isDelivered ? (rep.delivered_at || new Date().toISOString()) : null;
 
     const wDays = rep.warranty_days || 30;
-    const wExpires = wStarts ? new Date(new Date(wStarts).getTime() + wDays * 86400000).toISOString() : rep.warranty_expires_at;
+    // La garantía empieza a contar única y exclusivamente desde que se entrega el equipo:
+    const wStarts = isDelivered ? (rep.warranty_starts_at || delivAt) : null;
+    const wExpires = wStarts ? new Date(new Date(wStarts).getTime() + wDays * 86400000).toISOString() : null;
 
     const updated = repairs.map(r => {
       if (r.id === rep.id) {
@@ -406,8 +440,11 @@ export default function ReparacionesPage() {
     setSavingWarranty(true);
     const days = parseInt(editWarrantyDays) || 30;
 
-    const starts = warrantyModalRepair.warranty_starts_at || warrantyModalRepair.delivered_at || warrantyModalRepair.received_at || new Date().toISOString();
-    const expires = new Date(new Date(starts).getTime() + days * 86400000).toISOString();
+    const isDelivered = warrantyModalRepair.status === 'entregado';
+    const starts = isDelivered
+      ? (warrantyModalRepair.warranty_starts_at || warrantyModalRepair.delivered_at || new Date().toISOString())
+      : null;
+    const expires = starts ? new Date(new Date(starts).getTime() + days * 86400000).toISOString() : null;
 
     const updated = repairs.map(r => {
       if (r.id === warrantyModalRepair.id) {
@@ -439,6 +476,8 @@ export default function ReparacionesPage() {
           status: 'cancelado' as RepairStatus,
           cancellation_reason: cancelReason,
           refund_amount: refunded,
+          warranty_starts_at: null,
+          warranty_expires_at: null,
         };
       }
       return r;
@@ -460,6 +499,24 @@ export default function ReparacionesPage() {
 
     setProcessingCancel(false);
     setCancelModalRepair(null);
+  };
+
+  const handleConfirmDeleteRepair = async () => {
+    if (!deleteModalRepair) return;
+    setProcessingDelete(true);
+
+    const targetId = deleteModalRepair.id;
+    const updated = repairs.filter(r => r.id !== targetId);
+    saveToStorage(updated);
+
+    try {
+      await supabase.from('repair_orders').delete().eq('id', targetId);
+    } catch (err) {
+      console.warn('Error al eliminar orden de reparación en Supabase:', err);
+    }
+
+    setProcessingDelete(false);
+    setDeleteModalRepair(null);
   };
 
   const handleSendWhatsAppNotification = (rep: RepairOrder) => {
@@ -750,22 +807,26 @@ export default function ReparacionesPage() {
                             <span className="font-black text-xs">
                               Garantía Oficial: {wInfo.days} días
                             </span>
-                            {rep.status === 'entregado' && (
-                              <span
-                                className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                                  wInfo.isExpired ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-900'
-                                }`}
-                              >
-                                {wInfo.isExpired
+                            <span
+                              className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                rep.status === 'entregado'
+                                  ? wInfo.isExpired
+                                    ? 'bg-amber-200 text-amber-900'
+                                    : 'bg-emerald-200 text-emerald-900'
+                                  : 'bg-blue-200 text-blue-900'
+                              }`}
+                            >
+                              {rep.status === 'entregado'
+                                ? wInfo.isExpired
                                   ? `Venció hace ${Math.abs(wInfo.daysRemaining)} día(s)`
-                                  : `🟢 Activa · Quedan ${wInfo.daysRemaining} día(s)`}
-                              </span>
-                            )}
+                                  : `🟢 Activa · Quedan ${wInfo.daysRemaining} día(s)`
+                                : `⏱️ Inicia al entregar al cliente`}
+                            </span>
                           </div>
                           <p className="text-[11px] opacity-75 mt-0.5">
                             {rep.status === 'entregado'
-                              ? `Cobertura vigente desde el ${wInfo.startsAtFormatted} hasta el ${wInfo.expiresAtFormatted}`
-                              : `La garantía de ${wInfo.days} días comenzará a contar al entregar el equipo reparado.`}
+                              ? `Cobertura iniciada el ${wInfo.startsAtFormatted} (vigente hasta el ${wInfo.expiresAtFormatted})`
+                              : `La garantía de ${wInfo.days} días comenzará a correr a partir de que entregues el equipo al cliente.`}
                           </p>
                         </div>
                       </div>
@@ -805,15 +866,15 @@ export default function ReparacionesPage() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       {/* WhatsApp Notify */}
                       <button
                         onClick={() => handleSendWhatsAppNotification(rep)}
-                        className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                        className="px-2.5 sm:px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                         title="Enviar actualización por WhatsApp"
                       >
                         <MessageCircle size={14} className="text-emerald-600" />
-                        <span>Avisar WhatsApp</span>
+                        <span className="hidden sm:inline">WhatsApp</span>
                       </button>
 
                       {/* Print Ticket */}
@@ -822,20 +883,46 @@ export default function ReparacionesPage() {
                           setPrintRepair(rep);
                           setIsPrintModalOpen(true);
                         }}
-                        className="px-3 py-1.5 bg-blue-50 text-[#2563eb] hover:bg-blue-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                        className="px-2.5 sm:px-3 py-1.5 bg-blue-50 text-[#2563eb] hover:bg-blue-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                         title="Imprimir comprobante para el cliente"
                       >
                         <Printer size={14} />
-                        <span>Imprimir Ticket</span>
+                        <span className="hidden sm:inline">Ticket</span>
                       </button>
 
                       {/* Edit */}
                       <button
                         onClick={() => handleOpenEditModal(rep)}
-                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                        className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition cursor-pointer"
                         title="Editar detalles de la orden"
                       >
                         <Edit3 size={15} />
+                      </button>
+
+                      {/* Cancel Order */}
+                      {rep.status !== 'cancelado' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCancelModalRepair(rep);
+                            setRefundAmount((rep.advance_payment || 0).toString());
+                          }}
+                          className="px-2.5 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                          title="Cancelar orden y registrar reembolso si hubo anticipo"
+                        >
+                          <RotateCcw size={13} />
+                          <span>Cancelar</span>
+                        </button>
+                      )}
+
+                      {/* Delete Order Permanently */}
+                      <button
+                        type="button"
+                        onClick={() => setDeleteModalRepair(rep)}
+                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                        title="Eliminar orden definitivamente de la base de datos"
+                      >
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
@@ -1028,6 +1115,49 @@ export default function ReparacionesPage() {
                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50"
               >
                 {processingCancel ? 'Cancelando...' : 'Confirmar Cancelación'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ELIMINACIÓN DEFINITIVA DE REPARACIÓN */}
+      {deleteModalRepair && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-fadeIn backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-red-200 space-y-4">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="w-10 h-10 rounded-2xl bg-red-100 flex items-center justify-center shrink-0">
+                <Trash2 size={20} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-black text-base text-gray-900">¿Eliminar orden de taller?</h3>
+                <p className="text-xs text-gray-500 font-mono">Folio: {deleteModalRepair.folio}</p>
+              </div>
+            </div>
+
+            <div className="bg-red-50 p-3 rounded-2xl border border-red-100 text-xs text-red-900 space-y-1">
+              <p className="font-bold">Cliente: {deleteModalRepair.client_name}</p>
+              <p>Dispositivo: {deleteModalRepair.device_brand} {deleteModalRepair.device_model}</p>
+              <p className="text-[11px] text-red-700 pt-1 border-t border-red-200">
+                ⚠️ Se eliminará permanentemente de la base de datos en la nube y de tus registros locales. Esta acción no se puede deshacer.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setDeleteModalRepair(null)}
+                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteRepair}
+                disabled={processingDelete}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md shadow-red-600/20 disabled:opacity-50 cursor-pointer"
+              >
+                {processingDelete ? 'Eliminando...' : 'Sí, Eliminar'}
               </button>
             </div>
           </div>

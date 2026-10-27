@@ -128,7 +128,7 @@ export default function PrintTicketModal({
         `*Presupuesto:* ${formatCurrency(repair.estimated_cost, currency)}\n` +
         `*Anticipo Pagado:* ${formatCurrency(repair.advance_payment, currency)}\n` +
         `*Saldo Pendiente:* ${formatCurrency(Math.max(0, repair.estimated_cost - repair.advance_payment), currency)}\n` +
-        `*Garantía Escrita:* ${repair.warranty_days || 30} días en refacción y mano de obra.\n\n` +
+        `*Garantía Escrita:* ${repair.warranty_days || 30} días en refacción y mano de obra (vigente a partir de la entrega del equipo).\n\n` +
         `📄 *Consulta tu orden y descarga en PDF aquí:*\n${url}\n\n` +
         `¡Estamos para servirte!`;
     }
@@ -609,7 +609,7 @@ export default function PrintTicketModal({
                     <span>{repair.warranty_days || 30} DÍAS</span>
                   </p>
                   <p className="text-[10px] text-gray-500">
-                    Válida por defectos de fabricación del repuesto o mano de obra técnica conforme a PROFECO.
+                    Válida por {repair.warranty_days || 30} días a partir de la fecha de entrega del equipo reparado conforme a PROFECO.
                   </p>
                 </div>
 

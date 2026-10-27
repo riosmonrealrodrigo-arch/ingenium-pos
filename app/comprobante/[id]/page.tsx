@@ -375,6 +375,30 @@ export default function ComprobantePage() {
                 </span>
               </div>
             </div>
+
+            {/* Estado de Entrega y Cobertura de Garantía */}
+            <div className={`p-3.5 rounded-2xl border text-xs space-y-1 ${
+              repair.status === 'entregado'
+                ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                : 'bg-blue-50/70 border-blue-200 text-blue-950'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className="font-bold flex items-center gap-1.5">
+                  <ShieldCheck size={15} className={repair.status === 'entregado' ? 'text-emerald-600' : 'text-blue-600'} />
+                  Garantía del Servicio: {repair.warranty_days || 30} días
+                </span>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                  repair.status === 'entregado' ? 'bg-emerald-200 text-emerald-900' : 'bg-blue-200 text-blue-900'
+                }`}>
+                  {repair.status === 'entregado' ? 'Garantía en Curso' : 'Inicia al Entregar'}
+                </span>
+              </div>
+              <p className="text-[11px] opacity-80 pt-0.5">
+                {repair.status === 'entregado'
+                  ? `Equipo entregado formalmente el ${formatDateTime(repair.delivered_at || repair.warranty_starts_at || repair.created_at)}.`
+                  : `El plazo de garantía de ${repair.warranty_days || 30} días comenzará a contar estrictamente a partir de la fecha en que recibas tu equipo reparado.`}
+              </p>
+            </div>
           </div>
         )}
 
