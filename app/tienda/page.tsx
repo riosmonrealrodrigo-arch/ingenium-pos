@@ -202,7 +202,7 @@ export default function TiendaPage() {
                 value={search}
                 onChange={e => handleSearchChange(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') scrollToCatalog(); }}
-                className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-full text-xs outline-none focus:ring-2 focus:ring-[#2563eb] focus:bg-white transition"
+                className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-900 placeholder:text-gray-400 font-medium outline-none focus:ring-2 focus:ring-[#2563eb] focus:bg-white transition"
               />
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function TiendaPage() {
               value={search}
               onChange={e => handleSearchChange(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') scrollToCatalog(); }}
-              className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
+              className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-medium outline-none focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
         </div>

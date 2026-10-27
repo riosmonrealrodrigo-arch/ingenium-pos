@@ -4,6 +4,12 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; }
+input:not([type="checkbox"]):not([type="radio"]), textarea, select {
+  color: #111827;
+}
+input::placeholder, textarea::placeholder {
+  color: #9ca3af;
+}
 .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

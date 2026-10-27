@@ -124,7 +124,7 @@ export default function ClientAuthModal({
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
-                className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#2563eb] outline-none transition"
+                className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-medium focus:ring-2 focus:ring-[#2563eb] outline-none transition"
               />
             </div>
           </div>
@@ -141,7 +141,7 @@ export default function ClientAuthModal({
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
                 required
-                className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#2563eb] outline-none transition"
+                className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-medium focus:ring-2 focus:ring-[#2563eb] outline-none transition"
               />
             </div>
           </div>

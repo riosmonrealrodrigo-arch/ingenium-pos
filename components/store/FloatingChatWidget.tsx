@@ -739,7 +739,7 @@ export default function FloatingChatWidget({
                       value={waName}
                       onChange={e => setWaName(e.target.value)}
                       required
-                      className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#25D366] outline-none"
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-medium focus:ring-2 focus:ring-[#25D366] outline-none"
                     />
                   </div>
                 </div>
@@ -759,7 +759,7 @@ export default function FloatingChatWidget({
                       value={waDevice}
                       onChange={e => setWaDevice(e.target.value)}
                       required
-                      className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#25D366] outline-none"
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-medium focus:ring-2 focus:ring-[#25D366] outline-none"
                     />
                   </div>
                 </div>
@@ -772,7 +772,7 @@ export default function FloatingChatWidget({
                   <select
                     value={waFault}
                     onChange={e => setWaFault(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#25D366] outline-none font-medium text-gray-700"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#25D366] outline-none font-medium text-gray-900"
                   >
                     {COMMON_FAULTS.map(f => (
                       <option key={f.id} value={f.label}>
@@ -792,7 +792,7 @@ export default function FloatingChatWidget({
                     placeholder="Ej. Se cayó al agua, parpadea la pantalla, no retiene carga..."
                     value={waDetail}
                     onChange={e => setWaDetail(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#25D366] outline-none resize-none"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-medium focus:ring-2 focus:ring-[#25D366] outline-none resize-none"
                   />
                 </div>
 
@@ -864,7 +864,7 @@ export default function FloatingChatWidget({
                       value={name}
                       onChange={e => setName(e.target.value)}
                       required
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-medium outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
                     <input
                       type="tel"
@@ -872,7 +872,7 @@ export default function FloatingChatWidget({
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
                       required
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-medium outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
 
                     {/* Checkbox Obligatorio de Aceptación Legal */}
@@ -939,7 +939,7 @@ export default function FloatingChatWidget({
                       placeholder="Escribe tu mensaje al técnico..."
                       value={inputMsg}
                       onChange={e => setInputMsg(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#2563eb]"
+                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-medium outline-none focus:ring-2 focus:ring-[#2563eb]"
                     />
                     <button
                       type="submit"
@@ -975,7 +975,7 @@ export default function FloatingChatWidget({
                     value={trackingCode}
                     onChange={e => setTrackingCode(e.target.value)}
                     required
-                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-mono uppercase outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-mono font-bold uppercase outline-none focus:ring-2 focus:ring-amber-500"
                   />
                   <button
                     type="submit"
