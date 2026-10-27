@@ -88,7 +88,12 @@ export default function SoportePage() {
       setConversations(validList);
 
       const current = selectedConvRef.current;
-      if (!current || !isValidUUID(current.id) || autoSelect) {
+      const urlConvId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('convId') : null;
+
+      if (urlConvId && validList.some(c => c.id === urlConvId)) {
+        const target = validList.find(c => c.id === urlConvId);
+        if (target) setSelectedConv(target);
+      } else if (!current || !isValidUUID(current.id) || autoSelect) {
         if (validList.length > 0) {
           setSelectedConv(validList[0]);
         }

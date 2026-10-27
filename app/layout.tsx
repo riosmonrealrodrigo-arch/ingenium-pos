@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
@@ -8,13 +8,27 @@ import { SalesProvider } from '@/context/SalesContext';
 import { ClientProvider } from '@/context/ClientContext';
 import { StoreThemeProvider } from '@/context/StoreThemeContext';
 import OfflineNoticeModal from '@/components/OfflineNoticeModal';
+import AdminNotificationSystem from '@/components/admin/AdminNotificationSystem';
 
 const inter = Inter({ subsets: ['latin'] });
+
+export const viewport: Viewport = {
+  themeColor: '#1e3a5f',
+};
 
 export const metadata: Metadata = {
   title: 'Ingenium POS',
   description: 'Vende inteligente, cobra rápido',
-  icons: { icon: '/favicon.ico' },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'INGENIUM POS',
+  },
+  icons: {
+    icon: '/images/logo.jpg',
+    apple: '/images/logo.jpg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <ClientProvider>
                   <StoreThemeProvider>
                     <OfflineNoticeModal />
+                    <AdminNotificationSystem />
                     {children}
                   </StoreThemeProvider>
                 </ClientProvider>

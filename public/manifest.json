@@ -1,0 +1,25 @@
+{
+  "name": "INGENIUM POS",
+  "short_name": "INGENIUM",
+  "description": "Punto de Venta y Gestión para INGENIUM MOBILE",
+  "start_url": "/admin?auto=1&source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1e3a5f",
+  "theme_color": "#1e3a5f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

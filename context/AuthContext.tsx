@@ -14,6 +14,7 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string, name: string, businessName: string) => Promise<{ error?: string }>;
   resetPassword: (email: string) => Promise<{ error?: string; success?: boolean }>;
+  loginAsAdmin: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -282,6 +283,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginAsAdmin = async () => {
+    await signInWithEmail('robertanr564@gmail.com', 'RO15-9ALRM');
+  };
+
   const signOut = async () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('ingenium_demo_session');
@@ -296,7 +301,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ profile, business, loading, isDemo, enterDemoMode, signInWithGoogle, signInWithEmail, signUp, resetPassword, signOut }}>
+    <AuthContext.Provider value={{ profile, business, loading, isDemo, enterDemoMode, signInWithGoogle, signInWithEmail, signUp, resetPassword, loginAsAdmin, signOut }}>
       {children}
     </AuthContext.Provider>
   );

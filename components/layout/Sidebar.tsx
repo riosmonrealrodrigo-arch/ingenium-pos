@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import {
   LayoutDashboard, ShoppingCart, Package, Warehouse,
   ClipboardList, Users, BarChart2, Settings, LogOut, Store,
@@ -31,6 +32,25 @@ export default function Sidebar() {
   const { themeId } = useStoreTheme();
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const { count } = await supabase
+          .from('chat_conversations')
+          .select('*', { count: 'exact', head: true })
+          .gt('unread_admin_count', 0);
+        setUnreadCount(count || 0);
+      } catch {}
+    };
+
+    fetchUnread();
+
+    const onMessage = () => fetchUnread();
+    window.addEventListener('ingenium_client_message_received', onMessage);
+    return () => window.removeEventListener('ingenium_client_message_received', onMessage);
+  }, []);
 
   const businessDisplayName = 'INGENIUM MOBILE';
 
@@ -68,9 +88,13 @@ export default function Sidebar() {
                   <Icon size={14} className="shrink-0" />
                   <span className="truncate">{label}</span>
                 </div>
-                {badge && (
+                {href === '/soporte' && unreadCount > 0 ? (
+                  <span className="px-1.5 py-0.2 text-[9px] font-black bg-red-500 text-white rounded-full animate-pulse shadow-sm">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                ) : badge ? (
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
-                )}
+                ) : null}
               </Link>
             );
           })}
