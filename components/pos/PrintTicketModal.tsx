@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Sale, RepairOrder, TicketSettings } from '@/types';
 import { DEFAULT_TICKET_SETTINGS } from '@/lib/mockData';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { formatCurrency, formatDateTime, extractAccessories } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { MiniPatternView } from '@/components/reparaciones/DeviceSecuritySelector';
 
@@ -92,7 +92,9 @@ export default function PrintTicketModal({
     if (sale) {
       text = `*${settings.business_name}*\nTicket: #${sale.id.slice(-6).toUpperCase()}\nFecha: ${formatDateTime(sale.created_at)}\nCliente: ${sale.client_name || 'Consumidor Final'}\nTotal: ${formatCurrency(sale.total, currency)}\nPago: ${sale.payment_method}\n\n📄 Comprobante PDF:\n${url}`;
     } else if (repair) {
-      text = `*${settings.business_name} - ORDEN DE SERVICIO*\nFolio: ${repair.folio}\nEquipo: ${repair.device_brand} ${repair.device_model}\nFalla: ${repair.issue_reported}\nPresupuesto: ${formatCurrency(repair.estimated_cost, currency)}\nAnticipo: ${formatCurrency(repair.advance_payment, currency)}\nSaldo pendiente: ${formatCurrency(repair.estimated_cost - repair.advance_payment, currency)}\nGarantía: ${repair.warranty_days || 30} días\n\n📄 Comprobante PDF:\n${url}`;
+      const { cleanIssue, accessories: extAcc } = extractAccessories(repair.issue_reported);
+      const accText = repair.accessories || extAcc || 'Solo equipo (sin accesorios)';
+      text = `*${settings.business_name} - ORDEN DE SERVICIO*\nFolio: ${repair.folio}\nEquipo: ${repair.device_brand} ${repair.device_model}\nAccesorios: ${accText}\nFalla: ${cleanIssue}\nPresupuesto: ${formatCurrency(repair.estimated_cost, currency)}\nAnticipo: ${formatCurrency(repair.advance_payment, currency)}\nSaldo pendiente: ${formatCurrency(repair.estimated_cost - repair.advance_payment, currency)}\nGarantía: ${repair.warranty_days || 30} días\n\n📄 Comprobante PDF:\n${url}`;
     }
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -119,12 +121,15 @@ export default function PrintTicketModal({
         `📄 *Descarga tu comprobante en formato PDF aquí:*\n${url}\n\n` +
         `¡Gracias por tu compra!`;
     } else if (repair) {
+      const { cleanIssue, accessories: extAcc } = extractAccessories(repair.issue_reported);
+      const accText = repair.accessories || extAcc || 'Solo equipo (sin accesorios)';
       msg = `*¡HOLA! INGENIUM MOBILE - TALLER* 🔧📱\n` +
         `Aquí tienes tu *Comprobante de Orden de Servicio*:\n\n` +
         `*Folio:* ${repair.folio}\n` +
         `*Cliente:* ${repair.client_name}\n` +
         `*Equipo:* ${repair.device_brand} ${repair.device_model}\n` +
-        `*Falla Reportada:* ${repair.issue_reported}\n` +
+        `*Accesorios Recibidos:* ${accText}\n` +
+        `*Falla Reportada:* ${cleanIssue}\n` +
         `*Presupuesto:* ${formatCurrency(repair.estimated_cost, currency)}\n` +
         `*Anticipo Pagado:* ${formatCurrency(repair.advance_payment, currency)}\n` +
         `*Saldo Pendiente:* ${formatCurrency(Math.max(0, repair.estimated_cost - repair.advance_payment), currency)}\n` +
@@ -224,11 +229,14 @@ export default function PrintTicketModal({
           `*Garantía:* 30 días naturales con tu comprobante.\n\n` +
           `📄 *Descarga tu comprobante oficial en formato PDF aquí:*\n${url}`;
       } else if (repair) {
+        const { cleanIssue, accessories: extAcc } = extractAccessories(repair.issue_reported);
+        const accText = repair.accessories || extAcc || 'Solo equipo (sin accesorios)';
         receiptMessage = `🛡️ *ORDEN DE SERVICIO / TALLER*\n` +
           `*Folio:* ${repair.folio}\n` +
           `*Cliente:* ${repair.client_name}\n` +
           `*Equipo:* ${repair.device_brand} ${repair.device_model}\n` +
-          `*Falla Reportada:* ${repair.issue_reported}\n` +
+          `*Accesorios Recibidos:* ${accText}\n` +
+          `*Falla Reportada:* ${cleanIssue}\n` +
           `*Presupuesto:* ${formatCurrency(repair.estimated_cost, currency)}\n` +
           `*Anticipo:* ${formatCurrency(repair.advance_payment, currency)}\n` +
           `*Saldo Pendiente:* ${formatCurrency(Math.max(0, repair.estimated_cost - repair.advance_payment), currency)}\n` +
@@ -562,7 +570,10 @@ export default function PrintTicketModal({
             )}
 
             {/* REPAIR ORDER DETAILS */}
-            {repair && (
+            {repair && (() => {
+              const { cleanIssue, accessories: extAcc } = extractAccessories(repair.issue_reported);
+              const accText = repair.accessories || extAcc || 'Solo equipo (sin accesorios)';
+              return (
               <div className="py-2.5 border-b border-dashed border-gray-300 space-y-2">
                 <div className="bg-gray-50 p-2 rounded border border-gray-200 text-[11px] space-y-1">
                   <p className="font-bold text-gray-900">DATOS DEL DISPOSITIVO:</p>
@@ -582,6 +593,10 @@ export default function PrintTicketModal({
                       <span className="font-mono">{repair.imei_serial}</span>
                     </p>
                   )}
+                  <p className="flex justify-between">
+                    <span className="text-gray-500">Accesorios:</span>
+                    <span className="font-semibold text-gray-800">{accText}</span>
+                  </p>
                   {repair.unlock_pattern && (
                     <div className="bg-amber-50 p-2 rounded border border-amber-200 text-amber-950 space-y-1">
                       <p className="font-bold text-[10px] text-amber-900">SEGURIDAD / CLAVE DEL EQUIPO:</p>
@@ -592,7 +607,7 @@ export default function PrintTicketModal({
 
                 <div className="text-[11px] space-y-1 pt-1">
                   <p className="font-bold text-gray-700">FALLA REPORTADA:</p>
-                  <p className="text-gray-600 italic bg-gray-50 p-1.5 rounded">{repair.issue_reported}</p>
+                  <p className="text-gray-600 italic bg-gray-50 p-1.5 rounded">{cleanIssue}</p>
                 </div>
 
                 {repair.technician_diagnosis && (
@@ -643,7 +658,8 @@ export default function PrintTicketModal({
                   </div>
                 )}
               </div>
-            )}
+              );
+            })()}
 
             {/* Terms and Warranty Footer */}
             <div className="pt-3 text-center space-y-2">

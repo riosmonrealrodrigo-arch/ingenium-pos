@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { ChatMessage, ChatConversation, StorefrontCustomer, RepairOrder } from '@/types';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { formatCurrency, formatDateTime, extractAccessories } from '@/lib/utils';
 
 interface FloatingChatWidgetProps {
   businessPhone?: string;
@@ -1210,36 +1210,51 @@ export default function FloatingChatWidget({
                       )}
 
                       {/* Información del Dispositivo */}
-                      <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-2 text-xs">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase">Dispositivo:</p>
-                            <p className="font-bold text-gray-900 text-sm flex items-center gap-1">
-                              <Smartphone size={14} className="text-[#2563eb]" />
-                              <span>{trackingResult.device_brand} {trackingResult.device_model}</span>
-                              {trackingResult.device_color && <span className="text-xs text-gray-400">({trackingResult.device_color})</span>}
-                            </p>
-                          </div>
-                          {trackingResult.client_name && (
-                            <div className="text-right">
-                              <p className="text-[10px] text-gray-400 font-bold uppercase">Cliente:</p>
-                              <p className="font-bold text-gray-800">{trackingResult.client_name}</p>
+                      {(() => {
+                        const { cleanIssue, accessories: extAcc } = extractAccessories(trackingResult.issue_reported);
+                        const accText = trackingResult.accessories || extAcc || 'Solo equipo (sin accesorios adicionales)';
+
+                        return (
+                          <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-2 text-xs">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase">Dispositivo:</p>
+                                <p className="font-bold text-gray-900 text-sm flex items-center gap-1">
+                                  <Smartphone size={14} className="text-[#2563eb]" />
+                                  <span>{trackingResult.device_brand} {trackingResult.device_model}</span>
+                                  {trackingResult.device_color && <span className="text-xs text-gray-400">({trackingResult.device_color})</span>}
+                                </p>
+                              </div>
+                              {trackingResult.client_name && (
+                                <div className="text-right">
+                                  <p className="text-[10px] text-gray-400 font-bold uppercase">Cliente:</p>
+                                  <p className="font-bold text-gray-800">{trackingResult.client_name}</p>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
 
-                        <div className="pt-2 border-t border-gray-200">
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">Falla Reportada:</p>
-                          <p className="text-gray-700 font-medium italic mt-0.5">{trackingResult.issue_reported}</p>
-                        </div>
+                            <div className="pt-2 border-t border-gray-200">
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">Accesorios Dejados:</p>
+                              <p className="text-gray-800 font-semibold mt-0.5 flex items-center gap-1.5">
+                                <span>🎒</span>
+                                <span>{accText}</span>
+                              </p>
+                            </div>
 
-                        {trackingResult.technician_diagnosis && (
-                          <div className="pt-2 border-t border-gray-200">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase">Diagnóstico del Técnico:</p>
-                            <p className="text-gray-800 font-semibold mt-0.5">{trackingResult.technician_diagnosis}</p>
+                            <div className="pt-2 border-t border-gray-200">
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">Falla Reportada:</p>
+                              <p className="text-gray-700 font-medium italic mt-0.5">{cleanIssue}</p>
+                            </div>
+
+                            {trackingResult.technician_diagnosis && (
+                              <div className="pt-2 border-t border-gray-200">
+                                <p className="text-[10px] text-gray-400 font-bold uppercase">Diagnóstico del Técnico:</p>
+                                <p className="text-gray-800 font-semibold mt-0.5">{trackingResult.technician_diagnosis}</p>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        );
+                      })()}
 
                       {/* Presupuesto y Saldos */}
                       <div className="p-3 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-1 text-xs">

@@ -44,3 +44,24 @@ export const monthAgoISO = (): string => {
   d.setMonth(d.getMonth() - 1);
   return d.toISOString().split('T')[0];
 };
+
+// Extrae accesorios guardados en el reporte de falla de la reparación
+export const extractAccessories = (issueText?: string): { cleanIssue: string; accessories: string } => {
+  if (!issueText) return { cleanIssue: '', accessories: '' };
+  const match = issueText.match(/\[Accesorios:\s*([^\]]+)\]/i);
+  if (match) {
+    return {
+      cleanIssue: issueText.replace(/\[Accesorios:\s*[^\]]+\]/i, '').trim(),
+      accessories: match[1].trim(),
+    };
+  }
+  return { cleanIssue: issueText, accessories: '' };
+};
+
+// Formatea el reporte de falla adjuntando los accesorios de forma estructurada
+export const formatIssueWithAccessories = (cleanIssue: string, accessories?: string): string => {
+  const trimmedIssue = cleanIssue.trim();
+  const trimmedAcc = accessories ? accessories.trim() : '';
+  if (!trimmedAcc) return trimmedIssue;
+  return `${trimmedIssue}\n[Accesorios: ${trimmedAcc}]`;
+};

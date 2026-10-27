@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Sale, RepairOrder } from '@/types';
-import { formatCurrency, formatDateTime, isUUID } from '@/lib/utils';
+import { formatCurrency, formatDateTime, isUUID, extractAccessories } from '@/lib/utils';
 import {
   Download,
   Printer,
@@ -335,28 +335,41 @@ export default function ComprobantePage() {
               Datos del Dispositivo en Taller
             </h3>
 
-            <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3.5 rounded-2xl border border-gray-100">
-              <div>
-                <p className="text-gray-400 text-[10px] font-bold">Equipo / Modelo:</p>
-                <p className="font-bold text-gray-900 text-sm">{repair.device_brand} {repair.device_model}</p>
-              </div>
-              {repair.imei_serial && (
-                <div>
-                  <p className="text-gray-400 text-[10px] font-bold">IMEI / Número de Serie:</p>
-                  <p className="font-mono text-gray-800">{repair.imei_serial}</p>
+            {(() => {
+              const { cleanIssue, accessories: extAcc } = extractAccessories(repair.issue_reported);
+              const accText = repair.accessories || extAcc || 'Solo equipo (sin accesorios adicionales)';
+              return (
+                <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3.5 rounded-2xl border border-gray-100">
+                  <div>
+                    <p className="text-gray-400 text-[10px] font-bold">Equipo / Modelo:</p>
+                    <p className="font-bold text-gray-900 text-sm">{repair.device_brand} {repair.device_model}</p>
+                  </div>
+                  {repair.imei_serial && (
+                    <div>
+                      <p className="text-gray-400 text-[10px] font-bold">IMEI / Número de Serie:</p>
+                      <p className="font-mono text-gray-800">{repair.imei_serial}</p>
+                    </div>
+                  )}
+                  <div className="col-span-2 pt-1 border-t border-gray-200">
+                    <p className="text-gray-400 text-[10px] font-bold">Accesorios Recibidos:</p>
+                    <p className="font-semibold text-gray-800 flex items-center gap-1.5 mt-0.5">
+                      <span>🎒</span>
+                      <span>{accText}</span>
+                    </p>
+                  </div>
+                  <div className="col-span-2 pt-1 border-t border-gray-200">
+                    <p className="text-gray-400 text-[10px] font-bold">Falla Reportada:</p>
+                    <p className="font-medium text-gray-800 italic mt-0.5">{cleanIssue}</p>
+                  </div>
+                  {repair.unlock_pattern && (
+                    <div className="col-span-2 pt-2 border-t border-gray-200 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/80">
+                      <p className="text-amber-900 text-[10px] font-bold mb-1">SEGURIDAD / PATRÓN O PIN:</p>
+                      <MiniPatternView patternString={repair.unlock_pattern} size={50} />
+                    </div>
+                  )}
                 </div>
-              )}
-              <div className="col-span-2 pt-1 border-t border-gray-200">
-                <p className="text-gray-400 text-[10px] font-bold">Falla Reportada:</p>
-                <p className="font-medium text-gray-800 italic mt-0.5">{repair.issue_reported}</p>
-              </div>
-              {repair.unlock_pattern && (
-                <div className="col-span-2 pt-2 border-t border-gray-200 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/80">
-                  <p className="text-amber-900 text-[10px] font-bold mb-1">SEGURIDAD / PATRÓN O PIN:</p>
-                  <MiniPatternView patternString={repair.unlock_pattern} size={50} />
-                </div>
-              )}
-            </div>
+              );
+            })()}
 
             {/* Presupuesto y Saldos */}
             <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-1.5 text-xs">

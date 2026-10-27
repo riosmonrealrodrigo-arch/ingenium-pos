@@ -158,6 +158,7 @@ export interface RepairOrder {
   device_color?: string;
   imei_serial?: string;
   unlock_pattern?: string;
+  accessories?: string;
   issue_reported: string;
   technician_diagnosis?: string;
   estimated_cost: number;

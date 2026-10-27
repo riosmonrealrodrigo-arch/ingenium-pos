@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { RepairOrder, RepairStatus } from '@/types';
 import { DEMO_REPAIRS } from '@/lib/mockData';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { formatCurrency, formatDateTime, extractAccessories, formatIssueWithAccessories } from '@/lib/utils';
 
 const STATUS_CONFIG: Record<RepairStatus, { label: string; bg: string; text: string; icon: any }> = {
   recibido: { label: 'Recibido', bg: 'bg-blue-50 text-blue-700 border-blue-200', text: 'text-blue-700', icon: Clock },
@@ -79,6 +79,7 @@ export default function ReparacionesPage() {
     device_color: '',
     imei_serial: '',
     unlock_pattern: '',
+    accessories: '',
     issue_reported: '',
     technician_diagnosis: '',
     estimated_cost: '',
@@ -87,6 +88,28 @@ export default function ReparacionesPage() {
     warranty_days: '30',
     status: 'recibido' as RepairStatus,
   });
+
+  const toggleAccessoryChip = (accTag: string) => {
+    if (accTag === 'Sin accesorios') {
+      setFormData(prev => ({ ...prev, accessories: 'Sin accesorios' }));
+      return;
+    }
+
+    setFormData(prev => {
+      const current = prev.accessories.trim();
+      if (!current || current.toLowerCase() === 'sin accesorios') {
+        return { ...prev, accessories: accTag };
+      }
+      const parts = current.split(',').map(p => p.trim()).filter(Boolean);
+      const existsIndex = parts.findIndex(p => p.toLowerCase() === accTag.toLowerCase());
+      if (existsIndex >= 0) {
+        parts.splice(existsIndex, 1);
+      } else {
+        parts.push(accTag);
+      }
+      return { ...prev, accessories: parts.join(', ') };
+    });
+  };
 
   const saveToStorage = (updated: RepairOrder[]) => {
     setRepairs(updated);
@@ -230,6 +253,7 @@ export default function ReparacionesPage() {
       device_color: '',
       imei_serial: '',
       unlock_pattern: '',
+      accessories: '',
       issue_reported: '',
       technician_diagnosis: '',
       estimated_cost: '',
@@ -243,6 +267,7 @@ export default function ReparacionesPage() {
 
   const handleOpenEditModal = (rep: RepairOrder) => {
     setEditingRepair(rep);
+    const { cleanIssue, accessories: extAcc } = extractAccessories(rep.issue_reported);
     setFormData({
       client_name: rep.client_name,
       client_phone: rep.client_phone,
@@ -252,7 +277,8 @@ export default function ReparacionesPage() {
       device_color: rep.device_color || '',
       imei_serial: rep.imei_serial || '',
       unlock_pattern: rep.unlock_pattern || '',
-      issue_reported: rep.issue_reported,
+      accessories: rep.accessories || extAcc || '',
+      issue_reported: cleanIssue,
       technician_diagnosis: rep.technician_diagnosis || '',
       estimated_cost: rep.estimated_cost.toString(),
       advance_payment: rep.advance_payment.toString(),
@@ -270,6 +296,7 @@ export default function ReparacionesPage() {
     const estCost = parseFloat(formData.estimated_cost) || 0;
     const advPayment = parseFloat(formData.advance_payment) || 0;
     const wDays = parseInt(formData.warranty_days) || 30;
+    const fullIssue = formatIssueWithAccessories(formData.issue_reported, formData.accessories);
 
     let updatedList: RepairOrder[] = [];
     const bizId = business?.id && business.id !== 'demo-biz-1' ? business.id : OFFICIAL_BUSINESS_ID;
@@ -284,6 +311,8 @@ export default function ReparacionesPage() {
       const updatedRepair: RepairOrder = {
         ...editingRepair,
         ...formData,
+        accessories: formData.accessories,
+        issue_reported: fullIssue,
         warranty_days: wDays,
         warranty_starts_at: wStarts,
         warranty_expires_at: wExpires,
@@ -369,7 +398,8 @@ export default function ReparacionesPage() {
         device_color: formData.device_color,
         imei_serial: formData.imei_serial,
         unlock_pattern: formData.unlock_pattern,
-        issue_reported: formData.issue_reported,
+        accessories: formData.accessories,
+        issue_reported: fullIssue,
         technician_diagnosis: formData.technician_diagnosis,
         estimated_cost: estCost,
         advance_payment: advPayment,
@@ -782,9 +812,23 @@ export default function ReparacionesPage() {
                         <span>{rep.device_brand} {rep.device_model}</span>
                         {rep.device_color && <span className="text-xs text-gray-400">({rep.device_color})</span>}
                       </p>
-                      <p className="text-xs text-gray-600 line-clamp-2">
-                        <strong className="text-gray-700">Falla:</strong> {rep.issue_reported}
-                      </p>
+                      {(() => {
+                        const { cleanIssue, accessories: extAcc } = extractAccessories(rep.issue_reported);
+                        const accText = rep.accessories || extAcc;
+                        return (
+                          <>
+                            <p className="text-xs text-gray-600 line-clamp-2">
+                              <strong className="text-gray-700">Falla:</strong> {cleanIssue}
+                            </p>
+                            {accText && (
+                              <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-950 text-[11px] font-medium">
+                                <span className="font-bold text-[#2563eb]">🎒 Accesorios:</span>
+                                <span className="truncate max-w-[220px] sm:max-w-xs">{accText}</span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                       {rep.unlock_pattern && (
                         <div className="bg-amber-50/80 p-1.5 rounded-xl border border-amber-200/80 w-fit mt-1">
                           <MiniPatternView patternString={rep.unlock_pattern} size={50} />
@@ -1297,6 +1341,60 @@ export default function ReparacionesPage() {
                   <DeviceSecuritySelector
                     value={formData.unlock_pattern}
                     onChange={val => setFormData({ ...formData, unlock_pattern: val })}
+                  />
+                </div>
+
+                {/* Accesorios que deja el cliente (Funda, cargador, o lo que sea) */}
+                <div className="p-3 bg-blue-50/60 rounded-2xl border border-blue-200/80 space-y-2 mt-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-black text-blue-950 flex items-center gap-1.5">
+                      <span>🎒 Accesorios Recibidos:</span>
+                    </label>
+                    <span className="text-[10px] text-blue-700 font-bold">
+                      Funda, cargador o lo que deje
+                    </span>
+                  </div>
+
+                  {/* Chips rápidos de selección */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: '📱 Funda / Case', val: 'Funda' },
+                      { label: '🔌 Cargador', val: 'Cargador' },
+                      { label: '🔋 Cable USB', val: 'Cable USB' },
+                      { label: '📶 Chip SIM', val: 'Chip SIM' },
+                      { label: '💾 MicroSD', val: 'Memoria MicroSD' },
+                      { label: '📦 Caja Original', val: 'Caja' },
+                      { label: '🖊️ S-Pen', val: 'S-Pen' },
+                      { label: '🚫 Sin Accesorios', val: 'Sin accesorios' },
+                    ].map(chip => {
+                      const isSelected =
+                        chip.val === 'Sin accesorios'
+                          ? formData.accessories.toLowerCase().includes('sin accesorios')
+                          : formData.accessories.toLowerCase().includes(chip.val.toLowerCase());
+
+                      return (
+                        <button
+                          key={chip.val}
+                          type="button"
+                          onClick={() => toggleAccessoryChip(chip.val)}
+                          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                            isSelected
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          {chip.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Entrada libre para especificar cualquier detalle o accesorio */}
+                  <input
+                    value={formData.accessories}
+                    onChange={e => setFormData({ ...formData, accessories: e.target.value })}
+                    placeholder="Ej. Funda uso rudo, cargador original 25W, chip Telcel... (o lo que sea)"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                   />
                 </div>
               </div>
