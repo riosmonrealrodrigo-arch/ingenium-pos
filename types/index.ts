@@ -145,6 +145,14 @@ export type RepairStatus =
   | 'entregado'
   | 'cancelado';
 
+export interface RepairEvidence {
+  id: string;
+  image_url: string;
+  stage?: RepairStatus | string;
+  comment?: string;
+  created_at: string;
+}
+
 export interface RepairOrder {
   id: string;
   folio: string;
@@ -159,6 +167,7 @@ export interface RepairOrder {
   imei_serial?: string;
   unlock_pattern?: string;
   accessories?: string;
+  evidence?: RepairEvidence[];
   issue_reported: string;
   technician_diagnosis?: string;
   estimated_cost: number;

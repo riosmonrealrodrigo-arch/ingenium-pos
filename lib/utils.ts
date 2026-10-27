@@ -1,3 +1,5 @@
+import { RepairEvidence } from '@/types';
+
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
 }
@@ -64,4 +66,86 @@ export const formatIssueWithAccessories = (cleanIssue: string, accessories?: str
   const trimmedAcc = accessories ? accessories.trim() : '';
   if (!trimmedAcc) return trimmedIssue;
   return `${trimmedIssue}\n[Accesorios: ${trimmedAcc}]`;
+};
+
+// Extrae el diagnóstico limpio y la bitácora de evidencias fotográficas guardadas
+export const extractDiagnosisAndEvidence = (
+  diagText?: string
+): { cleanDiagnosis: string; evidence: RepairEvidence[] } => {
+  if (!diagText) return { cleanDiagnosis: '', evidence: [] };
+
+  const match = diagText.match(/\[Evidencias:\s*([\s\S]*?)\]\s*$/i);
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      const clean = diagText.replace(/\[Evidencias:\s*[\s\S]*?\]\s*$/i, '').trim();
+      return {
+        cleanDiagnosis: clean,
+        evidence: Array.isArray(parsed) ? parsed : [],
+      };
+    } catch {
+      // Si falla el parseo JSON, continuar sin romper
+    }
+  }
+
+  return { cleanDiagnosis: diagText, evidence: [] };
+};
+
+// Formatea el diagnóstico técnico adjuntando la lista de evidencias en JSON estructurado
+export const formatDiagnosisWithEvidence = (
+  cleanDiagnosis: string,
+  evidence: RepairEvidence[]
+): string => {
+  const trimmedDiag = (cleanDiagnosis || '').trim();
+  if (!evidence || evidence.length === 0) return trimmedDiag;
+  const json = JSON.stringify(evidence);
+  return trimmedDiag ? `${trimmedDiag}\n[Evidencias: ${json}]` : `[Evidencias: ${json}]`;
+};
+
+// Comprime una imagen tomada por cámara o subida de archivo para optimizar peso (HTML5 Canvas)
+export const compressImage = (
+  file: File,
+  maxWidth = 1024,
+  maxHeight = 1024,
+  quality = 0.72
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      return reject(new Error('Window no disponible'));
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = ev => {
+      const img = new Image();
+      img.src = ev.target?.result as string;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return resolve(img.src);
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        // Usar image/jpeg para máxima compatibilidad
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      img.onerror = () => reject(new Error('Error al cargar la imagen'));
+    };
+    reader.onerror = () => reject(new Error('Error al leer el archivo'));
+  });
 };

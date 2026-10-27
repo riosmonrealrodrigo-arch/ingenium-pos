@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Sale, RepairOrder } from '@/types';
-import { formatCurrency, formatDateTime, isUUID, extractAccessories } from '@/lib/utils';
+import { formatCurrency, formatDateTime, isUUID, extractAccessories, extractDiagnosisAndEvidence } from '@/lib/utils';
 import {
   Download,
   Printer,
@@ -18,7 +18,8 @@ import {
   User,
   Phone,
   Clock,
-  Sparkles
+  Sparkles,
+  Camera
 } from 'lucide-react';
 import { MiniPatternView } from '@/components/reparaciones/DeviceSecuritySelector';
 
@@ -412,6 +413,47 @@ export default function ComprobantePage() {
                   : `El plazo de garantía de ${repair.warranty_days || 30} días comenzará a contar estrictamente a partir de la fecha en que recibas tu equipo reparado.`}
               </p>
             </div>
+
+            {/* Evidencias Fotográficas de la Reparación */}
+            {(() => {
+              const { evidence: diagEv } = extractDiagnosisAndEvidence(repair.technician_diagnosis);
+              const evList = (repair.evidence && repair.evidence.length > 0) ? repair.evidence : diagEv;
+              if (!evList || evList.length === 0) return null;
+
+              return (
+                <div className="space-y-2 pt-2 border-t border-gray-100">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
+                    <Camera size={14} className="text-amber-600" />
+                    <span>Evidencias Fotográficas del Taller ({evList.length})</span>
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {evList.map((photo, pIdx) => (
+                      <div key={photo.id || pIdx} className="bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden text-[10px] space-y-1">
+                        <img
+                          src={photo.image_url}
+                          alt={photo.comment || 'Evidencia'}
+                          className="w-full aspect-video object-cover"
+                        />
+                        <div className="p-2 space-y-0.5">
+                          {photo.comment ? (
+                            <p className="font-semibold text-gray-800 leading-tight">
+                              {photo.comment}
+                            </p>
+                          ) : (
+                            <p className="text-gray-400 italic">
+                              Foto de proceso técnico
+                            </p>
+                          )}
+                          <p className="text-[9px] text-gray-400">
+                            {formatDateTime(photo.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 

@@ -8,15 +8,24 @@ import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
 import PrintTicketModal from '@/components/pos/PrintTicketModal';
 import DeviceSecuritySelector, { MiniPatternView } from '@/components/reparaciones/DeviceSecuritySelector';
+import RepairEvidenceModal from '@/components/reparaciones/RepairEvidenceModal';
 import {
   Wrench, Plus, Search, Filter, Phone, MessageCircle, Printer,
   CheckCircle2, Clock, AlertCircle, PackageCheck, Smartphone,
   User, ShieldCheck, DollarSign, Calendar, Edit3, X, ChevronRight,
-  ExternalLink, RotateCcw, AlertTriangle, Check, RefreshCw, Trash2
+  ExternalLink, RotateCcw, AlertTriangle, Check, RefreshCw, Trash2,
+  Camera
 } from 'lucide-react';
-import { RepairOrder, RepairStatus } from '@/types';
+import { RepairOrder, RepairStatus, RepairEvidence } from '@/types';
 import { DEMO_REPAIRS } from '@/lib/mockData';
-import { formatCurrency, formatDateTime, extractAccessories, formatIssueWithAccessories } from '@/lib/utils';
+import {
+  formatCurrency,
+  formatDateTime,
+  extractAccessories,
+  formatIssueWithAccessories,
+  extractDiagnosisAndEvidence,
+  formatDiagnosisWithEvidence
+} from '@/lib/utils';
 
 const STATUS_CONFIG: Record<RepairStatus, { label: string; bg: string; text: string; icon: any }> = {
   recibido: { label: 'Recibido', bg: 'bg-blue-50 text-blue-700 border-blue-200', text: 'text-blue-700', icon: Clock },
@@ -68,6 +77,9 @@ export default function ReparacionesPage() {
   // Delete Confirmation Modal
   const [deleteModalRepair, setDeleteModalRepair] = useState<RepairOrder | null>(null);
   const [processingDelete, setProcessingDelete] = useState(false);
+
+  // Evidence Photos Modal
+  const [evidenceModalRepair, setEvidenceModalRepair] = useState<RepairOrder | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -129,9 +141,18 @@ export default function ReparacionesPage() {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        setRepairs(data);
+        const enriched = data.map(item => {
+          const { evidence } = extractDiagnosisAndEvidence(item.technician_diagnosis);
+          const { accessories } = extractAccessories(item.issue_reported);
+          return {
+            ...item,
+            evidence: item.evidence || evidence,
+            accessories: item.accessories || accessories,
+          };
+        });
+        setRepairs(enriched);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('ingenium_repairs', JSON.stringify(data));
+          localStorage.setItem('ingenium_repairs', JSON.stringify(enriched));
         }
         return;
       }
@@ -242,6 +263,36 @@ export default function ReparacionesPage() {
     };
   };
 
+  const handleSaveEvidence = async (repairId: string, updatedEvidence: RepairEvidence[]) => {
+    const targetRepair = repairs.find(r => r.id === repairId);
+    if (!targetRepair) return;
+
+    const { cleanDiagnosis } = extractDiagnosisAndEvidence(targetRepair.technician_diagnosis);
+    const fullDiagnosis = formatDiagnosisWithEvidence(cleanDiagnosis, updatedEvidence);
+
+    const updatedRepair: RepairOrder = {
+      ...targetRepair,
+      evidence: updatedEvidence,
+      technician_diagnosis: fullDiagnosis,
+    };
+
+    const updatedList = repairs.map(r => (r.id === repairId ? updatedRepair : r));
+    saveToStorage(updatedList);
+    setRepairs(updatedList);
+    if (evidenceModalRepair && evidenceModalRepair.id === repairId) {
+      setEvidenceModalRepair(updatedRepair);
+    }
+
+    try {
+      await supabase
+        .from('repair_orders')
+        .update({ technician_diagnosis: fullDiagnosis })
+        .eq('id', repairId);
+    } catch (err) {
+      console.warn('Error al actualizar evidencias en Supabase:', err);
+    }
+  };
+
   const handleOpenCreateModal = () => {
     setEditingRepair(null);
     setFormData({
@@ -268,6 +319,7 @@ export default function ReparacionesPage() {
   const handleOpenEditModal = (rep: RepairOrder) => {
     setEditingRepair(rep);
     const { cleanIssue, accessories: extAcc } = extractAccessories(rep.issue_reported);
+    const { cleanDiagnosis } = extractDiagnosisAndEvidence(rep.technician_diagnosis);
     setFormData({
       client_name: rep.client_name,
       client_phone: rep.client_phone,
@@ -279,7 +331,7 @@ export default function ReparacionesPage() {
       unlock_pattern: rep.unlock_pattern || '',
       accessories: rep.accessories || extAcc || '',
       issue_reported: cleanIssue,
-      technician_diagnosis: rep.technician_diagnosis || '',
+      technician_diagnosis: cleanDiagnosis,
       estimated_cost: rep.estimated_cost.toString(),
       advance_payment: rep.advance_payment.toString(),
       assigned_technician: rep.assigned_technician || '',
@@ -302,6 +354,12 @@ export default function ReparacionesPage() {
     const bizId = business?.id && business.id !== 'demo-biz-1' ? business.id : OFFICIAL_BUSINESS_ID;
 
     if (editingRepair) {
+      // Preservar la lista de evidencias fotográficas existentes
+      const existingEv = editingRepair.evidence && editingRepair.evidence.length > 0
+        ? editingRepair.evidence
+        : extractDiagnosisAndEvidence(editingRepair.technician_diagnosis).evidence;
+      const fullDiagnosis = formatDiagnosisWithEvidence(formData.technician_diagnosis, existingEv);
+
       // La garantía empieza a contar única y exclusivamente desde que se entrega el equipo:
       const isDelivered = formData.status === 'entregado';
       const delivAt = isDelivered ? (editingRepair.delivered_at || new Date().toISOString()) : null;
@@ -312,7 +370,9 @@ export default function ReparacionesPage() {
         ...editingRepair,
         ...formData,
         accessories: formData.accessories,
+        evidence: existingEv,
         issue_reported: fullIssue,
+        technician_diagnosis: fullDiagnosis,
         warranty_days: wDays,
         warranty_starts_at: wStarts,
         warranty_expires_at: wExpires,
@@ -834,6 +894,41 @@ export default function ReparacionesPage() {
                           <MiniPatternView patternString={rep.unlock_pattern} size={50} />
                         </div>
                       )}
+
+                      {/* Miniatura de fotos de evidencia si existen */}
+                      {(() => {
+                        const { evidence: diagEv } = extractDiagnosisAndEvidence(rep.technician_diagnosis);
+                        const evList = (rep.evidence && rep.evidence.length > 0) ? rep.evidence : diagEv;
+                        if (!evList || evList.length === 0) return null;
+
+                        return (
+                          <div className="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-gray-100">
+                            <span className="text-[10px] text-gray-500 font-bold flex items-center gap-1 shrink-0">
+                              <Camera size={11} className="text-amber-600" /> {evList.length} foto(s):
+                            </span>
+                            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                              {evList.slice(0, 3).map((p, pIdx) => (
+                                <img
+                                  key={pIdx}
+                                  src={p.image_url}
+                                  alt="Evidencia"
+                                  onClick={() => setEvidenceModalRepair(rep)}
+                                  className="w-7 h-7 rounded-lg object-cover border border-amber-300 hover:scale-110 transition cursor-pointer shadow-2xs"
+                                  title="Ver fotografía de avance"
+                                />
+                              ))}
+                              {evList.length > 3 && (
+                                <span
+                                  onClick={() => setEvidenceModalRepair(rep)}
+                                  className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded-md cursor-pointer hover:bg-amber-200"
+                                >
+                                  +{evList.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Column 3: Costs and Balance */}
@@ -943,6 +1038,28 @@ export default function ReparacionesPage() {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      {/* Fotos / Evidencias de la Reparación */}
+                      {(() => {
+                        const { evidence: diagEvidence } = extractDiagnosisAndEvidence(rep.technician_diagnosis);
+                        const evCount = (rep.evidence && rep.evidence.length > 0) ? rep.evidence.length : diagEvidence.length;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setEvidenceModalRepair(rep)}
+                            className="px-2.5 sm:px-3 py-1.5 bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                            title="Tomar o subir fotos del avance técnico para el cliente"
+                          >
+                            <Camera size={14} className="text-amber-700" />
+                            <span>Fotos</span>
+                            {evCount > 0 && (
+                              <span className="px-1.5 py-0.2 bg-amber-600 text-white rounded-full text-[10px] font-black">
+                                {evCount}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })()}
+
                       {/* WhatsApp Notify */}
                       <button
                         onClick={() => handleSendWhatsAppNotification(rep)}
@@ -1529,6 +1646,14 @@ export default function ReparacionesPage() {
           </div>
         </div>
       )}
+
+      {/* REPAIR EVIDENCE PHOTOS MODAL */}
+      <RepairEvidenceModal
+        isOpen={Boolean(evidenceModalRepair)}
+        onClose={() => setEvidenceModalRepair(null)}
+        repair={evidenceModalRepair}
+        onSaveEvidence={handleSaveEvidence}
+      />
 
       {/* TICKET PRINT MODAL */}
       <PrintTicketModal

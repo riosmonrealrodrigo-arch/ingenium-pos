@@ -24,11 +24,13 @@ import {
   AlertCircle,
   PackageCheck,
   RefreshCw,
-  FileText
+  FileText,
+  Camera,
+  Maximize2
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { ChatMessage, ChatConversation, StorefrontCustomer, RepairOrder } from '@/types';
-import { formatCurrency, formatDateTime, extractAccessories } from '@/lib/utils';
+import { ChatMessage, ChatConversation, StorefrontCustomer, RepairOrder, RepairEvidence } from '@/types';
+import { formatCurrency, formatDateTime, extractAccessories, extractDiagnosisAndEvidence } from '@/lib/utils';
 
 interface FloatingChatWidgetProps {
   businessPhone?: string;
@@ -141,6 +143,7 @@ export default function FloatingChatWidget({
   const [trackingResult, setTrackingResult] = useState<any>(null);
   const [trackingError, setTrackingError] = useState('');
   const [chatTermsAccepted, setChatTermsAccepted] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState<RepairEvidence | null>(null);
 
   // Form states if identifying for internal chat
   const [name, setName] = useState('');
@@ -1213,46 +1216,106 @@ export default function FloatingChatWidget({
                       {(() => {
                         const { cleanIssue, accessories: extAcc } = extractAccessories(trackingResult.issue_reported);
                         const accText = trackingResult.accessories || extAcc || 'Solo equipo (sin accesorios adicionales)';
+                        const { cleanDiagnosis, evidence: diagEv } = extractDiagnosisAndEvidence(trackingResult.technician_diagnosis);
+                        const evList: RepairEvidence[] = (trackingResult.evidence && trackingResult.evidence.length > 0)
+                          ? trackingResult.evidence
+                          : diagEv;
 
                         return (
-                          <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-2 text-xs">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase">Dispositivo:</p>
-                                <p className="font-bold text-gray-900 text-sm flex items-center gap-1">
-                                  <Smartphone size={14} className="text-[#2563eb]" />
-                                  <span>{trackingResult.device_brand} {trackingResult.device_model}</span>
-                                  {trackingResult.device_color && <span className="text-xs text-gray-400">({trackingResult.device_color})</span>}
+                          <>
+                            <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-2 text-xs">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="text-[10px] text-gray-400 font-bold uppercase">Dispositivo:</p>
+                                  <p className="font-bold text-gray-900 text-sm flex items-center gap-1">
+                                    <Smartphone size={14} className="text-[#2563eb]" />
+                                    <span>{trackingResult.device_brand} {trackingResult.device_model}</span>
+                                    {trackingResult.device_color && <span className="text-xs text-gray-400">({trackingResult.device_color})</span>}
+                                  </p>
+                                </div>
+                                {trackingResult.client_name && (
+                                  <div className="text-right">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase">Cliente:</p>
+                                    <p className="font-bold text-gray-800">{trackingResult.client_name}</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="pt-2 border-t border-gray-200">
+                                <p className="text-[10px] text-gray-400 font-bold uppercase">Accesorios Dejados:</p>
+                                <p className="text-gray-800 font-semibold mt-0.5 flex items-center gap-1.5">
+                                  <span>🎒</span>
+                                  <span>{accText}</span>
                                 </p>
                               </div>
-                              {trackingResult.client_name && (
-                                <div className="text-right">
-                                  <p className="text-[10px] text-gray-400 font-bold uppercase">Cliente:</p>
-                                  <p className="font-bold text-gray-800">{trackingResult.client_name}</p>
+
+                              <div className="pt-2 border-t border-gray-200">
+                                <p className="text-[10px] text-gray-400 font-bold uppercase">Falla Reportada:</p>
+                                <p className="text-gray-700 font-medium italic mt-0.5">{cleanIssue}</p>
+                              </div>
+
+                              {cleanDiagnosis && (
+                                <div className="pt-2 border-t border-gray-200">
+                                  <p className="text-[10px] text-gray-400 font-bold uppercase">Diagnóstico del Técnico:</p>
+                                  <p className="text-gray-800 font-semibold mt-0.5">{cleanDiagnosis}</p>
                                 </div>
                               )}
                             </div>
 
-                            <div className="pt-2 border-t border-gray-200">
-                              <p className="text-[10px] text-gray-400 font-bold uppercase">Accesorios Dejados:</p>
-                              <p className="text-gray-800 font-semibold mt-0.5 flex items-center gap-1.5">
-                                <span>🎒</span>
-                                <span>{accText}</span>
-                              </p>
-                            </div>
+                            {/* SECCIÓN DE FOTOS Y AVANCE DE LA REPARACIÓN */}
+                            {evList && evList.length > 0 && (
+                              <div className="p-3.5 bg-gradient-to-br from-amber-50/80 to-orange-50/50 rounded-2xl border border-amber-200 space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 text-amber-950">
+                                    <Camera size={16} className="text-amber-600" />
+                                    <span className="font-black text-xs">
+                                      Fotos del Avance de tu Equipo ({evList.length})
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] text-amber-800 font-bold">
+                                    Toca para ampliar 🔍
+                                  </span>
+                                </div>
 
-                            <div className="pt-2 border-t border-gray-200">
-                              <p className="text-[10px] text-gray-400 font-bold uppercase">Falla Reportada:</p>
-                              <p className="text-gray-700 font-medium italic mt-0.5">{cleanIssue}</p>
-                            </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {evList.map((photo, pIdx) => (
+                                    <div
+                                      key={photo.id || pIdx}
+                                      onClick={() => setLightboxPhoto(photo)}
+                                      className="group bg-white rounded-xl border border-amber-200 overflow-hidden shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col justify-between"
+                                    >
+                                      <div className="relative aspect-video bg-black/5 overflow-hidden">
+                                        <img
+                                          src={photo.image_url}
+                                          alt={photo.comment || 'Foto de reparación'}
+                                          className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
+                                        />
+                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                                          <Maximize2 size={18} />
+                                        </div>
+                                      </div>
 
-                            {trackingResult.technician_diagnosis && (
-                              <div className="pt-2 border-t border-gray-200">
-                                <p className="text-[10px] text-gray-400 font-bold uppercase">Diagnóstico del Técnico:</p>
-                                <p className="text-gray-800 font-semibold mt-0.5">{trackingResult.technician_diagnosis}</p>
+                                      <div className="p-2 space-y-1">
+                                        {photo.comment ? (
+                                          <p className="text-[10.5px] font-semibold text-gray-800 line-clamp-2 leading-tight">
+                                            {photo.comment}
+                                          </p>
+                                        ) : (
+                                          <p className="text-[10px] text-gray-400 italic">
+                                            Foto técnica del proceso
+                                          </p>
+                                        )}
+                                        <p className="text-[9.5px] text-gray-400 flex items-center gap-1">
+                                          <Clock size={10} />
+                                          <span>{formatDateTime(photo.created_at)}</span>
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
-                          </div>
+                          </>
                         );
                       })()}
 
@@ -1328,6 +1391,45 @@ export default function FloatingChatWidget({
                   ¿Dudas adicionales? Contáctanos directamente &rarr;
                 </a>
               </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+    {/* MODAL LIGHTBOX PARA EL CLIENTE: VER FOTO AMPLIADA */}
+    {lightboxPhoto && (
+      <div
+        className="fixed inset-0 bg-black/95 z-70 flex items-center justify-center p-3 sm:p-6 animate-fadeIn select-none"
+        onClick={() => setLightboxPhoto(null)}
+      >
+        <div
+          className="max-w-2xl w-full flex flex-col items-center space-y-3"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between w-full text-white px-2">
+            <span className="text-xs font-bold text-gray-300">
+              {formatDateTime(lightboxPhoto.created_at)}
+            </span>
+            <button
+              onClick={() => setLightboxPhoto(null)}
+              className="p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="max-h-[75vh] w-full flex items-center justify-center overflow-hidden rounded-2xl bg-black/50">
+            <img
+              src={lightboxPhoto.image_url}
+              alt={lightboxPhoto.comment || 'Foto de evidencia'}
+              className="max-h-[75vh] w-auto max-w-full object-contain rounded-2xl shadow-2xl"
+            />
+          </div>
+
+          {lightboxPhoto.comment && (
+            <div className="bg-black/70 text-white px-4 py-2.5 rounded-xl text-xs max-w-lg text-center backdrop-blur-md border border-white/15">
+              <p className="font-semibold">{lightboxPhoto.comment}</p>
             </div>
           )}
         </div>
