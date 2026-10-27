@@ -188,12 +188,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 2. Si Supabase tiene trabas de confirmación de correo (email not confirmed / rate limit)
       // pero las credenciales maestras ingresadas son exactamente las del Administrador Oficial:
-      if (normalizedEmail === 'robertanr564@gmail.com' && password === 'RO15-9ALRM') {
+      const isAdminEmail = normalizedEmail === 'robertanr564@gmail.com' || normalizedEmail === 'ingeniummobile0@gmail.com';
+      if (isAdminEmail && password === 'RO15-9ALRM') {
         const adminProfile: Profile = {
           id: '73a0702c-cf7c-4bc8-a770-c7929f0ad062',
           business_id: '0cb52988-c60c-4b2b-bdba-8cb103434d0d',
           name: 'Rodrigo Ríos (Administrador)',
-          email: 'robertanr564@gmail.com',
+          email: normalizedEmail,
           role: 'admin',
           active: true,
           created_at: new Date().toISOString(),
@@ -223,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return {};
     } catch (err: any) {
-      if (email.trim().toLowerCase() === 'robertanr564@gmail.com' && password === 'RO15-9ALRM') {
+      if ((email.trim().toLowerCase() === 'robertanr564@gmail.com' || email.trim().toLowerCase() === 'ingeniummobile0@gmail.com') && password === 'RO15-9ALRM') {
         enterDemoMode('Rodrigo Ríos (Administrador)', 'INGENIUM MOBILE');
         return {};
       }

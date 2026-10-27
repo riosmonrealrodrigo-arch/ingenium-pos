@@ -105,10 +105,10 @@ export default function Footer({ className = '' }: FooterProps) {
               <p className="flex items-center gap-2">
                 <Mail size={14} className="text-blue-400 shrink-0" />
                 <a
-                  href="mailto:robertanr564@gmail.com"
+                  href="mailto:ingeniummobile0@gmail.com"
                   className="text-gray-300 hover:text-blue-400 transition truncate"
                 >
-                  robertanr564@gmail.com
+                  ingeniummobile0@gmail.com
                 </a>
               </p>
             </div>

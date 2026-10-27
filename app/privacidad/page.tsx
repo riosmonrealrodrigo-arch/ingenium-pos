@@ -198,7 +198,7 @@ export default function PrivacidadPage() {
             <div className="p-3 bg-[#08121c] rounded-xl border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Mail size={16} className="text-blue-400" />
-                <span className="font-mono text-white font-bold">robertanr564@gmail.com</span>
+                <span className="font-mono text-white font-bold">ingeniummobile0@gmail.com</span>
               </div>
               <span className="text-[11px] text-gray-400">Asunto: &ldquo;Solicitud de Derechos ARCO - INGENIUM MOBILE&rdquo;</span>
             </div>

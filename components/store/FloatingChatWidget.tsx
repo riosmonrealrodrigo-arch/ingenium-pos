@@ -180,6 +180,47 @@ export default function FloatingChatWidget({
           localStorage.removeItem('ingenium_client_chat_conv');
           setConversation(null);
         }
+      } else if (saved) {
+        // Si no había conversación en caché pero sí hay cliente guardado, buscar en Supabase si ya tenía chat
+        try {
+          const parsed = JSON.parse(saved);
+          const cleanPhone = (parsed.phone || '').trim();
+          const cleanName = (parsed.name || '').trim();
+          if (cleanPhone || cleanName) {
+            (async () => {
+              try {
+                let found: ChatConversation | null = null;
+                if (cleanPhone) {
+                  const { data } = await supabase
+                    .from('chat_conversations')
+                    .select('*')
+                    .eq('client_phone', cleanPhone)
+                    .order('last_message_at', { ascending: false })
+                    .limit(1);
+                  if (data && data.length > 0 && isValidUUID(data[0].id)) {
+                    found = data[0];
+                  }
+                }
+                if (!found && cleanName) {
+                  const { data } = await supabase
+                    .from('chat_conversations')
+                    .select('*')
+                    .ilike('client_name', cleanName)
+                    .order('last_message_at', { ascending: false })
+                    .limit(1);
+                  if (data && data.length > 0 && isValidUUID(data[0].id)) {
+                    found = data[0];
+                  }
+                }
+                if (found) {
+                  setConversation(found);
+                  localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(found));
+                  loadMessages(found.id);
+                }
+              } catch {}
+            })();
+          }
+        } catch {}
       }
     }
   }, []);
@@ -299,11 +340,15 @@ export default function FloatingChatWidget({
     if (!name.trim() || !phone.trim()) return;
 
     setLoading(true);
+    const cleanName = name.trim();
+    const cleanPhone = phone.trim();
+    const digitsOnly = cleanPhone.replace(/\D/g, '');
+
     const cust: StorefrontCustomer = {
       id: customer?.id || 'cust-' + Date.now(),
-      name: name.trim(),
-      phone: phone.trim(),
-      email: `${phone.trim()}@cliente.com`,
+      name: cleanName,
+      phone: cleanPhone,
+      email: `${cleanPhone}@cliente.com`,
     };
 
     if (typeof window !== 'undefined') {
@@ -312,35 +357,101 @@ export default function FloatingChatWidget({
     setCustomer(cust);
 
     try {
-      const { data: conv, error: convErr } = await supabase
-        .from('chat_conversations')
-        .insert({
-          client_name: cust.name,
-          client_phone: cust.phone,
-          status: 'open',
-          unread_admin_count: 1,
-          unread_client_count: 0,
-        })
-        .select()
-        .single();
+      // 1. Buscar si ya existe una conversación previa con este número de teléfono o nombre
+      let existingConv: ChatConversation | null = null;
 
-      if (!convErr && conv && isValidUUID(conv.id)) {
-        setConversation(conv);
+      // Buscar por coincidencia directa de teléfono
+      const { data: phoneMatches } = await supabase
+        .from('chat_conversations')
+        .select('*')
+        .eq('client_phone', cleanPhone)
+        .order('last_message_at', { ascending: false })
+        .limit(1);
+
+      if (phoneMatches && phoneMatches.length > 0 && isValidUUID(phoneMatches[0].id)) {
+        existingConv = phoneMatches[0];
+      }
+
+      // Si no se halló por teléfono exacto y tenemos dígitos, buscar por los últimos 7-10 dígitos
+      if (!existingConv && digitsOnly.length >= 7) {
+        const lastDigits = digitsOnly.slice(-8);
+        const { data: digitMatches } = await supabase
+          .from('chat_conversations')
+          .select('*')
+          .ilike('client_phone', `%${lastDigits}%`)
+          .order('last_message_at', { ascending: false })
+          .limit(1);
+
+        if (digitMatches && digitMatches.length > 0 && isValidUUID(digitMatches[0].id)) {
+          existingConv = digitMatches[0];
+        }
+      }
+
+      // Si aún no se encontró, buscar por nombre exacto o muy similar
+      if (!existingConv && cleanName.length >= 3) {
+        const { data: nameMatches } = await supabase
+          .from('chat_conversations')
+          .select('*')
+          .ilike('client_name', cleanName)
+          .order('last_message_at', { ascending: false })
+          .limit(1);
+
+        if (nameMatches && nameMatches.length > 0 && isValidUUID(nameMatches[0].id)) {
+          existingConv = nameMatches[0];
+        }
+      }
+
+      // 2. Si ya existe una conversación previa: REUTILIZARLA (no crear chats duplicados)
+      if (existingConv) {
+        await supabase
+          .from('chat_conversations')
+          .update({
+            status: 'open',
+            client_name: cleanName,
+            client_phone: cleanPhone,
+          })
+          .eq('id', existingConv.id);
+
+        setConversation(existingConv);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(conv));
+          localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(existingConv));
         }
 
-        const welcomeText = `¡Hola ${cust.name.split(' ')[0]}! 👋 Soy el asistente virtual de INGENIUM MOBILE. Un técnico en el Punto de Venta te atenderá en unos momentos.`;
-        await supabase.from('chat_messages').insert({
-          conversation_id: conv.id,
-          sender_name: 'Robot INGENIUM',
-          sender_type: 'bot',
-          message: welcomeText,
-        });
+        await loadMessages(existingConv.id);
+      } else {
+        // 3. Si es un cliente completamente nuevo: crear una nueva conversación
+        const { data: conv, error: convErr } = await supabase
+          .from('chat_conversations')
+          .insert({
+            client_name: cleanName,
+            client_phone: cleanPhone,
+            status: 'open',
+            unread_admin_count: 1,
+            unread_client_count: 0,
+          })
+          .select()
+          .single();
 
-        loadMessages(conv.id);
+        if (!convErr && conv && isValidUUID(conv.id)) {
+          setConversation(conv);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ingenium_client_chat_conv', JSON.stringify(conv));
+          }
+
+          const welcomeText = `¡Hola ${cleanName.split(' ')[0]}! 👋 Soy el asistente virtual de INGENIUM MOBILE. Un técnico en el Punto de Venta te atenderá en unos momentos.`;
+          await supabase.from('chat_messages').insert({
+            conversation_id: conv.id,
+            sender_name: 'Robot INGENIUM',
+            sender_type: 'bot',
+            message: welcomeText,
+          });
+
+          loadMessages(conv.id);
+        }
       }
-    } catch {} finally {
+    } catch (err) {
+      console.error('Error al iniciar/vincular conversación:', err);
+    } finally {
       setLoading(false);
     }
   };

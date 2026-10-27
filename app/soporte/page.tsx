@@ -40,6 +40,7 @@ export default function SoportePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const selectedConvRef = useRef<ChatConversation | null>(null);
+  const allRawConvsRef = useRef<ChatConversation[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Sync ref with selectedConv state
@@ -84,7 +85,28 @@ export default function SoportePage() {
         return;
       }
 
-      const validList = (data || []).filter(c => isValidUUID(c.id));
+      const rawList = (data || []).filter(c => isValidUUID(c.id));
+      allRawConvsRef.current = rawList;
+
+      // Agrupar y desduplicar por cliente (coincidencia de teléfono o nombre)
+      // para que el administrador siempre vea UN solo chat por cliente sin confundirse
+      const seen = new Set<string>();
+      const validList: ChatConversation[] = [];
+
+      for (const conv of rawList) {
+        const digits = (conv.client_phone || '').replace(/\D/g, '');
+        const phoneKey = digits.length >= 7 ? digits.slice(-8) : '';
+        const nameKey = (conv.client_name || '').trim().toLowerCase();
+
+        // Clave única basada en teléfono o en nombre
+        const key = phoneKey ? `phone:${phoneKey}` : `name:${nameKey}`;
+
+        if (!seen.has(key)) {
+          seen.add(key);
+          validList.push(conv);
+        }
+      }
+
       setConversations(validList);
 
       const current = selectedConvRef.current;
@@ -176,10 +198,36 @@ export default function SoportePage() {
     }
 
     try {
+      // Identificar todos los IDs de conversación que correspondan al mismo cliente (por teléfono o nombre)
+      const targetConv = allRawConvsRef.current.find(c => c.id === convId);
+      let targetIds = [convId];
+
+      if (targetConv) {
+        const targetDigits = (targetConv.client_phone || '').replace(/\D/g, '');
+        const targetPhoneKey = targetDigits.length >= 7 ? targetDigits.slice(-8) : '';
+        const targetNameKey = (targetConv.client_name || '').trim().toLowerCase();
+
+        const siblingIds = allRawConvsRef.current
+          .filter(c => {
+            const digits = (c.client_phone || '').replace(/\D/g, '');
+            const phoneKey = digits.length >= 7 ? digits.slice(-8) : '';
+            const nameKey = (c.client_name || '').trim().toLowerCase();
+            return (
+              (targetPhoneKey && phoneKey && targetPhoneKey === phoneKey) ||
+              (targetNameKey && nameKey && targetNameKey === nameKey)
+            );
+          })
+          .map(c => c.id);
+
+        if (siblingIds.length > 0) {
+          targetIds = Array.from(new Set([...targetIds, ...siblingIds]));
+        }
+      }
+
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
-        .eq('conversation_id', convId)
+        .in('conversation_id', targetIds)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -270,14 +318,30 @@ export default function SoportePage() {
 
   const handleSelectConversation = async (conv: ChatConversation) => {
     setSelectedConv(conv);
-    if ((conv.unread_admin_count || 0) > 0) {
-      try {
-        await supabase
-          .from('chat_conversations')
-          .update({ unread_admin_count: 0 })
-          .eq('id', conv.id);
-      } catch {}
-    }
+    try {
+      // Marcar como leída esta y cualquier otra conversación hermana del mismo cliente
+      const targetDigits = (conv.client_phone || '').replace(/\D/g, '');
+      const targetPhoneKey = targetDigits.length >= 7 ? targetDigits.slice(-8) : '';
+      const targetNameKey = (conv.client_name || '').trim().toLowerCase();
+
+      const siblingIds = allRawConvsRef.current
+        .filter(c => {
+          const digits = (c.client_phone || '').replace(/\D/g, '');
+          const phoneKey = digits.length >= 7 ? digits.slice(-8) : '';
+          const nameKey = (c.client_name || '').trim().toLowerCase();
+          return (
+            (targetPhoneKey && phoneKey && targetPhoneKey === phoneKey) ||
+            (targetNameKey && nameKey && targetNameKey === nameKey)
+          );
+        })
+        .map(c => c.id);
+
+      const allIds = Array.from(new Set([conv.id, ...siblingIds]));
+      await supabase
+        .from('chat_conversations')
+        .update({ unread_admin_count: 0 })
+        .in('id', allIds);
+    } catch {}
   };
 
   const createTestConversation = async () => {

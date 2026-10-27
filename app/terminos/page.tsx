@@ -190,10 +190,10 @@ export default function TerminosPage() {
             <p className="text-xs text-gray-400">Atención personalizada directa en Sombrerete, Zacatecas</p>
           </div>
           <a
-            href="mailto:robertanr564@gmail.com"
+            href="mailto:ingeniummobile0@gmail.com"
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow shrink-0"
           >
-            <span>Escribir a robertanr564@gmail.com</span>
+            <span>Escribir a ingeniummobile0@gmail.com</span>
           </a>
         </div>
       </main>
