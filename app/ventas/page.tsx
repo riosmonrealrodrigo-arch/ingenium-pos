@@ -158,16 +158,30 @@ export default function VentasPage() {
               </div>
             </div>
 
-            {/* Quick reset accounting button */}
-            <button
-              type="button"
-              onClick={() => setResetModalOpen(true)}
-              className="self-start md:self-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition shadow-xs cursor-pointer"
-              title="Borrar ventas de prueba y reiniciar contabilidad a $0.00"
-            >
-              <RotateCcw size={14} className="text-red-600" />
-              <span>Reset Contabilidad ($0.00)</span>
-            </button>
+            {/* Actions & Realtime status */}
+            <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Nube en vivo</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => loadSales()}
+                className="p-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-600 transition shadow-2xs cursor-pointer"
+                title="Sincronizar ventas con Supabase"
+              >
+                <RefreshCw size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setResetModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition shadow-xs cursor-pointer"
+                title="Borrar ventas de prueba y reiniciar contabilidad a $0.00"
+              >
+                <RotateCcw size={14} className="text-red-600" />
+                <span>Reset Contabilidad ($0.00)</span>
+              </button>
+            </div>
           </div>
 
           {/* Financial Summary Cards */}

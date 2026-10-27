@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Sale, RepairOrder } from '@/types';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { formatCurrency, formatDateTime, isUUID } from '@/lib/utils';
 import {
   Download,
   Printer,
@@ -37,25 +37,32 @@ export default function ComprobantePage() {
     const fetchReceipt = async () => {
       setLoading(true);
       try {
-        // 1. Intentar buscar en ventas por ID exacto o coincidencia
-        const { data: saleData } = await supabase
-          .from('sales')
-          .select('*')
-          .or(`id.eq.${rawId},id.ilike.%${rawId}%`)
-          .limit(1);
+        const isIdUUID = isUUID(rawId);
 
-        if (saleData && saleData.length > 0) {
-          setSale(saleData[0]);
-          setLoading(false);
-          return;
+        // 1. Intentar buscar en ventas por ID UUID exacto
+        if (isIdUUID) {
+          const { data: saleData } = await supabase
+            .from('sales')
+            .select('*')
+            .eq('id', rawId)
+            .maybeSingle();
+
+          if (saleData) {
+            setSale(saleData);
+            setLoading(false);
+            return;
+          }
         }
 
         // 2. Si no es venta, buscar en órdenes de reparación por folio o id
-        const { data: repairData } = await supabase
-          .from('repair_orders')
-          .select('*')
-          .or(`folio.eq.${rawId},id.eq.${rawId},folio.ilike.%${rawId}%`)
-          .limit(1);
+        let repairQuery = supabase.from('repair_orders').select('*');
+        if (isIdUUID) {
+          repairQuery = repairQuery.or(`id.eq.${rawId},folio.eq.${rawId}`);
+        } else {
+          repairQuery = repairQuery.or(`folio.eq.${rawId},folio.ilike.%${rawId}%`);
+        }
+
+        const { data: repairData } = await repairQuery.limit(1);
 
         if (repairData && repairData.length > 0) {
           setRepair(repairData[0]);

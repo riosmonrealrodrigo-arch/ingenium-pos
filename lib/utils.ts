@@ -30,6 +30,9 @@ export const isSameDay = (iso: string, day: string): boolean => iso.startsWith(d
 
 export const generateTicket = (id: string): string => '#' + id.slice(-6).toUpperCase();
 
+export const isUUID = (str: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 export const weekAgoISO = (): string => {
   const d = new Date();
   d.setDate(d.getDate() - 7);

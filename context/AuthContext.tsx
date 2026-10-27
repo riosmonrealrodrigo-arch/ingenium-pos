@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(DEMO_PROFILE);
   const [business, setBusiness] = useState<Business | null>(DEMO_BUSINESS);
   const [loading, setLoading] = useState(false);
-  const [isDemo, setIsDemo] = useState(true);
+  const [isDemo, setIsDemo] = useState(false);
   const isSettingUp = useRef(false);
 
   const enterDemoMode = (customName?: string, customBusiness?: string) => {
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     setProfile(demoProf);
     setBusiness(demoBiz);
-    setIsDemo(true);
+    setIsDemo(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem('ingenium_demo_session', JSON.stringify({ profile: demoProf, business: demoBiz }));
     }
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Si no existe perfil en profiles (cliente de la tienda web), asignar rol cliente
         const clientProf: Profile = {
           id: userId,
-          business_id: 'demo-biz-1',
+          business_id: '0cb52988-c60c-4b2b-bdba-8cb103434d0d',
           name: 'Cliente Web',
           email: '',
           role: 'cliente',
@@ -298,7 +298,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // En lugar de dejar profile null (pantalla blanca), reinicia al perfil de demostración
     setProfile(DEMO_PROFILE);
     setBusiness(DEMO_BUSINESS);
-    setIsDemo(true);
+    setIsDemo(false);
   };
 
   return (

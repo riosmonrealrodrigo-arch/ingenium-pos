@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -12,7 +12,7 @@ import {
   Wrench, Plus, Search, Filter, Phone, MessageCircle, Printer,
   CheckCircle2, Clock, AlertCircle, PackageCheck, Smartphone,
   User, ShieldCheck, DollarSign, Calendar, Edit3, X, ChevronRight,
-  ExternalLink, RotateCcw, AlertTriangle, Check
+  ExternalLink, RotateCcw, AlertTriangle, Check, RefreshCw
 } from 'lucide-react';
 import { RepairOrder, RepairStatus } from '@/types';
 import { DEMO_REPAIRS } from '@/lib/mockData';
@@ -25,6 +25,19 @@ const STATUS_CONFIG: Record<RepairStatus, { label: string; bg: string; text: str
   listo_entrega: { label: 'Listo para Entrega', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', text: 'text-emerald-700', icon: CheckCircle2 },
   entregado: { label: 'Entregado', bg: 'bg-gray-100 text-gray-700 border-gray-300', text: 'text-gray-700', icon: PackageCheck },
   cancelado: { label: 'Cancelado', bg: 'bg-red-50 text-red-700 border-red-200', text: 'text-red-700', icon: X },
+};
+
+const OFFICIAL_BUSINESS_ID = '0cb52988-c60c-4b2b-bdba-8cb103434d0d';
+
+const generateUUID = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 };
 
 export default function ReparacionesPage() {
@@ -71,15 +84,35 @@ export default function ReparacionesPage() {
     status: 'recibido' as RepairStatus,
   });
 
-  useEffect(() => {
-    if (!loading && !profile) router.replace('/login');
-  }, [profile, loading, router]);
+  const saveToStorage = (updated: RepairOrder[]) => {
+    setRepairs(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ingenium_repairs', JSON.stringify(updated));
+    }
+  };
 
-  useEffect(() => {
-    loadRepairs();
-  }, [business]);
+  const loadRepairs = useCallback(async () => {
+    const bizId = business?.id && business.id !== 'demo-biz-1' ? business.id : OFFICIAL_BUSINESS_ID;
 
-  const loadRepairs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('repair_orders')
+        .select('*')
+        .eq('business_id', bizId)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setRepairs(data);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ingenium_repairs', JSON.stringify(data));
+        }
+        return;
+      }
+    } catch (e) {
+      console.warn('Error loading repairs from Supabase:', e);
+    }
+
+    // Fallback a almacenamiento local si no hay conexión
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('ingenium_repairs');
       if (stored) {
@@ -90,33 +123,36 @@ export default function ReparacionesPage() {
       }
     }
 
-    if (business && business.id !== 'demo-biz-1') {
-      try {
-        const { data, error } = await supabase
-          .from('repair_orders')
-          .select('*')
-          .eq('business_id', business.id)
-          .order('created_at', { ascending: false });
-
-        if (!error && data && data.length > 0) {
-          setRepairs(data);
-          saveToStorage(data);
-          return;
-        }
-      } catch (e) {
-        console.warn('Fallback to demo repairs:', e);
-      }
-    }
-
     setRepairs(DEMO_REPAIRS);
-  };
+  }, [business]);
 
-  const saveToStorage = (updated: RepairOrder[]) => {
-    setRepairs(updated);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ingenium_repairs', JSON.stringify(updated));
+  useEffect(() => {
+    if (!loading && !profile) router.replace('/login');
+  }, [profile, loading, router]);
+
+  // Suscripción Realtime para actualizar la mesa de trabajo de reparaciones en tiempo real
+  useEffect(() => {
+    loadRepairs();
+
+    try {
+      const channel = supabase
+        .channel('realtime_repairs_sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'repair_orders' },
+          () => {
+            loadRepairs();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (e) {
+      console.warn('Realtime repair subscription error:', e);
     }
-  };
+  }, [loadRepairs]);
 
   // Helper to calculate Warranty countdown and dates
   const getWarrantyInfo = (rep: RepairOrder) => {
@@ -198,6 +234,7 @@ export default function ReparacionesPage() {
     const wDays = parseInt(formData.warranty_days) || 30;
 
     let updatedList: RepairOrder[] = [];
+    const bizId = business?.id && business.id !== 'demo-biz-1' ? business.id : OFFICIAL_BUSINESS_ID;
 
     if (editingRepair) {
       // Calculate updated warranty if delivering now
@@ -223,38 +260,39 @@ export default function ReparacionesPage() {
       updatedList = repairs.map(r => (r.id === editingRepair.id ? updatedRepair : r));
       saveToStorage(updatedList);
 
-      if (business && business.id !== 'demo-biz-1') {
-        try {
-          await supabase.from('repair_orders').update({
-            client_name: updatedRepair.client_name,
-            client_phone: updatedRepair.client_phone,
-            client_email: updatedRepair.client_email,
-            device_brand: updatedRepair.device_brand,
-            device_model: updatedRepair.device_model,
-            device_color: updatedRepair.device_color,
-            imei_serial: updatedRepair.imei_serial,
-            unlock_pattern: updatedRepair.unlock_pattern,
-            issue_reported: updatedRepair.issue_reported,
-            technician_diagnosis: updatedRepair.technician_diagnosis,
-            estimated_cost: updatedRepair.estimated_cost,
-            advance_payment: updatedRepair.advance_payment,
-            status: updatedRepair.status,
-            assigned_technician: updatedRepair.assigned_technician,
-            completed_at: updatedRepair.completed_at,
-            delivered_at: updatedRepair.delivered_at,
-          }).eq('id', updatedRepair.id);
-        } catch {}
+      try {
+        await supabase.from('repair_orders').update({
+          client_name: updatedRepair.client_name,
+          client_phone: updatedRepair.client_phone,
+          client_email: updatedRepair.client_email,
+          device_brand: updatedRepair.device_brand,
+          device_model: updatedRepair.device_model,
+          device_color: updatedRepair.device_color,
+          imei_serial: updatedRepair.imei_serial,
+          unlock_pattern: updatedRepair.unlock_pattern,
+          issue_reported: updatedRepair.issue_reported,
+          technician_diagnosis: updatedRepair.technician_diagnosis,
+          estimated_cost: updatedRepair.estimated_cost,
+          advance_payment: updatedRepair.advance_payment,
+          status: updatedRepair.status,
+          assigned_technician: updatedRepair.assigned_technician,
+          completed_at: updatedRepair.completed_at,
+          delivered_at: updatedRepair.delivered_at,
+        }).eq('id', updatedRepair.id);
+      } catch (err) {
+        console.warn('Error al actualizar reparación en Supabase:', err);
       }
     } else {
-      // Create new
+      // Create new with authentic UUID
+      const newId = generateUUID();
       const nextFolioNumber = 1000 + repairs.length + 1;
       const newFolio = `ORD-${nextFolioNumber}`;
       const nowIso = new Date().toISOString();
 
       const newRepair: RepairOrder = {
-        id: `rep-${Date.now()}`,
+        id: newId,
         folio: newFolio,
-        business_id: business?.id || 'demo-biz-1',
+        business_id: bizId,
         client_name: formData.client_name,
         client_phone: formData.client_phone,
         client_email: formData.client_email,
@@ -276,35 +314,40 @@ export default function ReparacionesPage() {
         created_at: nowIso,
       };
 
+      try {
+        const { data: dbData, error } = await supabase.from('repair_orders').insert({
+          id: newId,
+          folio: newRepair.folio,
+          business_id: bizId,
+          client_name: newRepair.client_name,
+          client_phone: newRepair.client_phone,
+          client_email: newRepair.client_email,
+          device_brand: newRepair.device_brand,
+          device_model: newRepair.device_model,
+          device_color: newRepair.device_color,
+          imei_serial: newRepair.imei_serial,
+          unlock_pattern: newRepair.unlock_pattern,
+          issue_reported: newRepair.issue_reported,
+          technician_diagnosis: newRepair.technician_diagnosis,
+          estimated_cost: newRepair.estimated_cost,
+          advance_payment: newRepair.advance_payment,
+          status: newRepair.status,
+          assigned_technician: newRepair.assigned_technician,
+          received_at: newRepair.received_at,
+        }).select().single();
+
+        if (!error && dbData) {
+          newRepair.id = dbData.id;
+        }
+      } catch (err) {
+        console.warn('Error al guardar reparación en Supabase:', err);
+      }
+
       updatedList = [newRepair, ...repairs];
       saveToStorage(updatedList);
 
       setPrintRepair(newRepair);
       setIsPrintModalOpen(true);
-
-      if (business && business.id !== 'demo-biz-1') {
-        try {
-          await supabase.from('repair_orders').insert([{
-            folio: newRepair.folio,
-            business_id: newRepair.business_id,
-            client_name: newRepair.client_name,
-            client_phone: newRepair.client_phone,
-            client_email: newRepair.client_email,
-            device_brand: newRepair.device_brand,
-            device_model: newRepair.device_model,
-            device_color: newRepair.device_color,
-            imei_serial: newRepair.imei_serial,
-            unlock_pattern: newRepair.unlock_pattern,
-            issue_reported: newRepair.issue_reported,
-            technician_diagnosis: newRepair.technician_diagnosis,
-            estimated_cost: newRepair.estimated_cost,
-            advance_payment: newRepair.advance_payment,
-            status: newRepair.status,
-            assigned_technician: newRepair.assigned_technician,
-            received_at: newRepair.received_at,
-          }]);
-        } catch {}
-      }
     }
 
     setIsModalOpen(false);
@@ -318,6 +361,10 @@ export default function ReparacionesPage() {
     }
 
     const isNowDelivered = newStatus === 'entregado' && rep.status !== 'entregado';
+    const isNowReady = newStatus === 'listo_entrega' && rep.status !== 'listo_entrega';
+    const compAt = isNowReady ? new Date().toISOString() : rep.completed_at;
+    const delivAt = isNowDelivered ? new Date().toISOString() : rep.delivered_at;
+
     const wStarts = isNowDelivered
       ? new Date().toISOString()
       : rep.warranty_starts_at || (newStatus === 'entregado' ? new Date().toISOString() : null);
@@ -332,25 +379,25 @@ export default function ReparacionesPage() {
           status: newStatus,
           warranty_starts_at: wStarts,
           warranty_expires_at: wExpires,
-          completed_at: newStatus === 'listo_entrega' ? new Date().toISOString() : r.completed_at,
-          delivered_at: newStatus === 'entregado' ? new Date().toISOString() : r.delivered_at,
+          completed_at: compAt,
+          delivered_at: delivAt,
         };
       }
       return r;
     });
     saveToStorage(updated);
 
-    if (business && business.id !== 'demo-biz-1') {
-      try {
-        await supabase
-          .from('repair_orders')
-          .update({
-            status: newStatus,
-            completed_at: newStatus === 'listo_entrega' ? new Date().toISOString() : undefined,
-            delivered_at: newStatus === 'entregado' ? new Date().toISOString() : undefined,
-          })
-          .eq('id', rep.id);
-      } catch {}
+    try {
+      await supabase
+        .from('repair_orders')
+        .update({
+          status: newStatus,
+          completed_at: compAt,
+          delivered_at: delivAt,
+        })
+        .eq('id', rep.id);
+    } catch (err) {
+      console.warn('Error al actualizar estado en Supabase:', err);
     }
   };
 
@@ -379,7 +426,7 @@ export default function ReparacionesPage() {
     setWarrantyModalRepair(null);
   };
 
-  const handleConfirmCancelRepair = () => {
+  const handleConfirmCancelRepair = async () => {
     if (!cancelModalRepair) return;
     setProcessingCancel(true);
 
@@ -398,6 +445,19 @@ export default function ReparacionesPage() {
     });
 
     saveToStorage(updated);
+
+    try {
+      await supabase
+        .from('repair_orders')
+        .update({
+          status: 'cancelado',
+          technician_diagnosis: `[Cancelado: ${cancelReason}] ${cancelModalRepair.technician_diagnosis || ''}`.trim(),
+        })
+        .eq('id', cancelModalRepair.id);
+    } catch (err) {
+      console.warn('Error al cancelar reparación en Supabase:', err);
+    }
+
     setProcessingCancel(false);
     setCancelModalRepair(null);
   };
@@ -516,13 +576,27 @@ export default function ReparacionesPage() {
               />
             </div>
 
-            <button
-              onClick={handleOpenCreateModal}
-              className="px-5 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-95 transition whitespace-nowrap cursor-pointer"
-            >
-              <Plus size={16} />
-              <span>Nueva Orden de Taller</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Nube en vivo</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => loadRepairs()}
+                className="p-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-600 transition shadow-2xs cursor-pointer"
+                title="Sincronizar órdenes de reparación con Supabase"
+              >
+                <RefreshCw size={15} />
+              </button>
+              <button
+                onClick={handleOpenCreateModal}
+                className="px-4 sm:px-5 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-95 transition whitespace-nowrap cursor-pointer"
+              >
+                <Plus size={16} />
+                <span>Nueva Orden de Taller</span>
+              </button>
+            </div>
           </div>
 
           {/* Status Filter Pills */}

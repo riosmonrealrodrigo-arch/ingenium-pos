@@ -1,22 +1,22 @@
 import { Product, Sale, Client, Business, Profile, ChatConversation, ChatMessage, RepairOrder, TicketSettings } from '@/types';
 
 export const DEMO_BUSINESS: Business = {
-  id: 'demo-biz-1',
+  id: '0cb52988-c60c-4b2b-bdba-8cb103434d0d',
   name: 'INGENIUM MOBILE',
   currency: '$ MXN',
   tax_rate: 16,
-  address: 'Av. Constitución 450, Monterrey, N.L., México',
+  address: 'Sombrerete, Zacatecas, México',
   phone: '+52 81 3962 9319',
-  email: 'contacto@ingeniummovil.com',
-  owner_id: 'demo-user-1',
+  email: 'ingeniummobile0@gmail.com',
+  owner_id: '73a0702c-cf7c-4bc8-a770-c7929f0ad062',
   created_at: new Date().toISOString(),
 };
 
 export const DEMO_PROFILE: Profile = {
-  id: 'demo-user-1',
-  business_id: 'demo-biz-1',
-  name: 'Rodrigo Ríos',
-  email: 'admin@ingeniummovil.com',
+  id: '73a0702c-cf7c-4bc8-a770-c7929f0ad062',
+  business_id: '0cb52988-c60c-4b2b-bdba-8cb103434d0d',
+  name: 'Rodrigo Ríos (Administrador)',
+  email: 'ingeniummobile0@gmail.com',
   role: 'admin',
   active: true,
   created_at: new Date().toISOString(),
@@ -448,13 +448,13 @@ export const DEMO_REPAIRS: RepairOrder[] = [
 ];
 
 export const DEFAULT_TICKET_SETTINGS: TicketSettings = {
-  business_id: 'demo-biz-1',
+  business_id: '0cb52988-c60c-4b2b-bdba-8cb103434d0d',
   business_name: 'INGENIUM MOBILE',
   tax_id: 'RFC: XAXX010101000',
-  address: 'Av. Constitución 450, Monterrey, N.L., México',
+  address: 'Sombrerete, Zacatecas, México',
   phone: '+52 81 3962 9319',
-  email: 'contacto@ingeniummovil.com',
-  social_media: 'FB & IG: @ingeniummovil',
+  email: 'ingeniummobile0@gmail.com',
+  social_media: 'FB & IG: @ingeniummobile',
   warranty_note: 'Garantía de 30 días en repuestos instalados. No aplica en equipos mojados, manipulados o con sellos violados.',
   repair_terms: 'Todo equipo no retirado después de 60 días causará abandono legal. No nos responsabilizamos por información no respaldada.',
   default_format: 'thermal_80',
