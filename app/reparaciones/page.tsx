@@ -7,6 +7,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
 import PrintTicketModal from '@/components/pos/PrintTicketModal';
+import DeviceSecuritySelector, { MiniPatternView } from '@/components/reparaciones/DeviceSecuritySelector';
 import {
   Wrench, Plus, Search, Filter, Phone, MessageCircle, Printer,
   CheckCircle2, Clock, AlertCircle, PackageCheck, Smartphone,
@@ -622,9 +623,9 @@ export default function ReparacionesPage() {
                         <strong className="text-gray-700">Falla:</strong> {rep.issue_reported}
                       </p>
                       {rep.unlock_pattern && (
-                        <p className="text-[11px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded w-fit">
-                          🔒 {rep.unlock_pattern}
-                        </p>
+                        <div className="bg-amber-50/80 p-1.5 rounded-xl border border-amber-200/80 w-fit mt-1">
+                          <MiniPatternView patternString={rep.unlock_pattern} size={50} />
+                        </div>
                       )}
                     </div>
 
@@ -1045,26 +1046,22 @@ export default function ReparacionesPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">IMEI / Número de Serie</label>
-                    <input
-                      value={formData.imei_serial}
-                      onChange={e => setFormData({ ...formData, imei_serial: e.target.value })}
-                      placeholder="Opcional pero recomendado"
-                      className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1">IMEI / Número de Serie</label>
+                  <input
+                    value={formData.imei_serial}
+                    onChange={e => setFormData({ ...formData, imei_serial: e.target.value })}
+                    placeholder="Opcional pero recomendado"
+                    className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                  />
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Patrón de Desbloqueo / PIN</label>
-                    <input
-                      value={formData.unlock_pattern}
-                      onChange={e => setFormData({ ...formData, unlock_pattern: e.target.value })}
-                      placeholder="Ej. PIN: 1234 o Sin código"
-                      className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                    />
-                  </div>
+                {/* Selector Inteligente de Seguridad: PIN, Patrón 3x3, Contraseña o Sin Bloqueo */}
+                <div className="pt-1">
+                  <DeviceSecuritySelector
+                    value={formData.unlock_pattern}
+                    onChange={val => setFormData({ ...formData, unlock_pattern: val })}
+                  />
                 </div>
               </div>
 

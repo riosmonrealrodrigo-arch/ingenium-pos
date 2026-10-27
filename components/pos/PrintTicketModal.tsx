@@ -19,6 +19,7 @@ import { Sale, RepairOrder, TicketSettings } from '@/types';
 import { DEFAULT_TICKET_SETTINGS } from '@/lib/mockData';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { MiniPatternView } from '@/components/reparaciones/DeviceSecuritySelector';
 
 interface PrintTicketModalProps {
   isOpen: boolean;
@@ -582,10 +583,10 @@ export default function PrintTicketModal({
                     </p>
                   )}
                   {repair.unlock_pattern && (
-                    <p className="flex justify-between bg-amber-50 p-1 rounded border border-amber-200 font-semibold text-amber-900">
-                      <span>Seguridad/PIN:</span>
-                      <span>{repair.unlock_pattern}</span>
-                    </p>
+                    <div className="bg-amber-50 p-2 rounded border border-amber-200 text-amber-950 space-y-1">
+                      <p className="font-bold text-[10px] text-amber-900">SEGURIDAD / CLAVE DEL EQUIPO:</p>
+                      <MiniPatternView patternString={repair.unlock_pattern} size={50} />
+                    </div>
                   )}
                 </div>
 

@@ -20,6 +20,7 @@ import {
   Clock,
   Sparkles
 } from 'lucide-react';
+import { MiniPatternView } from '@/components/reparaciones/DeviceSecuritySelector';
 
 export default function ComprobantePage() {
   const params = useParams();
@@ -342,6 +343,12 @@ export default function ComprobantePage() {
                 <p className="text-gray-400 text-[10px] font-bold">Falla Reportada:</p>
                 <p className="font-medium text-gray-800 italic mt-0.5">{repair.issue_reported}</p>
               </div>
+              {repair.unlock_pattern && (
+                <div className="col-span-2 pt-2 border-t border-gray-200 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/80">
+                  <p className="text-amber-900 text-[10px] font-bold mb-1">SEGURIDAD / PATRÓN O PIN:</p>
+                  <MiniPatternView patternString={repair.unlock_pattern} size={50} />
+                </div>
+              )}
             </div>
 
             {/* Presupuesto y Saldos */}
