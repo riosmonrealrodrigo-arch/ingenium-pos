@@ -18,11 +18,17 @@ import {
   HelpCircle,
   ShieldCheck,
   Flame,
-  ArrowRight
+  ArrowRight,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  PackageCheck,
+  RefreshCw,
+  FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { ChatMessage, ChatConversation, StorefrontCustomer } from '@/types';
-import { DEMO_REPAIRS } from '@/lib/mockData';
+import { ChatMessage, ChatConversation, StorefrontCustomer, RepairOrder } from '@/types';
+import { formatCurrency, formatDateTime } from '@/lib/utils';
 
 interface FloatingChatWidgetProps {
   businessPhone?: string;
@@ -43,6 +49,71 @@ const COMMON_FAULTS = [
   { id: 'refaccion', label: 'Cotizar refacción o accesorio', icon: '🧩' },
   { id: 'otro', label: 'Otra falla / Diagnóstico general', icon: '🛠️' },
 ];
+
+const STATUS_TRACKING_CONFIG: Record<string, {
+  label: string;
+  step: number;
+  bg: string;
+  text: string;
+  badge: string;
+  icon: any;
+  message: string;
+}> = {
+  recibido: {
+    label: 'Recibido en Taller',
+    step: 1,
+    bg: 'bg-blue-50 border-blue-200',
+    text: 'text-blue-700',
+    badge: 'bg-blue-100 text-blue-800',
+    icon: Clock,
+    message: '📥 Tu equipo fue recibido en el taller. Se encuentra en cola para revisión y diagnóstico inicial.'
+  },
+  en_diagnostico: {
+    label: 'En Diagnóstico',
+    step: 2,
+    bg: 'bg-amber-50 border-amber-200',
+    text: 'text-amber-700',
+    badge: 'bg-amber-100 text-amber-800',
+    icon: Wrench,
+    message: '🔬 Un técnico especialista está examinando la falla reportada y evaluando componentes.'
+  },
+  esperando_repuesto: {
+    label: 'Esperando Refacción',
+    step: 3,
+    bg: 'bg-purple-50 border-purple-200',
+    text: 'text-purple-700',
+    badge: 'bg-purple-100 text-purple-800',
+    icon: Smartphone,
+    message: '📦 Tu refacción original ha sido pedida. En cuanto llegue se iniciará el montaje.'
+  },
+  listo_entrega: {
+    label: '¡Listo para Entrega!',
+    step: 4,
+    bg: 'bg-emerald-50 border-emerald-300',
+    text: 'text-emerald-700',
+    badge: 'bg-emerald-100 text-emerald-800 font-black animate-pulse',
+    icon: CheckCheck,
+    message: '🎉 ¡Tu equipo está 100% reparado y probado! Ya puedes pasar a recogerlo a tienda.'
+  },
+  entregado: {
+    label: 'Entregado al Cliente',
+    step: 5,
+    bg: 'bg-slate-100 border-slate-300',
+    text: 'text-slate-800',
+    badge: 'bg-emerald-600 text-white',
+    icon: ShieldCheck,
+    message: '✅ Equipo entregado conforme. Tu póliza de garantía oficial se encuentra activa.'
+  },
+  cancelado: {
+    label: 'Cancelado / Devuelto',
+    step: 0,
+    bg: 'bg-red-50 border-red-200',
+    text: 'text-red-700',
+    badge: 'bg-red-100 text-red-800',
+    icon: X,
+    message: '❌ Esta orden de servicio técnico ha sido cancelada o devuelta.'
+  },
+};
 
 export default function FloatingChatWidget({
   businessPhone = '+52 81 3962 9319',
@@ -302,37 +373,98 @@ export default function FloatingChatWidget({
     setTimeout(() => setWaSent(false), 5000);
   };
 
-  // Tracking functionality
-  const handleTrackRepair = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [trackingLoading, setTrackingLoading] = useState(false);
+
+  // Consulta en vivo a la tabla oficial repair_orders de Supabase
+  const fetchTracking = async (codeToSearch: string) => {
+    const raw = codeToSearch.trim().toUpperCase();
+    if (!raw) return;
+    setTrackingLoading(true);
     setTrackingError('');
-    setTrackingResult(null);
-    const code = trackingCode.trim().toUpperCase();
-    if (!code) return;
+
+    const cleanCode = raw;
+    const withPrefix = cleanCode.startsWith('ORD-') ? cleanCode : `ORD-${cleanCode}`;
 
     try {
+      // 1. Consultar directamente en Supabase repair_orders por folio exacto o prefijado
       const { data, error } = await supabase
-        .from('repairs')
+        .from('repair_orders')
         .select('*')
-        .ilike('order_number', `%${code}%`)
+        .or(`folio.eq.${cleanCode},folio.eq.${withPrefix},folio.ilike.%${cleanCode}%`)
+        .order('created_at', { ascending: false })
         .limit(1);
 
       if (!error && data && data.length > 0) {
         setTrackingResult(data[0]);
+        setTrackingLoading(false);
         return;
       }
 
-      const local = DEMO_REPAIRS.find(r => ((r.folio || (r as any).order_number || '') as string).toUpperCase().includes(code));
-      if (local) {
-        setTrackingResult(local);
-        return;
+      // 2. Si no hay internet, consultar la memoria local del navegador
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('ingenium_repairs');
+        if (stored) {
+          try {
+            const list = JSON.parse(stored);
+            const found = list.find((r: any) => {
+              const f = (r.folio || '').toUpperCase();
+              return f === cleanCode || f === withPrefix || f.includes(cleanCode);
+            });
+            if (found) {
+              setTrackingResult(found);
+              setTrackingLoading(false);
+              return;
+            }
+          } catch {}
+        }
       }
 
-      setTrackingError('No se encontró ninguna orden con ese folio. Verifica tu ticket.');
-    } catch {
-      setTrackingError('Error al consultar. Por favor intenta de nuevo.');
+      setTrackingResult(null);
+      setTrackingError(`No encontramos ninguna orden con la guía "${cleanCode}". Verifica el folio ORD en tu ticket o pregúntanos por WhatsApp.`);
+    } catch (err) {
+      console.warn('Error al rastrear orden:', err);
+      setTrackingError('Error al conectar con la base de datos. Por favor intenta de nuevo.');
+    } finally {
+      setTrackingLoading(false);
     }
   };
+
+  const handleTrackRepair = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await fetchTracking(trackingCode);
+  };
+
+  // Suscripción Realtime para actualizar la orden consultada en vivo si el técnico cambia estado en el POS
+  useEffect(() => {
+    if (!trackingResult?.id) return;
+
+    try {
+      const channel = supabase
+        .channel(`tracking_realtime_${trackingResult.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'repair_orders',
+            filter: `id=eq.${trackingResult.id}`,
+          },
+          (payload) => {
+            if (payload.eventType === 'DELETE') {
+              setTrackingResult(null);
+              setTrackingError('Esta orden de reparación fue cancelada o eliminada del taller.');
+            } else if (payload.new) {
+              setTrackingResult(payload.new as any);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch {}
+  }, [trackingResult?.id]);
 
   // Start internal chat conversation
   const startConversation = async (e: React.FormEvent) => {
@@ -954,72 +1086,231 @@ export default function FloatingChatWidget({
             </div>
           )}
 
-          {/* PESTAÑA 3: RASTREO DE ORDEN DE REPARACIÓN */}
+          {/* PESTAÑA 3: RASTREO DE ORDEN DE REPARACIÓN EN VIVO */}
           {activeTab === 'rastreo' && (
-            <div className="flex-1 p-5 overflow-y-auto bg-slate-50 flex flex-col justify-between">
+            <div className="flex-1 p-4 sm:p-5 overflow-y-auto bg-slate-50 flex flex-col justify-between space-y-4">
               <div className="space-y-4">
                 <div className="text-center">
                   <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-xs">
                     <Search size={22} />
                   </div>
-                  <h5 className="font-bold text-gray-800 text-sm">Consultar Estado de Reparación</h5>
+                  <h5 className="font-black text-gray-900 text-sm">Rastreo de Reparación en Vivo</h5>
                   <p className="text-[11px] text-gray-500 mt-0.5">
-                    Ingresa el número de folio ORD que aparece en tu ticket impreso.
+                    Ingresa tu número de guía único (ej. <strong>ORD-1001</strong> o <strong>1001</strong>) para ver el avance técnico de tu celular.
                   </p>
                 </div>
 
-                <form onSubmit={handleTrackRepair} className="space-y-2.5">
-                  <input
-                    type="text"
-                    placeholder="Ej. ORD-001 o tu nombre..."
-                    value={trackingCode}
-                    onChange={e => setTrackingCode(e.target.value)}
-                    required
-                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-mono font-bold uppercase outline-none focus:ring-2 focus:ring-amber-500"
-                  />
+                <form onSubmit={handleTrackRepair} className="space-y-2">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Ej. ORD-1001 o 1001..."
+                      value={trackingCode}
+                      onChange={e => setTrackingCode(e.target.value)}
+                      required
+                      className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-mono font-bold uppercase outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs"
+                    />
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  </div>
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition shadow cursor-pointer"
+                    disabled={trackingLoading}
+                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    Buscar Estado de mi Equipo
+                    {trackingLoading ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Consultando taller en vivo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Search size={14} />
+                        <span>Buscar Estado de mi Equipo</span>
+                      </>
+                    )}
                   </button>
                 </form>
 
                 {trackingError && (
-                  <p className="text-xs text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-100">
-                    ⚠️ {trackingError}
-                  </p>
-                )}
-
-                {trackingResult && (
-                  <div className="p-3.5 bg-white rounded-2xl border border-gray-200 shadow-sm space-y-2 text-xs">
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <span className="font-mono font-bold text-[#1e3a5f]">
-                        {trackingResult.folio || trackingResult.order_number || 'ORD-INFO'}
-                      </span>
-                      <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold uppercase">
-                        {trackingResult.status}
-                      </span>
+                  <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 flex items-start gap-2 animate-fadeIn">
+                    <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">No se encontró la orden</p>
+                      <p className="text-[11px] text-red-600 mt-0.5">{trackingError}</p>
                     </div>
-                    <p className="text-gray-700"><strong>Equipo:</strong> {trackingResult.device_model || 'Dispositivo'}</p>
-                    <p className="text-gray-700"><strong>Falla:</strong> {trackingResult.issue_reported || trackingResult.issue_description || 'En diagnóstico'}</p>
-                    {trackingResult.estimated_cost && (
-                      <p className="text-emerald-700 font-bold">
-                        Costo Estimado: ${trackingResult.estimated_cost} MXN
-                      </p>
-                    )}
                   </div>
                 )}
+
+                {trackingResult && (() => {
+                  const statusKey = (trackingResult.status || 'recibido').toLowerCase();
+                  const st = STATUS_TRACKING_CONFIG[statusKey] || STATUS_TRACKING_CONFIG.recibido;
+                  const StatusIcon = st.icon;
+                  const pendingBalance = Math.max(0, (trackingResult.estimated_cost || 0) - (trackingResult.advance_payment || 0));
+                  const isDelivered = statusKey === 'entregado';
+                  const isCancelled = statusKey === 'cancelado';
+
+                  const steps = [
+                    { key: 'recibido', label: '1. Recibido' },
+                    { key: 'en_diagnostico', label: '2. Diagnóstico' },
+                    { key: 'esperando_repuesto', label: '3. Taller / Refacción' },
+                    { key: 'listo_entrega', label: '4. Listo p/ Entrega' },
+                  ];
+
+                  const currentStepNum = st.step;
+
+                  return (
+                    <div className="p-4 bg-white rounded-3xl border border-gray-200 shadow-sm space-y-4 text-xs animate-slideUp">
+                      {/* Cabecera de la Guía y Estado */}
+                      <div className="flex items-center justify-between pb-3 border-b border-gray-100 gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-black text-sm text-[#1e3a5f] bg-blue-50 px-2.5 py-1 rounded-lg">
+                            {trackingResult.folio}
+                          </span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border flex items-center gap-1 ${st.badge}`}>
+                            <StatusIcon size={12} />
+                            {st.label}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => fetchTracking(trackingResult.folio || trackingCode)}
+                          className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                          title="Actualizar estado en vivo"
+                        >
+                          <RefreshCw size={13} className={trackingLoading ? 'animate-spin' : ''} />
+                        </button>
+                      </div>
+
+                      {/* Mensaje descriptivo amigable del estado actual */}
+                      <div className={`p-3 rounded-2xl border text-xs ${st.bg} ${st.text}`}>
+                        <p className="font-semibold leading-relaxed">{st.message}</p>
+                      </div>
+
+                      {/* Stepper visual de avance (si no está cancelado) */}
+                      {!isCancelled && (
+                        <div className="space-y-1.5 py-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Avance del Trabajo:</p>
+                          <div className="grid grid-cols-4 gap-1">
+                            {steps.map((s, idx) => {
+                              const stepIndex = idx + 1;
+                              const isPassed = currentStepNum > stepIndex;
+                              const isCurrent = currentStepNum === stepIndex;
+
+                              return (
+                                <div key={s.key} className="text-center">
+                                  <div className={`h-2 rounded-full mb-1 transition-all ${isPassed ? 'bg-emerald-500' : isCurrent ? 'bg-[#2563eb]' : 'bg-gray-200'}`} />
+                                  <span className={`text-[9.5px] block leading-tight ${isCurrent ? 'font-black text-[#2563eb]' : isPassed ? 'font-bold text-emerald-700' : 'text-gray-400'}`}>
+                                    {s.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Información del Dispositivo */}
+                      <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-2 text-xs">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase">Dispositivo:</p>
+                            <p className="font-bold text-gray-900 text-sm flex items-center gap-1">
+                              <Smartphone size={14} className="text-[#2563eb]" />
+                              <span>{trackingResult.device_brand} {trackingResult.device_model}</span>
+                              {trackingResult.device_color && <span className="text-xs text-gray-400">({trackingResult.device_color})</span>}
+                            </p>
+                          </div>
+                          {trackingResult.client_name && (
+                            <div className="text-right">
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">Cliente:</p>
+                              <p className="font-bold text-gray-800">{trackingResult.client_name}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="pt-2 border-t border-gray-200">
+                          <p className="text-[10px] text-gray-400 font-bold uppercase">Falla Reportada:</p>
+                          <p className="text-gray-700 font-medium italic mt-0.5">{trackingResult.issue_reported}</p>
+                        </div>
+
+                        {trackingResult.technician_diagnosis && (
+                          <div className="pt-2 border-t border-gray-200">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase">Diagnóstico del Técnico:</p>
+                            <p className="text-gray-800 font-semibold mt-0.5">{trackingResult.technician_diagnosis}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Presupuesto y Saldos */}
+                      <div className="p-3 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-1 text-xs">
+                        <div className="flex justify-between text-gray-600">
+                          <span>Presupuesto Estimado:</span>
+                          <span className="font-bold text-gray-900 font-mono">
+                            {formatCurrency(trackingResult.estimated_cost || 0, '$ MXN')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-emerald-700">
+                          <span>Anticipo Pagado:</span>
+                          <span className="font-bold font-mono">
+                            {formatCurrency(trackingResult.advance_payment || 0, '$ MXN')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between font-black text-xs pt-1 border-t border-blue-200">
+                          <span className="text-gray-700">Saldo Pendiente:</span>
+                          <span className={`font-mono text-sm ${pendingBalance > 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+                            {pendingBalance > 0 ? formatCurrency(pendingBalance, '$ MXN') : '¡Totalmente Liquidado! ✅'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Garantía */}
+                      <div className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/70 text-[11px] text-emerald-950 flex items-start gap-2">
+                        <ShieldCheck size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold">Garantía Escrita: {trackingResult.warranty_days || 30} días</p>
+                          <p className="text-[10px] text-emerald-800 mt-0.5">
+                            {isDelivered
+                              ? `Cobertura oficial activa desde la entrega de tu equipo.`
+                              : `La garantía de ${trackingResult.warranty_days || 30} días comenzará a contar estrictamente a partir de que retires tu equipo reparado.`}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Acciones: Ver Comprobante y WhatsApp */}
+                      <div className="space-y-1.5 pt-1">
+                        <Link
+                          href={`/comprobante/${trackingResult.id || trackingResult.folio}`}
+                          target="_blank"
+                          className="w-full py-2 bg-[#1e3a5f] hover:bg-[#2563eb] text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                          <FileText size={13} />
+                          <span>Ver / Descargar Ticket Oficial en PDF</span>
+                        </Link>
+                        <a
+                          href={`https://wa.me/528139629319?text=${encodeURIComponent(
+                            `Hola INGENIUM MOBILE, consulto por mi orden ${trackingResult.folio} (${trackingResult.device_brand} ${trackingResult.device_model}).`
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                          <Phone size={13} />
+                          <span>Consultar a un Técnico por WhatsApp</span>
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
-              <div className="pt-4 border-t text-center">
+              <div className="pt-3 border-t text-center">
                 <a
-                  href={`https://wa.me/528139629319?text=${encodeURIComponent('Hola INGENIUM MOBILE, quiero consultar el estado de mi orden ORD.')}`}
+                  href={`https://wa.me/528139629319?text=${encodeURIComponent('Hola INGENIUM MOBILE, tengo dudas sobre mi orden de taller.')}`}
                   target="_blank"
                   rel="noreferrer"
                   className="text-xs font-bold text-emerald-700 hover:underline flex items-center justify-center gap-1"
                 >
-                  ¿Dudas? Preguntar a un técnico por WhatsApp &rarr;
+                  ¿Dudas adicionales? Contáctanos directamente &rarr;
                 </a>
               </div>
             </div>

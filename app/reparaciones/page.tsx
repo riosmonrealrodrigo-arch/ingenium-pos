@@ -319,9 +319,41 @@ export default function ReparacionesPage() {
         console.warn('Error al actualizar reparación en Supabase:', err);
       }
     } else {
-      // Create new with authentic UUID
+      // Create new with authentic UUID and strictly unique folio
       const newId = generateUUID();
-      const nextFolioNumber = 1000 + repairs.length + 1;
+
+      // Consultar folios existentes para garantizar que cada guía sea 100% única y nunca se repita ni se mezcle
+      let maxNumber = 1000;
+      try {
+        const { data: dbFolios } = await supabase
+          .from('repair_orders')
+          .select('folio');
+
+        if (dbFolios && dbFolios.length > 0) {
+          for (const item of dbFolios) {
+            const match = (item.folio || '').match(/\d+/);
+            if (match) {
+              const n = parseInt(match[0], 10);
+              if (!isNaN(n) && n > maxNumber) {
+                maxNumber = n;
+              }
+            }
+          }
+        }
+      } catch {}
+
+      // Comprobar también el estado local
+      for (const item of repairs) {
+        const match = (item.folio || '').match(/\d+/);
+        if (match) {
+          const n = parseInt(match[0], 10);
+          if (!isNaN(n) && n > maxNumber) {
+            maxNumber = n;
+          }
+        }
+      }
+
+      const nextFolioNumber = maxNumber + 1;
       const newFolio = `ORD-${nextFolioNumber}`;
       const nowIso = new Date().toISOString();
 
