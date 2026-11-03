@@ -1,5 +1,6 @@
-// Generador de efectos de sonido interactivos mediante Web Audio API
-// Sin archivos externos, 0ms de latencia, 100% compatible con navegadores móviles y desktop
+// Generador de efectos de sonido estilo Arcade / Videojuego Retro mediante Web Audio API
+// 100% sintetizado matemáticamente por código (sin archivos externos, 0 problemas legales/copyright)
+// Sin muestras con derechos de autor: ondas cuadradas, triangulares y filtros lowpass originales.
 
 class SoundEffectsManager {
   private ctx: AudioContext | null = null;
@@ -46,45 +47,16 @@ class SoundEffectsManager {
     const nextState = !this.enabled;
     this.setEnabled(nextState);
     if (nextState) {
-      this.playPop();
+      this.playTap();
     }
     return nextState;
   }
 
-  // 1. Toque sutil y táctil estándar para botones (Modern UI Click)
+  // 1. Efecto Arcade "Select / Blip" (Estilo menú de videojuego clásico)
+  // Dos notas rápidas y nítidas de 8-bit (520 Hz -> 880 Hz)
   public playTap() {
     if (!this.enabled) return;
     const now = Date.now();
-    if (now - this.lastPlayTime < 25) return; // Debounce anti-clipping
-    this.lastPlayTime = now;
-
-    const ctx = this.getContext();
-    if (!ctx) return;
-
-    try {
-      const t = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(540, t);
-      osc.frequency.exponentialRampToValueAtTime(180, t + 0.045);
-
-      gain.gain.setValueAtTime(0.09, t);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(t);
-      osc.stop(t + 0.05);
-    } catch {}
-  }
-
-  // 2. Pop / Burbuja alegre (Apertura de modales, robot flotante, selector de temas, zoom)
-  public playPop() {
-    if (!this.enabled) return;
-    const now = Date.now();
     if (now - this.lastPlayTime < 25) return;
     this.lastPlayTime = now;
 
@@ -93,29 +65,46 @@ class SoundEffectsManager {
 
     try {
       const t = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(380, t);
-      osc.frequency.exponentialRampToValueAtTime(760, t + 0.055);
+      // Filtro para dar calidez retro sin estridencias
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2600, t);
 
-      gain.gain.setValueAtTime(0.12, t);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+      // Micro-nota 1: 520 Hz
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'square';
+      osc1.frequency.setValueAtTime(520, t);
+      gain1.gain.setValueAtTime(0.065, t);
+      gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+      osc1.connect(gain1);
+      gain1.connect(filter);
+      osc1.start(t);
+      osc1.stop(t + 0.03);
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      // Micro-nota 2: 880 Hz (salto característico de arcade)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'square';
+      osc2.frequency.setValueAtTime(880, t + 0.022);
+      gain2.gain.setValueAtTime(0.08, t + 0.022);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, t + 0.065);
+      osc2.connect(gain2);
+      gain2.connect(filter);
+      osc2.start(t + 0.022);
+      osc2.stop(t + 0.07);
 
-      osc.start(t);
-      osc.stop(t + 0.065);
+      filter.connect(ctx.destination);
     } catch {}
   }
 
-  // 3. Agregar al carrito / Incrementar cantidad (Feedback positivo y gratificante)
+  // 2. Efecto Arcade "Coin / Gema" (Al agregar al carrito o sumar piezas)
+  // El clásico sonido de moneda/recompensa de 8-bit (Si5 988 Hz -> Mi6 1319 Hz)
   public playAddToCart() {
     if (!this.enabled) return;
     const now = Date.now();
-    if (now - this.lastPlayTime < 25) return;
+    if (now - this.lastPlayTime < 30) return;
     this.lastPlayTime = now;
 
     const ctx = this.getContext();
@@ -124,37 +113,44 @@ class SoundEffectsManager {
     try {
       const t = ctx.currentTime;
 
-      // Nota 1: Mi5 (659.25 Hz)
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(3200, t);
+
+      // Nota 1 (B5 - 987.77 Hz)
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(659.25, t);
-      gain1.gain.setValueAtTime(0.12, t);
-      gain1.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
+      osc1.type = 'square';
+      osc1.frequency.setValueAtTime(987.77, t);
+      gain1.gain.setValueAtTime(0.08, t);
+      gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
       osc1.connect(gain1);
-      gain1.connect(ctx.destination);
+      gain1.connect(filter);
       osc1.start(t);
-      osc1.stop(t + 0.06);
+      osc1.stop(t + 0.05);
 
-      // Nota 2: Si5 (987.77 Hz)
+      // Nota 2 brillante con campaneo retro (E6 - 1318.51 Hz)
       const osc2 = ctx.createOscillator();
       const gain2 = ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(987.77, t + 0.045);
-      gain2.gain.setValueAtTime(0.13, t + 0.045);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+      osc2.type = 'square';
+      osc2.frequency.setValueAtTime(1318.51, t + 0.042);
+      gain2.gain.setValueAtTime(0.10, t + 0.042);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
       osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(t + 0.045);
-      osc2.stop(t + 0.14);
+      gain2.connect(filter);
+      osc2.start(t + 0.042);
+      osc2.stop(t + 0.23);
+
+      filter.connect(ctx.destination);
     } catch {}
   }
 
-  // 4. Éxito / Confirmación / Enviar pedido a WhatsApp (Arpegio armónico)
-  public playSuccess() {
+  // 3. Efecto "Power-Up / Salto Burbuja" (Modales, robot flotante, fotos)
+  // Rampa ascendente clásica de videojuego de plataformas (320 Hz -> 960 Hz)
+  public playPop() {
     if (!this.enabled) return;
     const now = Date.now();
-    if (now - this.lastPlayTime < 25) return;
+    if (now - this.lastPlayTime < 30) return;
     this.lastPlayTime = now;
 
     const ctx = this.getContext();
@@ -162,28 +158,80 @@ class SoundEffectsManager {
 
     try {
       const t = ctx.currentTime;
-      // Do5, Mi5, Sol5
-      const notes = [523.25, 659.25, 783.99];
-      notes.forEach((freq, idx) => {
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2800, t);
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(320, t);
+      osc.frequency.exponentialRampToValueAtTime(960, t + 0.075);
+
+      gain.gain.setValueAtTime(0.11, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+
+      osc.connect(gain);
+      gain.connect(filter);
+      filter.connect(ctx.destination);
+
+      osc.start(t);
+      osc.stop(t + 0.085);
+    } catch {}
+  }
+
+  // 4. Efecto "Stage Clear / Victoria" (Enviar pedido por WhatsApp / Checkout)
+  // Fanfarria triunfal de 4 notas de 16-bit: Do5 -> Mi5 -> Sol5 -> Do6
+  public playSuccess() {
+    if (!this.enabled) return;
+    const now = Date.now();
+    if (now - this.lastPlayTime < 30) return;
+    this.lastPlayTime = now;
+
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const t = ctx.currentTime;
+      const notes = [
+        { freq: 523.25, dur: 0.055, gain: 0.08 }, // Do5
+        { freq: 659.25, dur: 0.055, gain: 0.08 }, // Mi5
+        { freq: 783.99, dur: 0.065, gain: 0.09 }, // Sol5
+        { freq: 1046.5, dur: 0.24,  gain: 0.12 }, // Do6 (sostenido brillante)
+      ];
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(3000, t);
+      filter.connect(ctx.destination);
+
+      let currentOffset = 0;
+      notes.forEach((n) => {
+        const startTime = t + currentOffset;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        const start = t + idx * 0.055;
 
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, start);
-        gain.gain.setValueAtTime(0.12, start);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(n.freq, startTime);
+
+        gain.gain.setValueAtTime(n.gain, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + n.dur);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(filter);
 
-        osc.start(start);
-        osc.stop(start + 0.17);
+        osc.start(startTime);
+        osc.stop(startTime + n.dur + 0.01);
+
+        currentOffset += 0.055;
       });
     } catch {}
   }
 
-  // 5. Cambio de pestaña / Filtro de categoría (Toque suave amaderado)
+  // 5. Efecto "Cursor / Switch" (Filtros de categoría y pestañas)
+  // Micro-blip nítido y rápido (680 Hz -> 480 Hz)
   public playTab() {
     if (!this.enabled) return;
     const now = Date.now();
@@ -197,16 +245,21 @@ class SoundEffectsManager {
       const t = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(480, t);
-      osc.frequency.exponentialRampToValueAtTime(260, t + 0.038);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2200, t);
 
-      gain.gain.setValueAtTime(0.08, t);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(680, t);
+      osc.frequency.exponentialRampToValueAtTime(440, t + 0.035);
+
+      gain.gain.setValueAtTime(0.09, t);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.038);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(filter);
+      filter.connect(ctx.destination);
 
       osc.start(t);
       osc.stop(t + 0.045);

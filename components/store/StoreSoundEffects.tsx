@@ -111,15 +111,15 @@ export function SoundToggleButton({ className = '' }: { className?: string }) {
     <button
       type="button"
       onClick={handleToggle}
-      title={enabled ? 'Efectos de sonido activados (clic para silenciar)' : 'Sonido silenciado (clic para activar)'}
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer select-none ${
+      title={enabled ? 'Efectos de sonido Arcade activados (clic para silenciar)' : 'Sonido silenciado (clic para activar)'}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer select-none ${
         enabled
           ? 'bg-amber-400/20 text-amber-300 hover:bg-amber-400/30 border border-amber-400/40'
           : 'bg-white/10 text-gray-400 hover:text-white border border-white/10'
       } ${className}`}
     >
       {enabled ? <Volume2 size={12} className="text-amber-400" /> : <VolumeX size={12} />}
-      <span className="hidden sm:inline">{enabled ? 'Sonido ON' : 'Silencio'}</span>
+      <span className="hidden sm:inline">{enabled ? 'Arcade 🎮' : 'Silencio'}</span>
     </button>
   );
 }
