@@ -827,6 +827,7 @@ export default function FloatingChatWidget({
             </button>
             <button
               onClick={() => setActiveTab('pos_chat')}
+              data-no-sound="true"
               className={`flex-1 py-1.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'pos_chat' ? 'bg-white text-[#2563eb] shadow-xs' : 'hover:text-gray-900'
               }`}

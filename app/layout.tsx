@@ -8,6 +8,7 @@ import { ClientProvider } from '@/context/ClientContext';
 import { StoreThemeProvider } from '@/context/StoreThemeContext';
 import OfflineNoticeModal from '@/components/OfflineNoticeModal';
 import AdminNotificationSystem from '@/components/admin/AdminNotificationSystem';
+import StoreSoundEffects from '@/components/store/StoreSoundEffects';
 
 export const viewport: Viewport = {
   themeColor: '#1e3a5f',
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <StoreThemeProvider>
                     <OfflineNoticeModal />
                     <AdminNotificationSystem />
+                    <StoreSoundEffects />
                     {children}
                   </StoreThemeProvider>
                 </ClientProvider>

@@ -21,6 +21,7 @@ import FloatingChatWidget from '@/components/store/FloatingChatWidget';
 import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
 import SeasonalAmbiance from '@/components/store/SeasonalAmbiance';
 import StoreThemeModal from '@/components/store/StoreThemeModal';
+import { SoundToggleButton } from '@/components/store/StoreSoundEffects';
 import Footer from '@/components/layout/Footer';
 import { useStoreTheme } from '@/context/StoreThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -100,7 +101,8 @@ export default function WelcomeHomePage() {
           </nav>
 
           {/* Customer Action CTA */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <SoundToggleButton />
             <Link
               href="/tienda"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold bg-gradient-to-r from-[#2563eb] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25 transition-all transform hover:-translate-y-0.5 cursor-pointer"

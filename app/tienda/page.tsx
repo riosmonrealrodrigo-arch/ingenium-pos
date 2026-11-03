@@ -12,6 +12,7 @@ import ClientAuthModal from '@/components/store/ClientAuthModal';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
 import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
 import SeasonalAmbiance from '@/components/store/SeasonalAmbiance';
+import { SoundToggleButton } from '@/components/store/StoreSoundEffects';
 import { supabase } from '@/lib/supabase';
 import {
   ShoppingBag,
@@ -166,8 +167,9 @@ export default function TiendaPage() {
           <span className="hidden sm:inline text-white/40">|</span>
           <span className="hidden sm:inline text-white/80">Envíos a todo el país y retiro en sucursal</span>
         </div>
-        <div className="hidden sm:flex items-center gap-2 text-white/70 text-[10px]">
-          <span>Moneda Oficial: <strong className="text-amber-400">$ MXN</strong></span>
+        <div className="flex items-center gap-2.5 text-white/70 text-[10px]">
+          <SoundToggleButton />
+          <span className="hidden sm:inline">Moneda Oficial: <strong className="text-amber-400">$ MXN</strong></span>
         </div>
       </div>
 

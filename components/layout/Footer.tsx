@@ -162,6 +162,7 @@ export default function Footer({ className = '' }: FooterProps) {
             <Link
               href="/login"
               aria-label="Acceso"
+              data-no-sound="true"
               tabIndex={-1}
               className="opacity-0 w-6 h-4 inline-block select-none cursor-default"
             >
