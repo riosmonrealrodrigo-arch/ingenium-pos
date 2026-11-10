@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useProducts } from '@/context/ProductContext';
@@ -7,8 +7,9 @@ import { Product } from '@/types';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { ArrowLeft, Save, Globe, Trash2, Smartphone, Zap, Wrench, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Globe, Trash2, Smartphone, Zap, Wrench, CheckCircle2, RefreshCw } from 'lucide-react';
 import { CATEGORY_UUIDS, normalizeCategoryId, isServicio, isAccesorio } from '@/lib/categories';
+import { supabase } from '@/lib/supabase';
 
 const CATEGORY_OPTIONS = [
   {
@@ -57,17 +58,18 @@ export default function EditarProductoPage() {
     active: true,
   });
 
+  const isInitialized = useRef(false);
+
   useEffect(() => {
     if (!loading && !profile) router.replace('/login');
   }, [profile, loading, router]);
 
+  // Cargar datos del producto e inicializar el formulario UNA SOLA VEZ
   useEffect(() => {
-    if (profile) loadProducts();
-  }, [profile, loadProducts]);
+    if (isInitialized.current || !id) return;
 
-  useEffect(() => {
-    const p = products.find(x => x.id === id);
-    if (p) {
+    const populateForm = (p: Product) => {
+      isInitialized.current = true;
       const normalizedCat = normalizeCategoryId(p.category_id);
       const detectedCat =
         normalizedCat ||
@@ -78,8 +80,8 @@ export default function EditarProductoPage() {
           : CATEGORY_UUIDS.repuestos);
 
       setForm({
-        code: p.code,
-        name: p.name,
+        code: p.code || '',
+        name: p.name || '',
         category_id: detectedCat,
         description: p.description ?? '',
         commercial_description: p.commercial_description ?? p.description ?? '',
@@ -87,12 +89,31 @@ export default function EditarProductoPage() {
         visible_en_tienda: p.visible_en_tienda !== false,
         purchase_price: p.purchase_price ? String(p.purchase_price) : '',
         sale_price: p.sale_price && p.sale_price > 0 ? String(p.sale_price) : '',
-        stock: String(p.stock),
-        min_stock: String(p.min_stock),
-        active: p.active,
+        stock: String(p.stock ?? 0),
+        min_stock: String(p.min_stock ?? 5),
+        active: p.active !== false,
       });
+    };
+
+    // 1. Intentar encontrarlo en memoria primero
+    const local = products.find(x => x.id === id || x.code === id);
+    if (local) {
+      populateForm(local);
+      return;
     }
-  }, [products, id]);
+
+    // 2. Si no está en memoria, consultar directamente a Supabase
+    supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .single()
+      .then(({ data, error }) => {
+        if (data && !error && !isInitialized.current) {
+          populateForm(data);
+        }
+      });
+  }, [id, products]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -118,29 +139,48 @@ export default function EditarProductoPage() {
 
     setSaving(true);
     try {
-      await updateProduct(id, {
+      const finalPrice =
+        form.sale_price !== '' && !isNaN(parseFloat(form.sale_price))
+          ? parseFloat(form.sale_price)
+          : 0;
+
+      const finalStock = isService ? (parseInt(form.stock) || 999) : (parseInt(form.stock) || 0);
+
+      const updateData = {
         code: form.code,
         name: form.name.trim(),
-        category_id: form.category_id,
+        category_id: normalizeCategoryId(form.category_id) || CATEGORY_UUIDS.repuestos,
         description: form.description,
         commercial_description: form.commercial_description,
         image_url: form.image_url,
         visible_en_tienda: form.visible_en_tienda,
         purchase_price: parseFloat(form.purchase_price) || 0,
-        sale_price: form.sale_price !== '' && !isNaN(parseFloat(form.sale_price)) ? parseFloat(form.sale_price) : 0,
-        stock: parseInt(form.stock) || (isService ? 999 : 0),
+        sale_price: finalPrice,
+        stock: finalStock,
         min_stock: parseInt(form.min_stock) || (isService ? 0 : 5),
         active: form.active,
-      });
+      };
+
+      // 1. Actualización mediante el ProductContext
+      await updateProduct(id, updateData);
+
+      // 2. Actualización directa a Supabase para garantizar persistencia inmediata
+      await supabase
+        .from('products')
+        .update(updateData)
+        .eq('id', id);
+
+      // 3. Forzar recarga inmediata de todos los productos
+      await loadProducts();
 
       setSaveStatus('success');
       setTimeout(() => {
         router.push('/productos');
-      }, 700);
+      }, 500);
     } catch (err: any) {
       console.error('Error al guardar cambios:', err);
       setSaveStatus('error');
-      alert(`⚠️ No se pudieron guardar los cambios: ${err?.message || 'Error en la conexión a la base de datos'}`);
+      alert(`⚠️ No se pudieron guardar los cambios: ${err?.message || 'Error en la base de datos'}`);
     } finally {
       setSaving(false);
     }

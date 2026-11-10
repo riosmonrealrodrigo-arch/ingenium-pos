@@ -38,15 +38,13 @@ export const normalizeCategoryId = (cat?: string | null): string | null => {
   return null;
 };
 
+// La selección explícita del usuario (category_id) SIEMPRE tiene prioridad sobre el prefijo del código SKU
 export const isRepuesto = (p: { category_id?: string | null; code?: string }): boolean => {
-  const cat = p.category_id || '';
-  if (
-    cat === CATEGORY_UUIDS.repuestos ||
-    cat === 'cat-1' ||
-    cat === 'repuestos'
-  ) {
-    return true;
+  const cat = normalizeCategoryId(p.category_id);
+  if (cat) {
+    return cat === CATEGORY_UUIDS.repuestos;
   }
+  // Solo como fallback para productos legacy sin categoría en BD:
   const code = (p.code || '').toUpperCase();
   return (
     code.includes('DISP') ||
@@ -58,14 +56,11 @@ export const isRepuesto = (p: { category_id?: string | null; code?: string }): b
 };
 
 export const isAccesorio = (p: { category_id?: string | null; code?: string }): boolean => {
-  const cat = p.category_id || '';
-  if (
-    cat === CATEGORY_UUIDS.accesorios ||
-    cat === 'cat-2' ||
-    cat === 'accesorios'
-  ) {
-    return true;
+  const cat = normalizeCategoryId(p.category_id);
+  if (cat) {
+    return cat === CATEGORY_UUIDS.accesorios;
   }
+  // Solo como fallback para productos legacy sin categoría en BD:
   const code = (p.code || '').toUpperCase();
   return (
     code.includes('CARG') ||
@@ -86,14 +81,11 @@ export const isAccesorio = (p: { category_id?: string | null; code?: string }): 
 };
 
 export const isServicio = (p: { category_id?: string | null; code?: string }): boolean => {
-  const cat = p.category_id || '';
-  if (
-    cat === CATEGORY_UUIDS.servicios ||
-    cat === 'cat-3' ||
-    cat === 'servicios'
-  ) {
-    return true;
+  const cat = normalizeCategoryId(p.category_id);
+  if (cat) {
+    return cat === CATEGORY_UUIDS.servicios;
   }
+  // Solo como fallback para productos legacy sin categoría en BD:
   const code = (p.code || '').toUpperCase();
   return (
     code.includes('SRV') ||

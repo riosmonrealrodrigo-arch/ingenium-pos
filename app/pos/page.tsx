@@ -38,12 +38,21 @@ export default function POSPage() {
       else if (profile.role === 'cliente') router.replace('/tienda');
     }
   }, [profile, loading, router]);
-  useEffect(() => { if (profile) { loadProducts(); loadClients(); } }, [profile]);
+  useEffect(() => {
+    if (profile) {
+      loadProducts();
+      loadClients();
+    }
+  }, [profile, loadProducts, loadClients]);
 
-  const filtered = products.filter(p =>
-    p.active && p.stock > 0 &&
-    (p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = products.filter(p => {
+    const isSrv = isServicio(p);
+    const hasStock = isSrv || p.stock > 0;
+    const matchesSearch =
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.code.toLowerCase().includes(search.toLowerCase());
+    return p.active && hasStock && matchesSearch;
+  });
 
   const handleCheckout = async () => {
     if (items.length === 0 || processing) return;

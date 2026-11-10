@@ -7,7 +7,7 @@ import { useProducts } from '@/context/ProductContext';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package, Globe, Trash2, Smartphone, Zap, Wrench } from 'lucide-react';
+import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package, Globe, Trash2, Smartphone, Zap, Wrench, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Product } from '@/types';
 import { isRepuesto, isAccesorio, isServicio } from '@/lib/categories';
@@ -19,6 +19,13 @@ export default function ProductosPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'repuestos' | 'accesorios' | 'servicios' | 'active' | 'inactive' | 'low' | 'store'>('all');
   const [purging, setPurging] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    await loadProducts();
+    setTimeout(() => setSyncing(false), 500);
+  };
 
   useEffect(() => { if (!loading && !profile) router.replace('/login'); }, [profile, loading, router]);
   useEffect(() => { if (profile) loadProducts(); }, [profile, loadProducts]);
@@ -79,6 +86,16 @@ export default function ProductosPage() {
                   <span>{purging ? 'Limpiando...' : 'Vaciar Catálogo Demo'}</span>
                 </button>
               )}
+
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                title="Recargar y sincronizar con la base de datos"
+                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold border border-gray-200 transition flex items-center gap-1.5 active:scale-95 cursor-pointer"
+              >
+                <RefreshCw size={13} className={syncing ? 'animate-spin text-blue-600' : ''} />
+                <span>{syncing ? 'Sincronizando...' : 'Actualizar'}</span>
+              </button>
 
               <Link href="/productos/nuevo"
                 className="flex items-center gap-1.5 px-4 py-2 bg-[#2563eb] text-white rounded-xl text-xs font-bold hover:bg-[#1d4ed8] transition whitespace-nowrap active:scale-95 shadow-sm shadow-blue-500/20 cursor-pointer">
