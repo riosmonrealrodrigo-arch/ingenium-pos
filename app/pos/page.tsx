@@ -102,15 +102,25 @@ export default function POSPage() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2.5 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 content-start">
-              {filtered.map(p => (
-                <button key={p.id} onClick={() => addToCart(p)}
-                  className="bg-gray-50 hover:bg-blue-50 border border-gray-100 hover:border-[#2563eb] rounded-xl p-2.5 text-left transition-all active:scale-95 group">
-                  <div className="w-6 h-6 bg-white border border-gray-200 rounded-md flex items-center justify-center mb-1 text-xs shadow-2xs">📦</div>
-                  <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-2">{p.name}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">Stock: {p.stock}</p>
-                  <p className="text-xs font-black text-[#2563eb] mt-0.5">{formatCurrency(p.sale_price, business?.currency)}</p>
-                </button>
-              ))}
+              {filtered.map(p => {
+                const isSrv = p.category_id === 'cat-3' || p.category_id === 'servicios' || p.code?.startsWith('SRV') || p.code?.startsWith('MAN-') || p.code?.startsWith('MANT-');
+                const isAcc = p.category_id === 'cat-2' || p.category_id === 'accesorios' || p.code?.startsWith('ACC-') || p.code?.includes('CARG');
+                const hasPrice = typeof p.sale_price === 'number' && p.sale_price > 0;
+
+                return (
+                  <button key={p.id} onClick={() => addToCart(p)}
+                    className="bg-gray-50 hover:bg-blue-50 border border-gray-100 hover:border-[#2563eb] rounded-xl p-2.5 text-left transition-all active:scale-95 group">
+                    <div className="w-6 h-6 bg-white border border-gray-200 rounded-md flex items-center justify-center mb-1 text-xs shadow-2xs">
+                      {isSrv ? '🔧' : isAcc ? '🔌' : '📱'}
+                    </div>
+                    <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-2">{p.name}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{isSrv ? 'Servicio Técnico' : `Stock: ${p.stock}`}</p>
+                    <p className="text-xs font-black text-[#2563eb] mt-0.5">
+                      {hasPrice ? formatCurrency(p.sale_price, business?.currency) : <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded text-[10px] font-bold">A cotizar</span>}
+                    </p>
+                  </button>
+                );
+              })}
               {filtered.length === 0 && (
                 <div className="col-span-full text-center py-12 text-gray-300">
                   <ShoppingCart size={32} className="mx-auto mb-2 opacity-50" />

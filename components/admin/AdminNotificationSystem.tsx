@@ -63,28 +63,41 @@ export default function AdminNotificationSystem() {
   const [showPromptBanner, setShowPromptBanner] = useState(false);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // No activar si el usuario está en la tienda pública o páginas legales
-  const isPublicStorefront =
-    pathname === '/tienda' ||
-    pathname.startsWith('/tienda') ||
-    pathname === '/privacidad' ||
-    pathname === '/terminos' ||
-    pathname === '/garantias' ||
-    pathname === '/login';
+  // La ventana flotante de notificaciones y avisos SOLO debe aparecer en el POS y panel administrativo interno
+  // NUNCA en la tienda web pública (/, /tienda, /rastreo, /comprobante, /garantias, /terminos, /privacidad, etc.)
+  const isPosRoute =
+    pathname.startsWith('/pos') ||
+    pathname.startsWith('/reparaciones') ||
+    pathname.startsWith('/inventario') ||
+    pathname.startsWith('/productos') ||
+    pathname.startsWith('/ventas') ||
+    pathname.startsWith('/clientes') ||
+    pathname.startsWith('/reportes') ||
+    pathname.startsWith('/configuracion') ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/caja') ||
+    pathname.startsWith('/chat-admin') ||
+    pathname.startsWith('/soporte') ||
+    pathname.startsWith('/admin');
 
-  // Verificar estado del permiso del navegador
+  // Verificar estado del permiso del navegador ÚNICAMENTE en el POS
   useEffect(() => {
+    if (!isPosRoute) {
+      setShowPromptBanner(false);
+      return;
+    }
+
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermission(Notification.permission);
-      if (Notification.permission === 'default' && !isPublicStorefront) {
-        // Mostrar aviso sutil para que el dueño active las notificaciones
+      if (Notification.permission === 'default') {
+        // Mostrar aviso únicamente en el POS para que el personal active las notificaciones de clientes
         const dismissed = sessionStorage.getItem('ingenium_notif_banner_dismissed');
         if (!dismissed) {
           setShowPromptBanner(true);
         }
       }
     }
-  }, [isPublicStorefront]);
+  }, [isPosRoute]);
 
   // Solicitar permiso de notificaciones al navegador
   const requestPermission = async () => {
@@ -124,9 +137,9 @@ export default function AdminNotificationSystem() {
     });
   };
 
-  // Escuchar mensajes entrantes en Supabase Realtime
+  // Escuchar mensajes entrantes en Supabase Realtime SOLO en rutas POS
   useEffect(() => {
-    if (isPublicStorefront) return;
+    if (!isPosRoute) return;
 
     try {
       const channel = supabase
@@ -206,7 +219,7 @@ export default function AdminNotificationSystem() {
     } catch (err) {
       console.warn('Error en listener de notificaciones:', err);
     }
-  }, [isPublicStorefront, router]);
+  }, [isPosRoute, router]);
 
   // Auto-ocultar toast después de 12 segundos
   useEffect(() => {
@@ -221,7 +234,7 @@ export default function AdminNotificationSystem() {
     };
   }, [toast]);
 
-  if (isPublicStorefront) return null;
+  if (!isPosRoute) return null;
 
   return (
     <>

@@ -7,7 +7,31 @@ import { Product } from '@/types';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { ArrowLeft, Save, Globe, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Globe, Trash2, Smartphone, Zap, Wrench, CheckCircle2 } from 'lucide-react';
+
+const CATEGORY_OPTIONS = [
+  {
+    id: 'cat-1',
+    name: 'Repuestos & Pantallas',
+    label: 'Repuestos',
+    icon: Smartphone,
+    desc: 'Displays, pantallas OLED, baterías, flexores, centros de carga y piezas.',
+  },
+  {
+    id: 'cat-2',
+    name: 'Cargadores & Accesorios',
+    label: 'Accesorios',
+    icon: Zap,
+    desc: 'Cables, cargadores rápidos, fundas de uso rudo, micas de cristal, audio.',
+  },
+  {
+    id: 'cat-3',
+    name: 'Servicio de Reparación',
+    label: 'Servicios de reparación',
+    icon: Wrench,
+    desc: 'Mantenimiento, diagnóstico, baño químico, soldadura o cotización en taller.',
+  },
+];
 
 export default function EditarProductoPage() {
   const { profile, business, loading } = useAuth();
@@ -19,6 +43,7 @@ export default function EditarProductoPage() {
   const [form, setForm] = useState({
     code: '',
     name: '',
+    category_id: 'cat-1',
     description: '',
     commercial_description: '',
     image_url: '',
@@ -41,15 +66,24 @@ export default function EditarProductoPage() {
   useEffect(() => {
     const p = products.find(x => x.id === id);
     if (p) {
+      const detectedCat =
+        p.category_id ||
+        (p.code?.startsWith('SRV') || p.code?.startsWith('MAN-') || p.code?.startsWith('MANT-')
+          ? 'cat-3'
+          : p.code?.startsWith('CARG') || p.code?.startsWith('CAB') || p.code?.startsWith('MICA') || p.code?.startsWith('ACC-')
+          ? 'cat-2'
+          : 'cat-1');
+
       setForm({
         code: p.code,
         name: p.name,
+        category_id: detectedCat,
         description: p.description ?? '',
         commercial_description: p.commercial_description ?? p.description ?? '',
         image_url: p.image_url ?? '',
         visible_en_tienda: p.visible_en_tienda !== false,
-        purchase_price: String(p.purchase_price),
-        sale_price: String(p.sale_price),
+        purchase_price: p.purchase_price ? String(p.purchase_price) : '',
+        sale_price: p.sale_price && p.sale_price > 0 ? String(p.sale_price) : '',
         stock: String(p.stock),
         min_stock: String(p.min_stock),
         active: p.active,
@@ -60,20 +94,33 @@ export default function EditarProductoPage() {
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
+  const isService = form.category_id === 'cat-3';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.name.trim()) {
+      alert('Por favor escribe el nombre.');
+      return;
+    }
+
+    if (!isService && (!form.sale_price || isNaN(parseFloat(form.sale_price)))) {
+      alert('Por favor ingresa un precio de venta para repuestos o accesorios.');
+      return;
+    }
+
     setSaving(true);
     await updateProduct(id, {
       code: form.code,
-      name: form.name,
+      name: form.name.trim(),
+      category_id: form.category_id,
       description: form.description,
       commercial_description: form.commercial_description,
       image_url: form.image_url,
       visible_en_tienda: form.visible_en_tienda,
       purchase_price: parseFloat(form.purchase_price) || 0,
-      sale_price: parseFloat(form.sale_price),
-      stock: parseInt(form.stock) || 0,
-      min_stock: parseInt(form.min_stock) || 5,
+      sale_price: form.sale_price !== '' && !isNaN(parseFloat(form.sale_price)) ? parseFloat(form.sale_price) : 0,
+      stock: parseInt(form.stock) || (isService ? 999 : 0),
+      min_stock: parseInt(form.min_stock) || (isService ? 0 : 5),
       active: form.active,
     });
     setSaving(false);
@@ -95,7 +142,7 @@ export default function EditarProductoPage() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 lg:ml-52 min-w-0 max-w-full flex flex-col pb-20 lg:pb-0 overflow-x-hidden">
-        <Header title="Editar Producto" />
+        <Header title="Editar Producto o Servicio" />
         <main className="p-4 lg:p-6 max-w-2xl mx-auto w-full">
           <button
             onClick={() => router.back()}
@@ -105,6 +152,70 @@ export default function EditarProductoPage() {
           </button>
 
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+            
+            {/* Clasificación de Producto / Servicio */}
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">
+                Clasificación del Producto o Servicio *
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {CATEGORY_OPTIONS.map(cat => {
+                  const Icon = cat.icon;
+                  const isSelected = form.category_id === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setForm(f => ({
+                          ...f,
+                          category_id: cat.id,
+                          stock: cat.id === 'cat-3' && (!f.stock || f.stock === '0') ? '999' : f.stock,
+                        }));
+                      }}
+                      className={`p-3.5 rounded-2xl border-2 text-left transition-all flex flex-col justify-between cursor-pointer ${
+                        isSelected
+                          ? 'border-[#2563eb] bg-blue-50/70 shadow-sm ring-2 ring-blue-500/20'
+                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full mb-2">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                          isSelected ? 'bg-[#2563eb] text-white shadow-xs' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          <Icon size={16} />
+                        </div>
+                        {isSelected && (
+                          <span className="text-[#2563eb] text-xs">
+                            <CheckCircle2 size={16} />
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-gray-900 leading-tight">{cat.name}</p>
+                        <p className="text-[11px] text-gray-500 leading-tight mt-1 line-clamp-2">{cat.desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Aviso explicativo para Servicios de Reparación */}
+              {isService && (
+                <div className="mt-3 p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start gap-2.5 text-xs text-amber-900 animate-fade-in">
+                  <div className="p-1 bg-amber-200/70 rounded-lg text-amber-900 shrink-0 mt-0.5">
+                    <Wrench size={14} />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="font-bold">🔧 Modo Servicio de Reparación activado</p>
+                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                      El precio de venta es <strong>opcional</strong>. Si lo dejas vacío, en la tienda web <strong>no aparecerá ningún precio</strong> y los clientes verán el botón directo para <strong>"Cotizar Reparación"</strong> por WhatsApp.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Código SKU</label>
@@ -115,7 +226,9 @@ export default function EditarProductoPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Nombre *</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
+                  Nombre del {isService ? 'Servicio' : 'Producto'} *
+                </label>
                 <input
                   required
                   value={form.name}
@@ -142,12 +255,12 @@ export default function EditarProductoPage() {
                   <Globe size={18} className="text-[#2563eb]" />
                   <div>
                     <p className="text-sm font-bold text-[#1e3a5f]">Tienda Web Pública (Catálogo)</p>
-                    <p className="text-[11px] text-gray-500">Visible para clientes y visitantes en la web</p>
+                    <p className="text-[11px] text-gray-500">¿Estará visible para clientes en la web?</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <span className={`text-xs font-bold select-none ${form.visible_en_tienda ? 'text-[#2563eb]' : 'text-gray-400'}`}>
-                    {form.visible_en_tienda ? 'Activo' : 'Desactivado'}
+                    {form.visible_en_tienda ? 'Visible' : 'Oculto'}
                   </span>
                   <button
                     type="button"
@@ -180,7 +293,7 @@ export default function EditarProductoPage() {
                 <>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
-                      URL de Foto del Producto
+                      URL de Foto (Opcional)
                     </label>
                     <input
                       placeholder="https://ejemplo.com/foto.jpg"
@@ -197,7 +310,7 @@ export default function EditarProductoPage() {
                       value={form.commercial_description}
                       onChange={set('commercial_description')}
                       rows={2}
-                      placeholder="Garantía, especificaciones para el cliente..."
+                      placeholder={isService ? 'Explica lo que incluye el servicio, garantía o tiempo estimado...' : 'Garantía, especificaciones para el cliente...'}
                       className="w-full px-4 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb] resize-none"
                     />
                   </div>
@@ -208,11 +321,12 @@ export default function EditarProductoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
-                  P. Compra ({business?.currency ?? '$'})
+                  P. Compra / Costo ({business?.currency ?? '$'})
                 </label>
                 <input
                   type="number"
                   step="0.01"
+                  placeholder="0.00"
                   value={form.purchase_price}
                   onChange={set('purchase_price')}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
@@ -220,12 +334,13 @@ export default function EditarProductoPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
-                  P. Venta ({business?.currency ?? '$'}) *
+                  {isService ? `P. Venta (${business?.currency ?? '$'}) (Opcional)` : `P. Venta (${business?.currency ?? '$'}) *`}
                 </label>
                 <input
-                  required
+                  required={!isService}
                   type="number"
                   step="0.01"
+                  placeholder={isService ? 'Opcional (Dejar vacío para cotizar)' : '0.00'}
                   value={form.sale_price}
                   onChange={set('sale_price')}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
@@ -235,7 +350,9 @@ export default function EditarProductoPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Stock actual</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
+                  {isService ? 'Disponibilidad / Cupos' : 'Stock actual'}
+                </label>
                 <input
                   type="number"
                   value={form.stock}
@@ -244,7 +361,9 @@ export default function EditarProductoPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Stock mínimo</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
+                  {isService ? 'Stock mínimo' : 'Stock mínimo de alerta'}
+                </label>
                 <input
                   type="number"
                   value={form.min_stock}
@@ -295,7 +414,7 @@ export default function EditarProductoPage() {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-sm font-bold transition flex items-center justify-center gap-1.5"
+                className="py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Trash2 size={16} />
                 <span>{deleting ? 'Eliminando...' : 'Eliminar Producto'}</span>
@@ -304,14 +423,14 @@ export default function EditarProductoPage() {
                 <button
                   type="button"
                   onClick={() => router.back()}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+                  className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-3 bg-[#2563eb] text-white rounded-xl text-sm font-bold hover:bg-[#1d4ed8] transition flex items-center justify-center gap-2 disabled:opacity-60 shadow"
+                  className="flex-1 py-3 bg-[#2563eb] text-white rounded-xl text-sm font-bold hover:bg-[#1d4ed8] transition flex items-center justify-center gap-2 disabled:opacity-60 shadow cursor-pointer"
                 >
                   <Save size={16} /> {saving ? 'Guardando...' : 'Guardar cambios'}
                 </button>

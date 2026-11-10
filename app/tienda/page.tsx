@@ -31,7 +31,8 @@ import {
   PackageCheck,
   Palette,
   Settings,
-  Package
+  Package,
+  MessageSquare
 } from 'lucide-react';
 
 export default function TiendaPage() {
@@ -77,6 +78,31 @@ export default function TiendaPage() {
     }
   }, [loadProducts]);
 
+  // Categorization helpers
+  const isRepuesto = (p: Product) =>
+    p.category_id === 'cat-1' ||
+    p.category_id === 'repuestos' ||
+    p.code?.includes('DISP') ||
+    p.code?.includes('BAT') ||
+    p.code?.includes('FLEX') ||
+    p.code?.startsWith('REP-') ||
+    p.code?.startsWith('RE-');
+
+  const isAccesorio = (p: Product) =>
+    p.category_id === 'cat-2' ||
+    p.category_id === 'accesorios' ||
+    p.code?.includes('CARG') ||
+    p.code?.includes('CAB') ||
+    p.code?.includes('MICA') ||
+    p.code?.startsWith('ACC-');
+
+  const isServicio = (p: Product) =>
+    p.category_id === 'cat-3' ||
+    p.category_id === 'servicios' ||
+    p.code?.includes('SRV') ||
+    p.code?.startsWith('MAN-') ||
+    p.code?.startsWith('MANT-');
+
   // Filter storefront products
   const storeProducts = products.filter(p => p.visible_en_tienda !== false && p.active !== false);
 
@@ -87,9 +113,9 @@ export default function TiendaPage() {
       (p.commercial_description || '').toLowerCase().includes(search.toLowerCase());
 
     if (selectedCategory === 'todos') return matchesSearch;
-    if (selectedCategory === 'repuestos') return matchesSearch && (p.category_id === 'cat-1' || p.code.includes('DISP') || p.code.includes('BAT') || p.code.includes('FLEX'));
-    if (selectedCategory === 'accesorios') return matchesSearch && (p.category_id === 'cat-2' || p.code.includes('CARG') || p.code.includes('CAB') || p.code.includes('MICA'));
-    if (selectedCategory === 'servicios') return matchesSearch && (p.category_id === 'cat-3' || p.code.includes('SRV'));
+    if (selectedCategory === 'repuestos') return matchesSearch && isRepuesto(p);
+    if (selectedCategory === 'accesorios') return matchesSearch && isAccesorio(p);
+    if (selectedCategory === 'servicios') return matchesSearch && isServicio(p);
     return matchesSearch;
   });
 
@@ -379,6 +405,9 @@ export default function TiendaPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filtered.map(product => {
               const isAvailable = product.stock > 0;
+              const isServiceItem = isServicio(product);
+              const hasPrice = typeof product.sale_price === 'number' && product.sale_price > 0;
+
               return (
                 <div
                   key={product.id}
@@ -389,7 +418,9 @@ export default function TiendaPage() {
                     <img
                       src={
                         product.image_url ||
-                        'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&auto=format&fit=crop&q=80'
+                        (isServiceItem
+                          ? 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80'
+                          : 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&auto=format&fit=crop&q=80')
                       }
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -401,7 +432,12 @@ export default function TiendaPage() {
                     </div>
 
                     <div className="absolute top-3 right-3">
-                      {isAvailable ? (
+                      {isServiceItem ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-sm flex items-center gap-1">
+                          <Wrench size={10} />
+                          Servicio Técnico
+                        </span>
+                      ) : isAvailable ? (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
                           En stock ({product.stock})
@@ -420,26 +456,54 @@ export default function TiendaPage() {
                       {product.name}
                     </h3>
                     <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed flex-1 mb-3">
-                      {product.commercial_description || product.description || 'Repuesto garantizado para taller.'}
+                      {product.commercial_description || product.description || (isServiceItem ? 'Servicio técnico especializado para taller.' : 'Repuesto garantizado para taller.')}
                     </p>
 
-                    <div className="pt-3 border-t border-gray-100 flex items-center justify-between mt-auto">
-                      <div>
-                        <span className="text-[10px] text-gray-400 block font-medium">Precio final</span>
-                        <span className="font-black text-lg text-[#1e3a5f]">
-                          {formatCurrency(product.sale_price)}
-                        </span>
-                      </div>
+                    {/* Precio y Acción */}
+                    {isServiceItem && !hasPrice ? (
+                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between mt-auto gap-2">
+                        <div>
+                          <span className="text-[10px] text-amber-700 font-bold block uppercase tracking-wider">
+                            Servicio en Taller
+                          </span>
+                          <span className="text-xs font-semibold text-gray-500">
+                            Cotización personalizada
+                          </span>
+                        </div>
 
-                      <button
-                        onClick={() => handleActionClick(product)}
-                        disabled={!isAvailable}
-                        className="px-3.5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-95 text-white font-bold rounded-xl text-xs transition shadow-sm disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
-                      >
-                        <ShoppingBag size={14} />
-                        Comprar
-                      </button>
-                    </div>
+                        <button
+                          onClick={() => {
+                            const msg = `¡Hola INGENIUM MOBILE! 👋 Me interesa cotizar el servicio de reparación: *${product.name}* (Código: ${product.code}). ¿Cuál sería el costo y tiempo de entrega?`;
+                            window.open(`https://wa.me/528139629319?text=${encodeURIComponent(msg)}`, '_blank');
+                          }}
+                          className="px-3 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 active:scale-95 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                          title="Cotizar directamente por WhatsApp"
+                        >
+                          <MessageSquare size={13} />
+                          Cotizar Reparación
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between mt-auto">
+                        <div>
+                          <span className="text-[10px] text-gray-400 block font-medium">
+                            {isServiceItem ? 'Costo desde' : 'Precio final'}
+                          </span>
+                          <span className="font-black text-lg text-[#1e3a5f]">
+                            {formatCurrency(product.sale_price)}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => handleActionClick(product)}
+                          disabled={!isAvailable && !isServiceItem}
+                          className="px-3.5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-95 text-white font-bold rounded-xl text-xs transition shadow-sm disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 cursor-pointer"
+                        >
+                          <ShoppingBag size={14} />
+                          {isServiceItem ? 'Solicitar' : 'Comprar'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
