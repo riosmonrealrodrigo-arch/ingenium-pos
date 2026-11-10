@@ -13,6 +13,7 @@ import Header from '@/components/layout/Header';
 import PrintTicketModal from '@/components/pos/PrintTicketModal';
 import { Search, Plus, Minus, Trash2, ShoppingCart, X, Check, Banknote, CreditCard, Smartphone, BookUser } from 'lucide-react';
 import { formatCurrency, generateTicket } from '@/lib/utils';
+import { isServicio, isAccesorio } from '@/lib/categories';
 
 export default function POSPage() {
   const { profile, business, loading } = useAuth();
@@ -103,8 +104,8 @@ export default function POSPage() {
             </div>
             <div className="flex-1 overflow-y-auto p-2.5 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 content-start">
               {filtered.map(p => {
-                const isSrv = p.category_id === 'cat-3' || p.category_id === 'servicios' || p.code?.startsWith('SRV') || p.code?.startsWith('MAN-') || p.code?.startsWith('MANT-');
-                const isAcc = p.category_id === 'cat-2' || p.category_id === 'accesorios' || p.code?.startsWith('ACC-') || p.code?.includes('CARG');
+                const isSrv = isServicio(p);
+                const isAcc = isAccesorio(p);
                 const hasPrice = typeof p.sale_price === 'number' && p.sale_price > 0;
 
                 return (

@@ -8,6 +8,7 @@ import StoreThemeModal from '@/components/store/StoreThemeModal';
 import Footer from '@/components/layout/Footer';
 import { Product, StorefrontCustomer } from '@/types';
 import { formatCurrency } from '@/lib/utils';
+import { isRepuesto, isAccesorio, isServicio } from '@/lib/categories';
 import ClientAuthModal from '@/components/store/ClientAuthModal';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
 import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
@@ -77,31 +78,6 @@ export default function TiendaPage() {
       }
     }
   }, [loadProducts]);
-
-  // Categorization helpers
-  const isRepuesto = (p: Product) =>
-    p.category_id === 'cat-1' ||
-    p.category_id === 'repuestos' ||
-    p.code?.includes('DISP') ||
-    p.code?.includes('BAT') ||
-    p.code?.includes('FLEX') ||
-    p.code?.startsWith('REP-') ||
-    p.code?.startsWith('RE-');
-
-  const isAccesorio = (p: Product) =>
-    p.category_id === 'cat-2' ||
-    p.category_id === 'accesorios' ||
-    p.code?.includes('CARG') ||
-    p.code?.includes('CAB') ||
-    p.code?.includes('MICA') ||
-    p.code?.startsWith('ACC-');
-
-  const isServicio = (p: Product) =>
-    p.category_id === 'cat-3' ||
-    p.category_id === 'servicios' ||
-    p.code?.includes('SRV') ||
-    p.code?.startsWith('MAN-') ||
-    p.code?.startsWith('MANT-');
 
   // Filter storefront products
   const storeProducts = products.filter(p => p.visible_en_tienda !== false && p.active !== false);

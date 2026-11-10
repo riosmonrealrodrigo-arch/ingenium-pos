@@ -7,25 +7,26 @@ import { Product } from '@/types';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { ArrowLeft, Save, Globe, Trash2, Smartphone, Zap, Wrench, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, Globe, Trash2, Smartphone, Zap, Wrench, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CATEGORY_UUIDS, normalizeCategoryId, isServicio, isAccesorio } from '@/lib/categories';
 
 const CATEGORY_OPTIONS = [
   {
-    id: 'cat-1',
+    id: CATEGORY_UUIDS.repuestos,
     name: 'Repuestos & Pantallas',
     label: 'Repuestos',
     icon: Smartphone,
     desc: 'Displays, pantallas OLED, baterías, flexores, centros de carga y piezas.',
   },
   {
-    id: 'cat-2',
+    id: CATEGORY_UUIDS.accesorios,
     name: 'Cargadores & Accesorios',
     label: 'Accesorios',
     icon: Zap,
     desc: 'Cables, cargadores rápidos, fundas de uso rudo, micas de cristal, audio.',
   },
   {
-    id: 'cat-3',
+    id: CATEGORY_UUIDS.servicios,
     name: 'Servicio de Reparación',
     label: 'Servicios de reparación',
     icon: Wrench,
@@ -40,10 +41,11 @@ export default function EditarProductoPage() {
   const { id } = useParams<{ id: string }>();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [form, setForm] = useState({
     code: '',
     name: '',
-    category_id: 'cat-1',
+    category_id: CATEGORY_UUIDS.repuestos as string,
     description: '',
     commercial_description: '',
     image_url: '',
@@ -66,13 +68,14 @@ export default function EditarProductoPage() {
   useEffect(() => {
     const p = products.find(x => x.id === id);
     if (p) {
+      const normalizedCat = normalizeCategoryId(p.category_id);
       const detectedCat =
-        p.category_id ||
-        (p.code?.startsWith('SRV') || p.code?.startsWith('MAN-') || p.code?.startsWith('MANT-')
-          ? 'cat-3'
-          : p.code?.startsWith('CARG') || p.code?.startsWith('CAB') || p.code?.startsWith('MICA') || p.code?.startsWith('ACC-')
-          ? 'cat-2'
-          : 'cat-1');
+        normalizedCat ||
+        (isServicio(p)
+          ? CATEGORY_UUIDS.servicios
+          : isAccesorio(p)
+          ? CATEGORY_UUIDS.accesorios
+          : CATEGORY_UUIDS.repuestos);
 
       setForm({
         code: p.code,
@@ -94,10 +97,15 @@ export default function EditarProductoPage() {
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const isService = form.category_id === 'cat-3';
+  const isService =
+    form.category_id === CATEGORY_UUIDS.servicios ||
+    form.category_id === 'cat-3' ||
+    form.category_id === 'servicios';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveStatus('idle');
+
     if (!form.name.trim()) {
       alert('Por favor escribe el nombre.');
       return;
@@ -109,22 +117,33 @@ export default function EditarProductoPage() {
     }
 
     setSaving(true);
-    await updateProduct(id, {
-      code: form.code,
-      name: form.name.trim(),
-      category_id: form.category_id,
-      description: form.description,
-      commercial_description: form.commercial_description,
-      image_url: form.image_url,
-      visible_en_tienda: form.visible_en_tienda,
-      purchase_price: parseFloat(form.purchase_price) || 0,
-      sale_price: form.sale_price !== '' && !isNaN(parseFloat(form.sale_price)) ? parseFloat(form.sale_price) : 0,
-      stock: parseInt(form.stock) || (isService ? 999 : 0),
-      min_stock: parseInt(form.min_stock) || (isService ? 0 : 5),
-      active: form.active,
-    });
-    setSaving(false);
-    router.push('/productos');
+    try {
+      await updateProduct(id, {
+        code: form.code,
+        name: form.name.trim(),
+        category_id: form.category_id,
+        description: form.description,
+        commercial_description: form.commercial_description,
+        image_url: form.image_url,
+        visible_en_tienda: form.visible_en_tienda,
+        purchase_price: parseFloat(form.purchase_price) || 0,
+        sale_price: form.sale_price !== '' && !isNaN(parseFloat(form.sale_price)) ? parseFloat(form.sale_price) : 0,
+        stock: parseInt(form.stock) || (isService ? 999 : 0),
+        min_stock: parseInt(form.min_stock) || (isService ? 0 : 5),
+        active: form.active,
+      });
+
+      setSaveStatus('success');
+      setTimeout(() => {
+        router.push('/productos');
+      }, 700);
+    } catch (err: any) {
+      console.error('Error al guardar cambios:', err);
+      setSaveStatus('error');
+      alert(`⚠️ No se pudieron guardar los cambios: ${err?.message || 'Error en la conexión a la base de datos'}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -146,10 +165,21 @@ export default function EditarProductoPage() {
         <main className="p-4 lg:p-6 max-w-2xl mx-auto w-full">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-700 text-sm mb-5 transition"
+            className="flex items-center gap-2 text-gray-500 hover:text-gray-700 text-sm mb-5 transition cursor-pointer"
           >
-            <ArrowLeft size={16} /> Volver
+            <ArrowLeft size={16} /> Volver al catálogo
           </button>
+
+          {/* Banner de Éxito al Guardar */}
+          {saveStatus === 'success' && (
+            <div className="mb-4 p-4 bg-emerald-500 text-white rounded-2xl shadow-lg flex items-center gap-3 animate-fade-in">
+              <CheckCircle2 size={22} className="shrink-0" />
+              <div>
+                <p className="font-bold text-sm">¡Cambios guardados con éxito!</p>
+                <p className="text-xs text-emerald-100">Sincronizando con base de datos y tienda web...</p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
             
@@ -170,7 +200,7 @@ export default function EditarProductoPage() {
                         setForm(f => ({
                           ...f,
                           category_id: cat.id,
-                          stock: cat.id === 'cat-3' && (!f.stock || f.stock === '0') ? '999' : f.stock,
+                          stock: cat.id === CATEGORY_UUIDS.servicios && (!f.stock || f.stock === '0') ? '999' : f.stock,
                         }));
                       }}
                       className={`p-3.5 rounded-2xl border-2 text-left transition-all flex flex-col justify-between cursor-pointer ${

@@ -10,6 +10,7 @@ import Header from '@/components/layout/Header';
 import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package, Globe, Trash2, Smartphone, Zap, Wrench } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Product } from '@/types';
+import { isRepuesto, isAccesorio, isServicio } from '@/lib/categories';
 
 export default function ProductosPage() {
   const { profile, business, loading } = useAuth();
@@ -35,30 +36,6 @@ export default function ProductosPage() {
       setPurging(false);
     }
   };
-
-  const isRepuesto = (p: Product) =>
-    p.category_id === 'cat-1' ||
-    p.category_id === 'repuestos' ||
-    p.code?.includes('DISP') ||
-    p.code?.includes('BAT') ||
-    p.code?.includes('FLEX') ||
-    p.code?.startsWith('REP-') ||
-    p.code?.startsWith('RE-');
-
-  const isAccesorio = (p: Product) =>
-    p.category_id === 'cat-2' ||
-    p.category_id === 'accesorios' ||
-    p.code?.includes('CARG') ||
-    p.code?.includes('CAB') ||
-    p.code?.includes('MICA') ||
-    p.code?.startsWith('ACC-');
-
-  const isServicio = (p: Product) =>
-    p.category_id === 'cat-3' ||
-    p.category_id === 'servicios' ||
-    p.code?.includes('SRV') ||
-    p.code?.startsWith('MAN-') ||
-    p.code?.startsWith('MANT-');
 
   const filtered = products.filter(p => {
     const s = p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase());
