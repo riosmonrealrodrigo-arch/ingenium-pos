@@ -4,13 +4,15 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useProducts } from '@/context/ProductContext';
 import { useStoreTheme } from '@/context/StoreThemeContext';
-import { Product, StorefrontCustomer } from '@/types';
+import { Product, StorefrontCustomer, ProductReview } from '@/types';
 import { formatCurrency, extractProductMetadata } from '@/lib/utils';
 import { isRepuesto, isAccesorio, isServicio } from '@/lib/categories';
+import { getReviewsEnabledStatus } from '@/lib/reviews';
 import { supabase } from '@/lib/supabase';
 import Footer from '@/components/layout/Footer';
 import ClientAuthModal from '@/components/store/ClientAuthModal';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
+import ProductReviewsSection from '@/components/store/ProductReviewsSection';
 import { SoundToggleButton } from '@/components/store/StoreSoundEffects';
 import {
   ArrowLeft,
@@ -34,6 +36,7 @@ import {
   PhoneCall,
   Minus,
   Plus,
+  Star,
   Image as ImageIcon,
 } from 'lucide-react';
 
@@ -63,10 +66,13 @@ export default function ProductoDetalleTiendaPage() {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [reviewsEnabled, setReviewsEnabled] = useState(true);
+  const [currentReviews, setCurrentReviews] = useState<ProductReview[]>([]);
 
-  // Hydrate customer & cart from localStorage + load catalog
+  // Hydrate customer & cart from localStorage + load catalog + review settings
   useEffect(() => {
     loadProducts();
+    getReviewsEnabledStatus().then(setReviewsEnabled);
     if (typeof window !== 'undefined') {
       try {
         const savedCust = localStorage.getItem('ingenium_store_customer');
@@ -142,11 +148,17 @@ export default function ProductoDetalleTiendaPage() {
     ? 'Cargadores & Accesorios'
     : 'Repuestos & Pantallas';
 
-  // Extract gallery, clean description and custom specs
-  const { cleanDescription, gallery, specs } = useMemo(() => {
-    if (!product) return { cleanDescription: '', gallery: [], specs: [] };
+  // Extract gallery, clean description, custom specs and reviews
+  const { cleanDescription, gallery, specs, reviews } = useMemo(() => {
+    if (!product) return { cleanDescription: '', gallery: [], specs: [], reviews: [] };
     return extractProductMetadata(product.description, product.image_url);
   }, [product]);
+
+  useEffect(() => {
+    if (reviews) {
+      setCurrentReviews(reviews);
+    }
+  }, [reviews]);
 
   const displayGallery = useMemo(() => {
     if (gallery.length > 0) return gallery;
@@ -572,6 +584,45 @@ export default function ProductoDetalleTiendaPage() {
                       {product.name}
                     </h1>
 
+                    {/* Resumen de Calificación debajo del título */}
+                    {reviewsEnabled && currentReviews.length > 0 && (
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <div className="flex items-center text-amber-400">
+                          {[1, 2, 3, 4, 5].map(star => {
+                            const avgVal =
+                              currentReviews.reduce((sum, r) => sum + r.rating, 0) /
+                              currentReviews.length;
+                            return (
+                              <Star
+                                key={star}
+                                size={14}
+                                className={
+                                  avgVal >= star
+                                    ? 'fill-amber-400 text-amber-400'
+                                    : avgVal >= star - 0.5
+                                    ? 'fill-amber-300 text-amber-400'
+                                    : 'text-gray-300'
+                                }
+                              />
+                            );
+                          })}
+                        </div>
+                        <span className="text-xs font-black text-gray-800">
+                          {(
+                            currentReviews.reduce((sum, r) => sum + r.rating, 0) /
+                            currentReviews.length
+                          ).toFixed(1)}
+                        </span>
+                        <a
+                          href="#seccion-opiniones"
+                          className="text-xs text-[#2563eb] hover:underline"
+                        >
+                          ({currentReviews.length}{' '}
+                          {currentReviews.length === 1 ? 'opinión' : 'opiniones'})
+                        </a>
+                      </div>
+                    )}
+
                     {/* Bloque de Precio o Cotización */}
                     {isServiceItem && !hasPrice ? (
                       <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/80 space-y-0.5">
@@ -761,6 +812,18 @@ export default function ProductoDetalleTiendaPage() {
               </div>
             </section>
 
+            {/* SECCIÓN: OPINIONES Y CALIFICACIONES DE CLIENTES */}
+            <div id="seccion-opiniones">
+              <ProductReviewsSection
+                product={product}
+                reviews={currentReviews}
+                onReviewAdded={newRev => setCurrentReviews(prev => [newRev, ...prev])}
+                reviewsEnabled={reviewsEnabled}
+                customer={customer}
+                onOpenAuthModal={() => setAuthModalOpen(true)}
+              />
+            </div>
+
             {/* SECCIÓN: PRODUCTOS Y SERVICIOS RELACIONADOS */}
             {relatedProducts.length > 0 && (
               <section className="space-y-3 sm:space-y-4 pt-2">
@@ -915,6 +978,14 @@ export default function ProductoDetalleTiendaPage() {
                 <p className="text-xs text-gray-500">
                   Un asesor de INGENIUM MOBILE ya recibió el detalle para apartar tus piezas o coordinar entrega.
                 </p>
+                <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-left text-xs text-blue-900 space-y-1">
+                  <p className="font-bold flex items-center gap-1.5 text-[#2563eb]">
+                    <Sparkles size={14} /> ¡Tu opinión nos ayuda a crecer!
+                  </p>
+                  <p className="text-[11px] text-blue-700 leading-relaxed">
+                    Una vez que recibas o retires tu compra, puedes calificar el producto y compartir fotos de cómo quedó en esta misma página.
+                  </p>
+                </div>
                 <button
                   onClick={() => {
                     setOrderSent(false);

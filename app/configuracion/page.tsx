@@ -11,6 +11,7 @@ import { Save, Check, Printer, ChevronRight, Palette, RotateCcw, AlertTriangle, 
 import Link from 'next/link';
 import { useStoreTheme } from '@/context/StoreThemeContext';
 import StoreThemeModal from '@/components/store/StoreThemeModal';
+import ProductReviewsManager from '@/components/admin/ProductReviewsManager';
 
 export default function ConfiguracionPage() {
   const { profile, business, loading } = useAuth();
@@ -217,6 +218,9 @@ export default function ConfiguracionPage() {
               <Save size={18} /> {saving ? 'Guardando...' : 'Guardar configuración'}
             </button>
           </form>
+
+          {/* Módulo de Calificaciones y Opiniones de Clientes (Activar/Desactivar y Eliminar) */}
+          <ProductReviewsManager />
 
           {/* Zona de Gestión y Reinicio de Datos Operativos */}
           <div className="bg-white rounded-2xl border-2 border-red-100 shadow-sm p-6 space-y-4">

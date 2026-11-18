@@ -1,4 +1,4 @@
-import { RepairEvidence, ProductSpec } from '@/types';
+import { RepairEvidence, ProductSpec, ProductReview } from '@/types';
 
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
@@ -150,16 +150,17 @@ export const compressImage = (
   });
 };
 
-// Extrae descripción limpia, galería adicional de imágenes y ficha técnica (especificaciones) de un producto/servicio
+// Extrae descripción limpia, galería adicional de imágenes, ficha técnica (especificaciones) y opiniones de un producto/servicio
 export const extractProductMetadata = (
   description?: string | null,
   primaryImage?: string | null
-): { cleanDescription: string; gallery: string[]; specs: ProductSpec[] } => {
+): { cleanDescription: string; gallery: string[]; specs: ProductSpec[]; reviews: ProductReview[] } => {
   const raw = description || '';
   const primary = (primaryImage || '').trim();
   let cleanDescription = raw;
   let extraImages: string[] = [];
   let specs: ProductSpec[] = [];
+  let reviews: ProductReview[] = [];
 
   const match = raw.match(/\[MetaProducto:\s*([\s\S]*?)\]\s*$/i);
   if (match) {
@@ -174,6 +175,9 @@ export const extractProductMetadata = (
           .filter((s: any) => s && typeof s.label === 'string' && typeof s.value === 'string')
           .map((s: any) => ({ label: s.label.trim(), value: s.value.trim() }))
           .filter((s: ProductSpec) => s.label.length > 0 && s.value.length > 0);
+      }
+      if (Array.isArray(parsed?.reviews)) {
+        reviews = parsed.reviews.filter((r: any) => r && typeof r.id === 'string' && typeof r.rating === 'number');
       }
     } catch {
       // Si falla el parseo JSON, conservar texto sin romper
@@ -190,14 +194,15 @@ export const extractProductMetadata = (
     }
   }
 
-  return { cleanDescription, gallery, specs };
+  return { cleanDescription, gallery, specs, reviews };
 };
 
-// Serializa descripción interna junto con galería adicional y características estructuradas
+// Serializa descripción interna junto con galería adicional, características estructuradas y opiniones de clientes
 export const formatDescriptionWithMetadata = (
   cleanDescription: string,
   gallery: string[],
-  specs: ProductSpec[]
+  specs: ProductSpec[],
+  reviews?: ProductReview[]
 ): string => {
   const trimmedDesc = (cleanDescription || '').trim();
   const validGallery = (gallery || []).map(g => g.trim()).filter(Boolean);
@@ -206,14 +211,16 @@ export const formatDescriptionWithMetadata = (
   const validSpecs = (specs || [])
     .map(s => ({ label: s.label.trim(), value: s.value.trim() }))
     .filter(s => s.label.length > 0 && s.value.length > 0);
+  const validReviews = (reviews || []).filter(r => r && typeof r.id === 'string');
 
-  if (extraGallery.length === 0 && validSpecs.length === 0) {
+  if (extraGallery.length === 0 && validSpecs.length === 0 && validReviews.length === 0) {
     return trimmedDesc;
   }
 
-  const payload: { gallery?: string[]; specs?: ProductSpec[] } = {};
+  const payload: { gallery?: string[]; specs?: ProductSpec[]; reviews?: ProductReview[] } = {};
   if (extraGallery.length > 0) payload.gallery = extraGallery;
   if (validSpecs.length > 0) payload.specs = validSpecs;
+  if (validReviews.length > 0) payload.reviews = validReviews;
 
   const metaTag = `[MetaProducto: ${JSON.stringify(payload)}]`;
   return trimmedDesc ? `${trimmedDesc}\n${metaTag}` : metaTag;

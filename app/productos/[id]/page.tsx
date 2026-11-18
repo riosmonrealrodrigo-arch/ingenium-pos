@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useProducts } from '@/context/ProductContext';
-import { Product, ProductSpec } from '@/types';
+import { Product, ProductSpec, ProductReview } from '@/types';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
@@ -47,6 +47,7 @@ export default function EditarProductoPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [gallery, setGallery] = useState<string[]>([]);
   const [specs, setSpecs] = useState<ProductSpec[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -83,13 +84,14 @@ export default function EditarProductoPage() {
           ? CATEGORY_UUIDS.accesorios
           : CATEGORY_UUIDS.repuestos);
 
-      const { cleanDescription, gallery: parsedGallery, specs: parsedSpecs } = extractProductMetadata(
+      const { cleanDescription, gallery: parsedGallery, specs: parsedSpecs, reviews: parsedReviews } = extractProductMetadata(
         p.description,
         p.image_url
       );
 
       setGallery(parsedGallery);
       setSpecs(parsedSpecs);
+      setReviews(parsedReviews || []);
 
       setForm({
         code: p.code || '',
@@ -159,7 +161,7 @@ export default function EditarProductoPage() {
       const finalStock = isService ? (parseInt(form.stock) || 999) : (parseInt(form.stock) || 0);
       const mainImage = gallery[0] || form.image_url.trim();
       const fullGallery = gallery.length > 0 ? gallery : mainImage ? [mainImage] : [];
-      const encodedDescription = formatDescriptionWithMetadata(form.description, fullGallery, specs);
+      const encodedDescription = formatDescriptionWithMetadata(form.description, fullGallery, specs, reviews);
 
       const updateData = {
         code: form.code,

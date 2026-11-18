@@ -610,6 +610,14 @@ export default function TiendaPage() {
                 <p className="text-xs text-gray-500">
                   Un asesor de INGENIUM MOBILE ya recibió el detalle para apartar tus piezas o coordinar entrega.
                 </p>
+                <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-left text-xs text-blue-900 space-y-1">
+                  <p className="font-bold flex items-center gap-1.5 text-[#2563eb]">
+                    <Sparkles size={14} /> ¡Tu opinión nos ayuda a crecer!
+                  </p>
+                  <p className="text-[11px] text-blue-700 leading-relaxed">
+                    Una vez que recibas o retires tu compra, puedes calificar el producto y subir fotos directamente en su página de detalle.
+                  </p>
+                </div>
                 <button
                   onClick={() => {
                     setOrderSent(false);

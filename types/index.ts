@@ -36,9 +36,23 @@ export interface ProductSpec {
   value: string;
 }
 
+export interface ProductReview {
+  id: string;
+  product_id: string;
+  customer_name: string;
+  customer_phone?: string;
+  rating: number; // 1 to 5
+  title?: string;
+  comment: string;
+  photos?: string[];
+  verified_purchase?: boolean;
+  created_at: string;
+}
+
 export interface ProductMetadata {
   gallery: string[];
   specs: ProductSpec[];
+  reviews?: ProductReview[];
 }
 
 export interface Product {
