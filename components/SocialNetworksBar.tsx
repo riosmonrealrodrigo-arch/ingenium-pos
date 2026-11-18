@@ -233,30 +233,30 @@ export default function SocialNetworksBar({ variant = 'inline', className = '' }
   if (variant === 'hero') {
     return (
       <div className={`w-full ${className}`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3.5 w-full">
           {SOCIAL_LINKS.map(item => (
             <div key={item.id} className="relative group w-full">
               <a
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className={`w-full flex items-center justify-between gap-3 px-4 py-3 sm:px-4.5 sm:py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border ${item.borderColor} ${item.glowColor} text-white transition-all backdrop-blur-md cursor-pointer shadow-sm group-hover:scale-[1.01]`}
+                className={`w-full flex items-center justify-between gap-2 sm:gap-3 px-2.5 py-2 sm:px-4.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/15 border ${item.borderColor} ${item.glowColor} text-white transition-all backdrop-blur-md cursor-pointer shadow-sm group-hover:scale-[1.01]`}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-md shrink-0 text-white`}>
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-md shrink-0 text-white`}>
                     {item.iconSvg}
                   </div>
                   <div className="text-left min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-sm font-black tracking-tight">{item.name}</span>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.badgeBg}`}>
+                      <span className="text-xs sm:text-sm font-black tracking-tight">{item.name}</span>
+                      <span className={`hidden sm:inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.badgeBg}`}>
                         {item.badgeText}
                       </span>
                     </div>
-                    <span className="text-[11px] text-white/70 block truncate mt-0.5">{item.handle}</span>
+                    <span className="text-[10px] sm:text-[11px] text-white/70 block truncate mt-0.5">{item.handle}</span>
                   </div>
                 </div>
-                <ExternalLink size={13} className="text-white/40 group-hover:text-white transition shrink-0 ml-1" />
+                <ExternalLink size={13} className="hidden sm:block text-white/40 group-hover:text-white transition shrink-0 ml-1" />
               </a>
 
               {item.qrImage && (
@@ -266,9 +266,9 @@ export default function SocialNetworksBar({ variant = 'inline', className = '' }
                     setActiveQr({ title: item.name, image: item.qrImage!, url: item.url });
                   }}
                   title="Ver QR"
-                  className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-amber-400 text-gray-900 flex items-center justify-center shadow-md hover:scale-110 transition cursor-pointer border-2 border-gray-900 z-10"
+                  className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-amber-400 text-gray-900 flex items-center justify-center shadow-md hover:scale-110 transition cursor-pointer border-2 border-gray-900 z-10"
                 >
-                  <QrCode size={13} />
+                  <QrCode className="w-2.5 h-2.5 sm:w-[13px] sm:h-[13px]" />
                 </button>
               )}
             </div>

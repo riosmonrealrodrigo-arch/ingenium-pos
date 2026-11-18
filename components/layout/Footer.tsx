@@ -8,39 +8,43 @@ interface FooterProps {
 
 export default function Footer({ className = '' }: FooterProps) {
   return (
-    <footer className={`relative z-10 border-t border-white/10 bg-[#08121c] text-gray-300 py-12 px-4 sm:px-6 lg:px-8 text-xs font-sans mt-auto ${className}`}>
-      <div className="max-w-7xl mx-auto space-y-10">
+    <footer className={`relative z-10 border-t border-white/10 bg-[#08121c] text-gray-300 py-7 sm:py-12 px-3.5 sm:px-6 lg:px-8 text-xs font-sans mt-auto ${className}`}>
+      <div className="max-w-7xl mx-auto space-y-5 sm:space-y-10">
         {/* Main Grid: 4 Columns on Desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-8">
           {/* Col 1: Identity & Establishment */}
-          <div className="space-y-3.5">
-            <div className="flex items-center gap-3">
+          <div className="space-y-2.5 sm:space-y-3.5">
+            <div className="flex items-center gap-2.5 sm:gap-3">
               <img
                 src="/images/logo.jpg"
                 alt="INGENIUM MOBILE"
-                className="w-11 h-11 rounded-2xl object-cover border border-white/20 shadow-md"
+                className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl object-cover border border-white/20 shadow-md"
               />
               <div>
-                <p className="font-black text-white text-base tracking-tight">INGENIUM MOBILE</p>
-                <p className="text-[11px] text-blue-400 font-bold">Taller Especializado & Tienda de Refacciones</p>
+                <p className="font-black text-white text-sm sm:text-base tracking-tight">INGENIUM MOBILE</p>
+                <p className="md:hidden text-[10px] text-blue-400 font-bold">Taller Especializado en Reparación de Celulares</p>
+                <p className="hidden md:block text-[11px] text-blue-400 font-bold">Taller Especializado & Tienda de Refacciones</p>
               </div>
             </div>
-            <p className="text-[12px] text-gray-400 leading-relaxed">
+            <p className="md:hidden text-[11px] text-gray-400 leading-relaxed">
+              Servicio técnico profesional y reparación de celulares en Sombrerete, Zacatecas. Venta de refacciones y accesorios garantizados.
+            </p>
+            <p className="hidden md:block text-[12px] text-gray-400 leading-relaxed">
               Servicio técnico profesional de telefonía móvil, venta de pantallas, baterías, repuestos y accesorios garantizados en Sombrerete, Zacatecas.
             </p>
-            <div className="pt-1 flex items-center gap-2 text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit">
+            <div className="pt-0.5 sm:pt-1 flex items-center gap-2 text-[10px] sm:text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl border border-emerald-500/20 w-fit">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Establecimiento Oficial Verificado</span>
             </div>
           </div>
 
           {/* Col 2: Legal & Consumer Compliance (PROFECO & INAI) */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-white font-bold text-sm">
-              <Scale size={16} className="text-amber-400" />
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center gap-2 text-white font-bold text-xs sm:text-sm">
+              <Scale size={15} className="sm:w-4 sm:h-4 text-amber-400" />
               <span>Marco Legal & Consumidor</span>
             </div>
-            <ul className="space-y-2 text-[12px]">
+            <ul className="space-y-1.5 sm:space-y-2 text-[11px] sm:text-[12px]">
               <li>
                 <Link
                   href="/privacidad"
@@ -81,12 +85,12 @@ export default function Footer({ className = '' }: FooterProps) {
           </div>
 
           {/* Col 3: Contact & Location */}
-          <div className="space-y-3">
-            <p className="text-white font-bold text-sm flex items-center gap-2">
-              <MapPin size={16} className="text-red-400" />
+          <div className="space-y-2 sm:space-y-3">
+            <p className="text-white font-bold text-xs sm:text-sm flex items-center gap-2">
+              <MapPin size={15} className="sm:w-4 sm:h-4 text-red-400" />
               <span>Ubicación & Contacto</span>
             </p>
-            <div className="space-y-2 text-[12px] text-gray-400">
+            <div className="space-y-1.5 sm:space-y-2 text-[11px] sm:text-[12px] text-gray-400">
               <p className="flex items-start gap-2">
                 <MapPin size={14} className="text-gray-500 shrink-0 mt-0.5" />
                 <span>Sombrerete, Zacatecas, México. C.P. 99100.</span>
@@ -115,12 +119,12 @@ export default function Footer({ className = '' }: FooterProps) {
           </div>
 
           {/* Col 4: Commercial Terms & Currency */}
-          <div className="space-y-3">
-            <p className="text-white font-bold text-sm flex items-center gap-2">
-              <DollarSign size={16} className="text-amber-400" />
+          <div className="space-y-2 sm:space-y-3">
+            <p className="text-white font-bold text-xs sm:text-sm flex items-center gap-2">
+              <DollarSign size={15} className="sm:w-4 sm:h-4 text-amber-400" />
               <span>Transacciones & Precios</span>
             </p>
-            <div className="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-1.5 text-[11px] text-gray-400 leading-relaxed">
+            <div className="p-2.5 sm:p-3.5 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl space-y-1 sm:space-y-1.5 text-[10px] sm:text-[11px] text-gray-400 leading-relaxed">
               <p className="font-bold text-white flex items-center gap-1.5">
                 <span className="text-amber-400 font-black">$ MXN</span> Moneda Oficial Nacional
               </p>
@@ -132,14 +136,14 @@ export default function Footer({ className = '' }: FooterProps) {
         </div>
 
         {/* Disclaimer on trademarks */}
-        <div className="pt-6 border-t border-white/5 text-[11px] text-gray-500 leading-relaxed">
+        <div className="pt-4 sm:pt-6 border-t border-white/5 text-[10px] sm:text-[11px] text-gray-500 leading-relaxed">
           <p>
             <strong>Deslinde de Marcas Registradas:</strong> Apple, iPhone, Samsung, Galaxy, Xiaomi, Redmi, Huawei, Motorola y demás marcas o nombres comerciales citados en este sitio web son propiedad exclusiva de sus respectivos titulares. INGENIUM MOBILE es un centro independiente de servicio técnico, venta de refacciones y accesorios sin afiliación comercial directa, patrocinio ni representación oficial de los fabricantes citados.
           </p>
         </div>
 
         {/* Bottom Bar: Copyright & Hidden POS Access */}
-        <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-gray-500">
+        <div className="pt-4 sm:pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-[10px] sm:text-[11px] text-gray-500">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1">
             <span>© 2026 INGENIUM MOBILE. Sombrerete, Zacatecas, México. Todos los derechos reservados.</span>
             <span className="text-gray-600">|</span>

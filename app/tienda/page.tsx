@@ -50,6 +50,7 @@ export default function TiendaPage() {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [mobileCols, setMobileCols] = useState<2 | 3>(2);
   const catalogSectionRef = useRef<HTMLElement>(null);
 
   const scrollToCatalog = () => {
@@ -271,64 +272,68 @@ export default function TiendaPage() {
       {/* Hero Banner (Themed dynamically from POS with guaranteed CSS linear-gradient) */}
       <section
         style={{ background: currentTheme.cssGradient }}
-        className="relative text-white py-6 sm:py-8 px-4 sm:px-6 lg:px-8 shadow-md overflow-hidden transition-all duration-700"
+        className="relative text-white py-3.5 sm:py-8 px-3 sm:px-6 lg:px-8 shadow-md overflow-hidden transition-all duration-700"
       >
         {/* Festive Ambiance Overlay */}
         <SeasonalAmbiance themeId={themeId} />
 
-        <div className="relative z-10 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2.5 max-w-xl text-center md:text-left">
+        <div className="relative z-10 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5 md:gap-6">
+          <div className="space-y-1 sm:space-y-2.5 max-w-xl text-center md:text-left">
             <div
               style={{
                 backgroundColor: currentTheme.badgeBg,
                 borderColor: currentTheme.badgeBorder,
                 color: currentTheme.badgeText,
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black backdrop-blur-md border shadow-xs transition-all"
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-black backdrop-blur-md border shadow-xs transition-all"
             >
-              <Sparkles size={13} className="text-amber-300" />
+              <Sparkles size={11} className="sm:w-[13px] sm:h-[13px] text-amber-300" />
               <span>{currentTheme.badge}</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+            <h1 className="text-lg sm:text-3xl font-black tracking-tight leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
               {currentTheme.headline}
             </h1>
 
-            <p className="text-white/90 text-xs sm:text-sm leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
+            <p className="text-white/90 text-[11px] sm:text-sm leading-snug sm:leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)] line-clamp-2 sm:line-clamp-none">
               {currentTheme.tagline}
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
+          <div className="grid grid-cols-2 gap-2 md:gap-3 w-full md:w-auto">
             <div
               style={{
                 backgroundColor: currentTheme.cardBg,
                 borderColor: currentTheme.badgeBorder,
               }}
-              className="backdrop-blur-md p-3.5 rounded-2xl border shadow-lg text-center transform hover:scale-105 transition-all duration-300"
+              className="backdrop-blur-md px-2.5 py-1.5 md:p-3.5 rounded-xl md:rounded-2xl border shadow-lg flex md:block items-center justify-center gap-1.5 text-left md:text-center transform hover:scale-105 transition-all duration-300"
             >
-              <Smartphone size={22} className="mx-auto text-amber-300 mb-1 drop-shadow" />
-              <p className="font-black text-base text-white">100%</p>
-              <p className="text-[10px] text-white/90 font-medium">Garantía Escrita</p>
+              <Smartphone size={16} className="md:w-[22px] md:h-[22px] md:mx-auto text-amber-300 md:mb-1 drop-shadow shrink-0" />
+              <div>
+                <p className="font-black text-xs md:text-base text-white leading-tight">100%</p>
+                <p className="text-[9px] md:text-[10px] text-white/90 font-medium leading-tight">Garantía Escrita</p>
+              </div>
             </div>
             <div
               style={{
                 backgroundColor: currentTheme.cardBg,
                 borderColor: currentTheme.badgeBorder,
               }}
-              className="backdrop-blur-md p-3.5 rounded-2xl border shadow-lg text-center transform hover:scale-105 transition-all duration-300"
+              className="backdrop-blur-md px-2.5 py-1.5 md:p-3.5 rounded-xl md:rounded-2xl border shadow-lg flex md:block items-center justify-center gap-1.5 text-left md:text-center transform hover:scale-105 transition-all duration-300"
             >
-              <Wrench size={22} className="mx-auto text-amber-300 mb-1 drop-shadow" />
-              <p className="font-black text-base text-white">Taller</p>
-              <p className="text-[10px] text-white/90 font-medium">En el acto</p>
+              <Wrench size={16} className="md:w-[22px] md:h-[22px] md:mx-auto text-amber-300 md:mb-1 drop-shadow shrink-0" />
+              <div>
+                <p className="font-black text-xs md:text-base text-white leading-tight">Taller</p>
+                <p className="text-[9px] md:text-[10px] text-white/90 font-medium leading-tight">En el acto</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Categories Bar */}
-      <div className="bg-white border-b border-gray-200 sticky top-14 sm:top-16 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <div className="bg-white border-b border-gray-200 sticky top-[96px] md:top-16 z-30 shadow-xs">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
           {[
             { id: 'todos', label: 'Todos los productos' },
             { id: 'repuestos', label: 'Repuestos & Pantallas' },
@@ -346,7 +351,7 @@ export default function TiendaPage() {
                   ? { backgroundColor: currentTheme.accentColor, color: '#ffffff' }
                   : {}
               }
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+              className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                 selectedCategory === cat.id
                   ? 'shadow-xs'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -362,13 +367,36 @@ export default function TiendaPage() {
       <main
         ref={catalogSectionRef}
         id="catalogo-productos"
-        className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full scroll-mt-36"
+        className="flex-1 max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8 pb-20 sm:pb-8 w-full scroll-mt-36"
       >
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+        <div className="flex items-center justify-between gap-2 mb-3 sm:mb-6">
+          <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
             Mostrando {filtered.length} productos disponibles
           </p>
-          <span className="text-xs text-gray-400">Precios en Moneda Nacional ($ MXN)</span>
+          <div className="flex items-center gap-2">
+            {/* Selector de vista compacto solo para celular */}
+            <div className="sm:hidden flex items-center bg-gray-200/80 rounded-lg p-0.5 text-[10px] font-bold">
+              <button
+                type="button"
+                onClick={() => setMobileCols(2)}
+                className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
+                  mobileCols === 2 ? 'bg-white text-[#1e3a5f] shadow-xs' : 'text-gray-500'
+                }`}
+              >
+                2 col
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileCols(3)}
+                className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
+                  mobileCols === 3 ? 'bg-white text-[#1e3a5f] shadow-xs' : 'text-gray-500'
+                }`}
+              >
+                3 col
+              </button>
+            </div>
+            <span className="hidden sm:inline text-xs text-gray-400">Precios en Moneda Nacional ($ MXN)</span>
+          </div>
         </div>
 
         {filtered.length === 0 ? (
@@ -378,19 +406,28 @@ export default function TiendaPage() {
             <p className="text-xs text-gray-400 mt-1">Intenta con otra palabra clave o categoría.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div
+            className={`grid ${
+              mobileCols === 3 ? 'grid-cols-3 gap-1.5' : 'grid-cols-2 gap-2.5'
+            } sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6`}
+          >
             {filtered.map(product => {
               const isAvailable = product.stock > 0;
               const isServiceItem = isServicio(product);
               const hasPrice = typeof product.sale_price === 'number' && product.sale_price > 0;
+              const isCompact3 = mobileCols === 3;
 
               return (
                 <div
                   key={product.id}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group"
+                  className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group"
                 >
                   {/* Product Image */}
-                  <div className="relative h-48 bg-gray-100 overflow-hidden">
+                  <div
+                    className={`relative ${
+                      isCompact3 ? 'h-20' : 'h-28'
+                    } sm:h-48 bg-gray-100 overflow-hidden`}
+                  >
                     <img
                       src={
                         product.image_url ||
@@ -401,25 +438,31 @@ export default function TiendaPage() {
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute top-3 left-3 flex flex-col gap-1">
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#1e3a5f]/90 text-white backdrop-blur-sm">
+                    <div
+                      className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 flex flex-col gap-1 ${
+                        isCompact3 ? 'hidden sm:flex' : ''
+                      }`}
+                    >
+                      <span className="text-[8px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 sm:px-2 rounded-md bg-[#1e3a5f]/90 text-white backdrop-blur-sm">
                         {product.code}
                       </span>
                     </div>
 
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-1.5 right-1.5 sm:top-3 sm:right-3">
                       {isServiceItem ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-sm flex items-center gap-1">
-                          <Wrench size={10} />
-                          Servicio Técnico
+                        <span className="text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded-full bg-blue-600 text-white shadow-sm flex items-center gap-0.5 sm:gap-1">
+                          <Wrench size={9} className="sm:w-[10px] sm:h-[10px]" />
+                          <span className="sm:hidden">{isCompact3 ? 'Taller' : 'Servicio'}</span>
+                          <span className="hidden sm:inline">Servicio Técnico</span>
                         </span>
                       ) : isAvailable ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                          En stock ({product.stock})
+                        <span className="text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded-full bg-emerald-500 text-white shadow-sm flex items-center gap-0.5 sm:gap-1">
+                          <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white animate-pulse"></span>
+                          <span className="sm:hidden">{isCompact3 ? product.stock : `Stock (${product.stock})`}</span>
+                          <span className="hidden sm:inline">En stock ({product.stock})</span>
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500 text-white">
+                        <span className="text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded-full bg-red-500 text-white">
                           Agotado
                         </span>
                       )}
@@ -427,22 +470,30 @@ export default function TiendaPage() {
                   </div>
 
                   {/* Info */}
-                  <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="font-bold text-sm text-gray-900 group-hover:text-[#2563eb] transition line-clamp-1 mb-1">
+                  <div className={`${isCompact3 ? 'p-1.5' : 'p-2.5'} sm:p-4 flex-1 flex flex-col`}>
+                    <h3
+                      className={`font-bold ${
+                        isCompact3 ? 'text-[10px] leading-tight mb-1' : 'text-xs leading-snug mb-0.5'
+                      } sm:text-sm text-gray-900 group-hover:text-[#2563eb] transition line-clamp-2 sm:line-clamp-1 sm:mb-1`}
+                    >
                       {product.name}
                     </h3>
-                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed flex-1 mb-3">
+                    <p
+                      className={`${
+                        isCompact3 ? 'hidden sm:block' : 'text-[10px] mb-2'
+                      } sm:text-xs text-gray-500 line-clamp-2 leading-snug sm:leading-relaxed flex-1 sm:mb-3`}
+                    >
                       {product.commercial_description || product.description || (isServiceItem ? 'Servicio técnico especializado para taller.' : 'Repuesto garantizado para taller.')}
                     </p>
 
                     {/* Precio y Acción */}
                     {isServiceItem && !hasPrice ? (
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between mt-auto gap-2">
+                      <div className="pt-1.5 sm:pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between mt-auto gap-1.5 sm:gap-2">
                         <div>
-                          <span className="text-[10px] text-amber-700 font-bold block uppercase tracking-wider">
-                            Servicio en Taller
+                          <span className="text-[8px] sm:text-[10px] text-amber-700 font-bold block uppercase tracking-wider">
+                            {isCompact3 ? 'En Taller' : 'Servicio en Taller'}
                           </span>
-                          <span className="text-xs font-semibold text-gray-500">
+                          <span className={`${isCompact3 ? 'hidden sm:inline' : 'text-[10px]'} sm:text-xs font-semibold text-gray-500`}>
                             Cotización personalizada
                           </span>
                         </div>
@@ -452,20 +503,23 @@ export default function TiendaPage() {
                             const msg = `¡Hola INGENIUM MOBILE! 👋 Me interesa cotizar el servicio de reparación: *${product.name}* (Código: ${product.code}). ¿Cuál sería el costo y tiempo de entrega?`;
                             window.open(`https://wa.me/528139629319?text=${encodeURIComponent(msg)}`, '_blank');
                           }}
-                          className="px-3 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 active:scale-95 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                          className={`w-full sm:w-auto justify-center ${
+                            isCompact3 ? 'px-1.5 py-1 text-[9px]' : 'px-2.5 py-1.5 text-[11px]'
+                          } sm:px-3 sm:py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 active:scale-95 text-white font-bold rounded-lg sm:rounded-xl sm:text-xs transition shadow-sm flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap`}
                           title="Cotizar directamente por WhatsApp"
                         >
-                          <MessageSquare size={13} />
-                          Cotizar Reparación
+                          <MessageSquare size={11} className="sm:w-[13px] sm:h-[13px] shrink-0" />
+                          <span className="sm:hidden">Cotizar</span>
+                          <span className="hidden sm:inline">Cotizar Reparación</span>
                         </button>
                       </div>
                     ) : (
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between mt-auto">
+                      <div className="pt-1.5 sm:pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between mt-auto gap-1.5 sm:gap-2">
                         <div>
-                          <span className="text-[10px] text-gray-400 block font-medium">
+                          <span className={`${isCompact3 ? 'hidden sm:block' : 'text-[9px]'} sm:text-[10px] text-gray-400 block font-medium`}>
                             {isServiceItem ? 'Costo desde' : 'Precio final'}
                           </span>
-                          <span className="font-black text-lg text-[#1e3a5f]">
+                          <span className={`font-black ${isCompact3 ? 'text-[11px]' : 'text-sm'} sm:text-lg text-[#1e3a5f] block leading-tight`}>
                             {formatCurrency(product.sale_price)}
                           </span>
                         </div>
@@ -473,9 +527,11 @@ export default function TiendaPage() {
                         <button
                           onClick={() => handleActionClick(product)}
                           disabled={!isAvailable && !isServiceItem}
-                          className="px-3.5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-95 text-white font-bold rounded-xl text-xs transition shadow-sm disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 cursor-pointer"
+                          className={`w-full sm:w-auto justify-center ${
+                            isCompact3 ? 'px-1.5 py-1 text-[9px]' : 'px-2.5 py-1.5 text-[11px]'
+                          } sm:px-3.5 sm:py-2 bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-95 text-white font-bold rounded-lg sm:rounded-xl sm:text-xs transition shadow-sm disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 cursor-pointer`}
                         >
-                          <ShoppingBag size={14} />
+                          <ShoppingBag size={11} className="sm:w-[14px] sm:h-[14px] shrink-0" />
                           {isServiceItem ? 'Solicitar' : 'Comprar'}
                         </button>
                       </div>
