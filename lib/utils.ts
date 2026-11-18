@@ -1,4 +1,4 @@
-import { RepairEvidence } from '@/types';
+import { RepairEvidence, ProductSpec } from '@/types';
 
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
@@ -148,4 +148,73 @@ export const compressImage = (
     };
     reader.onerror = () => reject(new Error('Error al leer el archivo'));
   });
+};
+
+// Extrae descripción limpia, galería adicional de imágenes y ficha técnica (especificaciones) de un producto/servicio
+export const extractProductMetadata = (
+  description?: string | null,
+  primaryImage?: string | null
+): { cleanDescription: string; gallery: string[]; specs: ProductSpec[] } => {
+  const raw = description || '';
+  const primary = (primaryImage || '').trim();
+  let cleanDescription = raw;
+  let extraImages: string[] = [];
+  let specs: ProductSpec[] = [];
+
+  const match = raw.match(/\[MetaProducto:\s*([\s\S]*?)\]\s*$/i);
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      cleanDescription = raw.replace(/\[MetaProducto:\s*[\s\S]*?\]\s*$/i, '').trim();
+      if (Array.isArray(parsed?.gallery)) {
+        extraImages = parsed.gallery.filter((x: unknown): x is string => typeof x === 'string' && x.trim().length > 0);
+      }
+      if (Array.isArray(parsed?.specs)) {
+        specs = parsed.specs
+          .filter((s: any) => s && typeof s.label === 'string' && typeof s.value === 'string')
+          .map((s: any) => ({ label: s.label.trim(), value: s.value.trim() }))
+          .filter((s: ProductSpec) => s.label.length > 0 && s.value.length > 0);
+      }
+    } catch {
+      // Si falla el parseo JSON, conservar texto sin romper
+    }
+  }
+
+  // Combinar imagen principal + galería adicional sin duplicados
+  const gallery: string[] = [];
+  if (primary) gallery.push(primary);
+  for (const img of extraImages) {
+    const trimmed = img.trim();
+    if (trimmed && !gallery.includes(trimmed)) {
+      gallery.push(trimmed);
+    }
+  }
+
+  return { cleanDescription, gallery, specs };
+};
+
+// Serializa descripción interna junto con galería adicional y características estructuradas
+export const formatDescriptionWithMetadata = (
+  cleanDescription: string,
+  gallery: string[],
+  specs: ProductSpec[]
+): string => {
+  const trimmedDesc = (cleanDescription || '').trim();
+  const validGallery = (gallery || []).map(g => g.trim()).filter(Boolean);
+  // Guardar desde la segunda imagen en adelante en metadata (la primera va en image_url)
+  const extraGallery = validGallery.slice(1);
+  const validSpecs = (specs || [])
+    .map(s => ({ label: s.label.trim(), value: s.value.trim() }))
+    .filter(s => s.label.length > 0 && s.value.length > 0);
+
+  if (extraGallery.length === 0 && validSpecs.length === 0) {
+    return trimmedDesc;
+  }
+
+  const payload: { gallery?: string[]; specs?: ProductSpec[] } = {};
+  if (extraGallery.length > 0) payload.gallery = extraGallery;
+  if (validSpecs.length > 0) payload.specs = validSpecs;
+
+  const metaTag = `[MetaProducto: ${JSON.stringify(payload)}]`;
+  return trimmedDesc ? `${trimmedDesc}\n${metaTag}` : metaTag;
 };

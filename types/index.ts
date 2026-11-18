@@ -31,6 +31,16 @@ export interface Category {
   name: string;
 }
 
+export interface ProductSpec {
+  label: string;
+  value: string;
+}
+
+export interface ProductMetadata {
+  gallery: string[];
+  specs: ProductSpec[];
+}
+
 export interface Product {
   id: string;
   business_id: string;

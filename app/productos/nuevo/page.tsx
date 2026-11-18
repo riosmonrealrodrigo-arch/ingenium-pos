@@ -8,6 +8,9 @@ import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
 import { ArrowLeft, Save, Globe, Smartphone, Zap, Wrench, CheckCircle2 } from 'lucide-react';
 import { CATEGORY_UUIDS } from '@/lib/categories';
+import { ProductSpec } from '@/types';
+import { formatDescriptionWithMetadata } from '@/lib/utils';
+import ProductMediaAndSpecsEditor from '@/components/productos/ProductMediaAndSpecsEditor';
 
 const CATEGORY_OPTIONS = [
   {
@@ -39,6 +42,8 @@ export default function NuevoProductoPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [gallery, setGallery] = useState<string[]>([]);
+  const [specs, setSpecs] = useState<ProductSpec[]>([]);
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -85,13 +90,17 @@ export default function NuevoProductoPage() {
     const finalCode = form.code.trim() || `${prefix}-${Date.now().toString(36).toUpperCase()}`;
 
     try {
+      const mainImage = gallery[0] || form.image_url.trim();
+      const fullGallery = gallery.length > 0 ? gallery : mainImage ? [mainImage] : [];
+      const encodedDescription = formatDescriptionWithMetadata(form.description, fullGallery, specs);
+
       await addProduct({
         code: finalCode,
         name: form.name.trim(),
         category_id: form.category_id,
-        description: form.description,
+        description: encodedDescription,
         commercial_description: form.commercial_description || form.description,
-        image_url: form.image_url,
+        image_url: mainImage,
         visible_en_tienda: form.visible_en_tienda,
         purchase_price: parseFloat(form.purchase_price) || 0,
         sale_price: form.sale_price !== '' && !isNaN(parseFloat(form.sale_price)) ? parseFloat(form.sale_price) : 0,
@@ -281,11 +290,15 @@ export default function NuevoProductoPage() {
 
               {form.visible_en_tienda && (
                 <>
-                  <Field
-                    label="URL de Foto (Opcional)"
-                    placeholder="https://ejemplo.com/foto.jpg"
-                    value={form.image_url}
-                    onChange={set('image_url')}
+                  <ProductMediaAndSpecsEditor
+                    gallery={gallery}
+                    onGalleryChange={next => {
+                      setGallery(next);
+                      setForm(f => ({ ...f, image_url: next[0] || '' }));
+                    }}
+                    specs={specs}
+                    onSpecsChange={setSpecs}
+                    isService={isService}
                   />
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
@@ -294,8 +307,8 @@ export default function NuevoProductoPage() {
                     <textarea
                       value={form.commercial_description}
                       onChange={set('commercial_description')}
-                      rows={2}
-                      placeholder={isService ? 'Explica lo que incluye el servicio, garantía en mano de obra o tiempo estimado...' : 'Garantía, calidad o compatibilidad...'}
+                      rows={3}
+                      placeholder={isService ? 'Explica lo que incluye el servicio, garantía en mano de obra o tiempo estimado...' : 'Garantía, calidad, compatibilidad y detalles completos...'}
                       className="w-full px-4 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb] resize-none"
                     />
                   </div>

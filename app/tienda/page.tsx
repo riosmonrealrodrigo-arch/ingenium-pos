@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import StoreThemeModal from '@/components/store/StoreThemeModal';
 import Footer from '@/components/layout/Footer';
 import { Product, StorefrontCustomer } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, extractProductMetadata } from '@/lib/utils';
 import { isRepuesto, isAccesorio, isServicio } from '@/lib/categories';
 import ClientAuthModal from '@/components/store/ClientAuthModal';
 import FloatingChatWidget from '@/components/store/FloatingChatWidget';
@@ -33,7 +33,8 @@ import {
   Palette,
   Settings,
   Package,
-  MessageSquare
+  MessageSquare,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export default function TiendaPage() {
@@ -77,8 +78,30 @@ export default function TiendaPage() {
           // ignore
         }
       }
+      const savedCart = localStorage.getItem('ingenium_store_cart');
+      if (savedCart) {
+        try {
+          setCart(JSON.parse(savedCart));
+        } catch {
+          // ignore
+        }
+      }
     }
   }, [loadProducts]);
+
+  const syncCart = (updater: (prev: { product: Product; quantity: number }[]) => { product: Product; quantity: number }[]) => {
+    setCart(prev => {
+      const next = updater(prev);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('ingenium_store_cart', JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+      }
+      return next;
+    });
+  };
 
   // Filter storefront products
   const storeProducts = products.filter(p => p.visible_en_tienda !== false && p.active !== false);
@@ -106,7 +129,7 @@ export default function TiendaPage() {
   };
 
   const addToCart = (product: Product) => {
-    setCart(prev => {
+    syncCart(prev => {
       const exists = prev.find(i => i.product.id === product.id);
       if (exists) {
         return prev.map(i => (i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i));
@@ -150,7 +173,7 @@ export default function TiendaPage() {
     const url = `https://wa.me/528139629319?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
     setOrderSent(true);
-    setCart([]);
+    syncCart(() => []);
   };
 
   return (
@@ -416,25 +439,27 @@ export default function TiendaPage() {
               const isServiceItem = isServicio(product);
               const hasPrice = typeof product.sale_price === 'number' && product.sale_price > 0;
               const isCompact3 = mobileCols === 3;
+              const { cleanDescription, gallery } = extractProductMetadata(product.description, product.image_url);
+              const mainPhoto =
+                gallery[0] ||
+                (isServiceItem
+                  ? 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80'
+                  : 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&auto=format&fit=crop&q=80');
 
               return (
                 <div
                   key={product.id}
                   className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group"
                 >
-                  {/* Product Image */}
-                  <div
-                    className={`relative ${
+                  {/* Product Image (Clic para abrir detalles estilo Mercado Libre) */}
+                  <Link
+                    href={`/tienda/${product.id}`}
+                    className={`block relative ${
                       isCompact3 ? 'h-20' : 'h-28'
-                    } sm:h-48 bg-gray-100 overflow-hidden`}
+                    } sm:h-48 bg-gray-100 overflow-hidden cursor-pointer`}
                   >
                     <img
-                      src={
-                        product.image_url ||
-                        (isServiceItem
-                          ? 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80'
-                          : 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&auto=format&fit=crop&q=80')
-                      }
+                      src={mainPhoto}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -467,24 +492,39 @@ export default function TiendaPage() {
                         </span>
                       )}
                     </div>
-                  </div>
+
+                    {gallery.length > 1 && (
+                      <span className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 bg-gray-900/75 text-white text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md backdrop-blur-xs flex items-center gap-1">
+                        <ImageIcon size={10} /> {gallery.length}
+                      </span>
+                    )}
+                  </Link>
 
                   {/* Info */}
                   <div className={`${isCompact3 ? 'p-1.5' : 'p-2.5'} sm:p-4 flex-1 flex flex-col`}>
-                    <h3
-                      className={`font-bold ${
-                        isCompact3 ? 'text-[10px] leading-tight mb-1' : 'text-xs leading-snug mb-0.5'
-                      } sm:text-sm text-gray-900 group-hover:text-[#2563eb] transition line-clamp-2 sm:line-clamp-1 sm:mb-1`}
-                    >
-                      {product.name}
-                    </h3>
-                    <p
-                      className={`${
-                        isCompact3 ? 'hidden sm:block' : 'text-[10px] mb-2'
-                      } sm:text-xs text-gray-500 line-clamp-2 leading-snug sm:leading-relaxed flex-1 sm:mb-3`}
-                    >
-                      {product.commercial_description || product.description || (isServiceItem ? 'Servicio técnico especializado para taller.' : 'Repuesto garantizado para taller.')}
-                    </p>
+                    <Link href={`/tienda/${product.id}`} className="flex-1 flex flex-col group/title">
+                      <h3
+                        className={`font-bold ${
+                          isCompact3 ? 'text-[10px] leading-tight mb-1' : 'text-xs leading-snug mb-0.5'
+                        } sm:text-sm text-gray-900 group-hover/title:text-[#2563eb] group-hover:text-[#2563eb] transition line-clamp-2 sm:line-clamp-1 sm:mb-1`}
+                      >
+                        {product.name}
+                      </h3>
+                      <p
+                        className={`${
+                          isCompact3 ? 'hidden sm:block' : 'text-[10px] mb-1.5'
+                        } sm:text-xs text-gray-500 line-clamp-2 leading-snug sm:leading-relaxed flex-1 sm:mb-2`}
+                      >
+                        {product.commercial_description || cleanDescription || (isServiceItem ? 'Servicio técnico especializado para taller.' : 'Repuesto garantizado para taller.')}
+                      </p>
+                      <span
+                        className={`${
+                          isCompact3 ? 'hidden sm:inline-block' : 'text-[10px]'
+                        } sm:text-[11px] font-bold text-[#2563eb] hover:underline mb-2 sm:mb-2.5`}
+                      >
+                        Ver características →
+                      </span>
+                    </Link>
 
                     {/* Precio y Acción */}
                     {isServiceItem && !hasPrice ? (

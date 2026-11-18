@@ -3,13 +3,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useProducts } from '@/context/ProductContext';
-import { Product } from '@/types';
+import { Product, ProductSpec } from '@/types';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
 import { ArrowLeft, Save, Globe, Trash2, Smartphone, Zap, Wrench, CheckCircle2, RefreshCw } from 'lucide-react';
 import { CATEGORY_UUIDS, normalizeCategoryId, isServicio, isAccesorio } from '@/lib/categories';
+import { extractProductMetadata, formatDescriptionWithMetadata } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import ProductMediaAndSpecsEditor from '@/components/productos/ProductMediaAndSpecsEditor';
 
 const CATEGORY_OPTIONS = [
   {
@@ -43,6 +45,8 @@ export default function EditarProductoPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [gallery, setGallery] = useState<string[]>([]);
+  const [specs, setSpecs] = useState<ProductSpec[]>([]);
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -79,13 +83,21 @@ export default function EditarProductoPage() {
           ? CATEGORY_UUIDS.accesorios
           : CATEGORY_UUIDS.repuestos);
 
+      const { cleanDescription, gallery: parsedGallery, specs: parsedSpecs } = extractProductMetadata(
+        p.description,
+        p.image_url
+      );
+
+      setGallery(parsedGallery);
+      setSpecs(parsedSpecs);
+
       setForm({
         code: p.code || '',
         name: p.name || '',
         category_id: detectedCat,
-        description: p.description ?? '',
-        commercial_description: p.commercial_description ?? p.description ?? '',
-        image_url: p.image_url ?? '',
+        description: cleanDescription,
+        commercial_description: p.commercial_description ?? cleanDescription,
+        image_url: parsedGallery[0] ?? '',
         visible_en_tienda: p.visible_en_tienda !== false,
         purchase_price: p.purchase_price ? String(p.purchase_price) : '',
         sale_price: p.sale_price && p.sale_price > 0 ? String(p.sale_price) : '',
@@ -145,14 +157,17 @@ export default function EditarProductoPage() {
           : 0;
 
       const finalStock = isService ? (parseInt(form.stock) || 999) : (parseInt(form.stock) || 0);
+      const mainImage = gallery[0] || form.image_url.trim();
+      const fullGallery = gallery.length > 0 ? gallery : mainImage ? [mainImage] : [];
+      const encodedDescription = formatDescriptionWithMetadata(form.description, fullGallery, specs);
 
       const updateData = {
         code: form.code,
         name: form.name.trim(),
         category_id: normalizeCategoryId(form.category_id) || CATEGORY_UUIDS.repuestos,
-        description: form.description,
+        description: encodedDescription,
         commercial_description: form.commercial_description,
-        image_url: form.image_url,
+        image_url: mainImage,
         visible_en_tienda: form.visible_en_tienda,
         purchase_price: parseFloat(form.purchase_price) || 0,
         sale_price: finalPrice,
@@ -361,17 +376,16 @@ export default function EditarProductoPage() {
 
               {form.visible_en_tienda && (
                 <>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
-                      URL de Foto (Opcional)
-                    </label>
-                    <input
-                      placeholder="https://ejemplo.com/foto.jpg"
-                      value={form.image_url}
-                      onChange={set('image_url')}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                    />
-                  </div>
+                  <ProductMediaAndSpecsEditor
+                    gallery={gallery}
+                    onGalleryChange={next => {
+                      setGallery(next);
+                      setForm(f => ({ ...f, image_url: next[0] || '' }));
+                    }}
+                    specs={specs}
+                    onSpecsChange={setSpecs}
+                    isService={isService}
+                  />
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
                       Descripción Comercial (Catálogo Web)
@@ -379,8 +393,8 @@ export default function EditarProductoPage() {
                     <textarea
                       value={form.commercial_description}
                       onChange={set('commercial_description')}
-                      rows={2}
-                      placeholder={isService ? 'Explica lo que incluye el servicio, garantía o tiempo estimado...' : 'Garantía, especificaciones para el cliente...'}
+                      rows={3}
+                      placeholder={isService ? 'Explica lo que incluye el servicio, garantía o tiempo estimado...' : 'Garantía, especificaciones completas para el cliente...'}
                       className="w-full px-4 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb] resize-none"
                     />
                   </div>
