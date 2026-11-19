@@ -8,7 +8,7 @@ import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
 import { ArrowLeft, Save, Globe, Smartphone, Zap, Wrench, CheckCircle2 } from 'lucide-react';
 import { CATEGORY_UUIDS } from '@/lib/categories';
-import { ProductSpec } from '@/types';
+import { ProductSpec, ProductVariantGroup } from '@/types';
 import { formatDescriptionWithMetadata } from '@/lib/utils';
 import ProductMediaAndSpecsEditor from '@/components/productos/ProductMediaAndSpecsEditor';
 
@@ -44,6 +44,7 @@ export default function NuevoProductoPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [gallery, setGallery] = useState<string[]>([]);
   const [specs, setSpecs] = useState<ProductSpec[]>([]);
+  const [variants, setVariants] = useState<ProductVariantGroup[]>([]);
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -92,7 +93,7 @@ export default function NuevoProductoPage() {
     try {
       const mainImage = gallery[0] || form.image_url.trim();
       const fullGallery = gallery.length > 0 ? gallery : mainImage ? [mainImage] : [];
-      const encodedDescription = formatDescriptionWithMetadata(form.description, fullGallery, specs);
+      const encodedDescription = formatDescriptionWithMetadata(form.description, fullGallery, specs, undefined, variants);
 
       await addProduct({
         code: finalCode,
@@ -298,6 +299,8 @@ export default function NuevoProductoPage() {
                     }}
                     specs={specs}
                     onSpecsChange={setSpecs}
+                    variants={variants}
+                    onVariantsChange={setVariants}
                     isService={isService}
                   />
                   <div>

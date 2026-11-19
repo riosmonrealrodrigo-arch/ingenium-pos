@@ -68,7 +68,7 @@ export const addProductReview = async (
   product: Product,
   newReview: Omit<ProductReview, 'id' | 'created_at'>
 ): Promise<ProductReview> => {
-  const { cleanDescription, gallery, specs, reviews } = extractProductMetadata(
+  const { cleanDescription, gallery, specs, reviews, variants } = extractProductMetadata(
     product.description,
     product.image_url
   );
@@ -84,7 +84,8 @@ export const addProductReview = async (
     cleanDescription,
     gallery,
     specs,
-    updatedReviews
+    updatedReviews,
+    variants
   );
 
   // 1. Guardar en Supabase directamente
@@ -106,7 +107,7 @@ export const deleteProductReview = async (
   product: Product,
   reviewId: string
 ): Promise<void> => {
-  const { cleanDescription, gallery, specs, reviews } = extractProductMetadata(
+  const { cleanDescription, gallery, specs, reviews, variants } = extractProductMetadata(
     product.description,
     product.image_url
   );
@@ -116,7 +117,8 @@ export const deleteProductReview = async (
     cleanDescription,
     gallery,
     specs,
-    updatedReviews
+    updatedReviews,
+    variants
   );
 
   const { error } = await supabase

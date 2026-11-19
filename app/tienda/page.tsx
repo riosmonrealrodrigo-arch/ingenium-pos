@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useProducts } from '@/context/ProductContext';
 import { useStoreTheme } from '@/context/StoreThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -34,10 +35,13 @@ import {
   Settings,
   Package,
   MessageSquare,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Layers,
+  Tag,
 } from 'lucide-react';
 
 export default function TiendaPage() {
+  const router = useRouter();
   const { products, loadProducts } = useProducts();
   const { currentTheme, themeId } = useStoreTheme();
   const { profile } = useAuth();
@@ -47,7 +51,7 @@ export default function TiendaPage() {
   const [customer, setCustomer] = useState<StorefrontCustomer | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
-  const [cart, setCart] = useState<{ product: Product; quantity: number }[]>([]);
+  const [cart, setCart] = useState<{ product: Product; quantity: number; selected_variant?: string }[]>([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -89,7 +93,11 @@ export default function TiendaPage() {
     }
   }, [loadProducts]);
 
-  const syncCart = (updater: (prev: { product: Product; quantity: number }[]) => { product: Product; quantity: number }[]) => {
+  const syncCart = (
+    updater: (
+      prev: { product: Product; quantity: number; selected_variant?: string }[]
+    ) => { product: Product; quantity: number; selected_variant?: string }[]
+  ) => {
     setCart(prev => {
       const next = updater(prev);
       if (typeof window !== 'undefined') {
@@ -120,6 +128,12 @@ export default function TiendaPage() {
   });
 
   const handleActionClick = (product: Product) => {
+    const { variants } = extractProductMetadata(product.description, product.image_url);
+    const hasVariants = (variants || []).some(v => v.enabled && v.options && v.options.length > 0);
+    if (hasVariants) {
+      router.push(`/tienda/${product.id}`);
+      return;
+    }
     if (!customer) {
       setPendingProduct(product);
       setAuthModalOpen(true);
@@ -128,13 +142,20 @@ export default function TiendaPage() {
     addToCart(product);
   };
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, selectedVariant?: string) => {
     syncCart(prev => {
-      const exists = prev.find(i => i.product.id === product.id);
+      const variantKey = (selectedVariant || '').trim();
+      const exists = prev.find(
+        i => i.product.id === product.id && (i.selected_variant || '') === variantKey
+      );
       if (exists) {
-        return prev.map(i => (i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i));
+        return prev.map(i =>
+          i.product.id === product.id && (i.selected_variant || '') === variantKey
+            ? { ...i, quantity: i.quantity + 1 }
+            : i
+        );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, selected_variant: variantKey || undefined }];
     });
     setCartDrawerOpen(true);
   };
@@ -160,7 +181,10 @@ export default function TiendaPage() {
     if (!customer || cart.length === 0) return;
 
     const itemsText = cart
-      .map(i => `• ${i.quantity}x ${i.product.name} (${formatCurrency(i.product.sale_price * i.quantity)})`)
+      .map(i => {
+        const variantTag = i.selected_variant ? ` [${i.selected_variant}]` : '';
+        return `• ${i.quantity}x ${i.product.name}${variantTag} (${formatCurrency(i.product.sale_price * i.quantity)})`;
+      })
       .join('\n');
 
     const msg = `*¡NUEVO PEDIDO DESDE CATÁLOGO ONLINE!* 📱🛒\n\n` +
@@ -439,7 +463,8 @@ export default function TiendaPage() {
               const isServiceItem = isServicio(product);
               const hasPrice = typeof product.sale_price === 'number' && product.sale_price > 0;
               const isCompact3 = mobileCols === 3;
-              const { cleanDescription, gallery } = extractProductMetadata(product.description, product.image_url);
+              const { cleanDescription, gallery, variants } = extractProductMetadata(product.description, product.image_url);
+              const hasActiveVariants = (variants || []).some(v => v.enabled && v.options && v.options.length > 0);
               const mainPhoto =
                 gallery[0] ||
                 (isServiceItem
@@ -517,12 +542,18 @@ export default function TiendaPage() {
                       >
                         {product.commercial_description || cleanDescription || (isServiceItem ? 'Servicio técnico especializado para taller.' : 'Repuesto garantizado para taller.')}
                       </p>
+                      {hasActiveVariants && (
+                        <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200/80 px-2 py-0.5 rounded-md w-fit mb-1.5">
+                          <Layers size={10} className="text-sky-600 shrink-0" />
+                          <span>Opciones de conectores / colores</span>
+                        </span>
+                      )}
                       <span
                         className={`${
                           isCompact3 ? 'hidden sm:inline-block' : 'text-[10px]'
                         } sm:text-[11px] font-bold text-[#2563eb] hover:underline mb-2 sm:mb-2.5`}
                       >
-                        Ver características →
+                        {hasActiveVariants ? 'Ver opciones y comprar →' : 'Ver características →'}
                       </span>
                     </Link>
 
@@ -572,7 +603,7 @@ export default function TiendaPage() {
                           } sm:px-3.5 sm:py-2 bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-95 text-white font-bold rounded-lg sm:rounded-xl sm:text-xs transition shadow-sm disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 cursor-pointer`}
                         >
                           <ShoppingBag size={11} className="sm:w-[14px] sm:h-[14px] shrink-0" />
-                          {isServiceItem ? 'Solicitar' : 'Comprar'}
+                          {hasActiveVariants ? 'Elegir' : isServiceItem ? 'Solicitar' : 'Comprar'}
                         </button>
                       </div>
                     )}
@@ -637,20 +668,34 @@ export default function TiendaPage() {
             ) : (
               <>
                 <div className="flex-1 overflow-y-auto py-4 space-y-3">
-                  {cart.map(item => (
+                  {cart.map((item, idx) => (
                     <div
-                      key={item.product.id}
+                      key={`${item.product.id}-${item.selected_variant || 'def'}-${idx}`}
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100"
                     >
                       <div className="flex-1 min-w-0 pr-3">
                         <p className="font-bold text-xs text-gray-800 truncate">{item.product.name}</p>
+                        {item.selected_variant && (
+                          <p className="text-[10px] text-blue-700 bg-blue-50 border border-blue-200/70 font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1 mt-0.5 max-w-full truncate">
+                            <Tag size={10} className="shrink-0" /> {item.selected_variant}
+                          </p>
+                        )}
                         <p className="text-[11px] text-gray-500">
                           {item.quantity} x {formatCurrency(item.product.sale_price)}
                         </p>
                       </div>
-                      <span className="font-black text-sm text-[#1e3a5f]">
-                        {formatCurrency(item.product.sale_price * item.quantity)}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-black text-sm text-[#1e3a5f]">
+                          {formatCurrency(item.product.sale_price * item.quantity)}
+                        </span>
+                        <button
+                          onClick={() => syncCart(prev => prev.filter((_, i) => i !== idx))}
+                          className="text-red-400 hover:text-red-600 p-1 text-xs cursor-pointer"
+                          title="Quitar"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

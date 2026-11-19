@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useProducts } from '@/context/ProductContext';
 import { useStoreTheme } from '@/context/StoreThemeContext';
-import { Product, StorefrontCustomer, ProductReview } from '@/types';
+import { Product, StorefrontCustomer, ProductReview, ProductVariantGroup } from '@/types';
 import { formatCurrency, extractProductMetadata } from '@/lib/utils';
 import { isRepuesto, isAccesorio, isServicio } from '@/lib/categories';
 import { getReviewsEnabledStatus } from '@/lib/reviews';
@@ -38,6 +38,8 @@ import {
   Plus,
   Star,
   Image as ImageIcon,
+  Layers,
+  Tag,
 } from 'lucide-react';
 
 const FALLBACK_SERVICE_IMG =
@@ -62,12 +64,13 @@ export default function ProductoDetalleTiendaPage() {
   const [customer, setCustomer] = useState<StorefrontCustomer | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingAdd, setPendingAdd] = useState(false);
-  const [cart, setCart] = useState<{ product: Product; quantity: number }[]>([]);
+  const [cart, setCart] = useState<{ product: Product; quantity: number; selected_variant?: string }[]>([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [reviewsEnabled, setReviewsEnabled] = useState(true);
   const [currentReviews, setCurrentReviews] = useState<ProductReview[]>([]);
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
   // Hydrate customer & cart from localStorage + load catalog + review settings
   useEffect(() => {
@@ -90,7 +93,11 @@ export default function ProductoDetalleTiendaPage() {
   }, [loadProducts]);
 
   // Persist cart changes to localStorage
-  const updateCart = (updater: (prev: { product: Product; quantity: number }[]) => { product: Product; quantity: number }[]) => {
+  const updateCart = (
+    updater: (
+      prev: { product: Product; quantity: number; selected_variant?: string }[]
+    ) => { product: Product; quantity: number; selected_variant?: string }[]
+  ) => {
     setCart(prev => {
       const next = updater(prev);
       if (typeof window !== 'undefined') {
@@ -148,11 +155,44 @@ export default function ProductoDetalleTiendaPage() {
     ? 'Cargadores & Accesorios'
     : 'Repuestos & Pantallas';
 
-  // Extract gallery, clean description, custom specs and reviews
-  const { cleanDescription, gallery, specs, reviews } = useMemo(() => {
-    if (!product) return { cleanDescription: '', gallery: [], specs: [], reviews: [] };
+  // Extract gallery, clean description, custom specs, reviews and variants
+  const { cleanDescription, gallery, specs, reviews, variants } = useMemo(() => {
+    if (!product) return { cleanDescription: '', gallery: [], specs: [], reviews: [], variants: [] };
     return extractProductMetadata(product.description, product.image_url);
   }, [product]);
+
+  const activeVariantGroups = useMemo(
+    () => (variants || []).filter(v => v.enabled && v.options && v.options.length > 0),
+    [variants]
+  );
+
+  useEffect(() => {
+    if (activeVariantGroups.length > 0) {
+      setSelectedVariants(prev => {
+        const next: Record<string, string> = { ...prev };
+        for (const group of activeVariantGroups) {
+          if (!next[group.id] || !group.options.includes(next[group.id])) {
+            next[group.id] = group.options[0];
+          }
+        }
+        return next;
+      });
+    }
+  }, [activeVariantGroups]);
+
+  const selectedVariantSummary = useMemo(() => {
+    if (activeVariantGroups.length === 0) return '';
+    return activeVariantGroups
+      .map(g => `${g.title}: ${selectedVariants[g.id] || g.options[0]}`)
+      .join(' · ');
+  }, [activeVariantGroups, selectedVariants]);
+
+  const shortVariantBadge = useMemo(() => {
+    if (activeVariantGroups.length === 0) return '';
+    return activeVariantGroups
+      .map(g => selectedVariants[g.id] || g.options[0])
+      .join(' / ');
+  }, [activeVariantGroups, selectedVariants]);
 
   useEffect(() => {
     if (reviews) {
@@ -232,15 +272,20 @@ export default function ProductoDetalleTiendaPage() {
     return scored.slice(0, 8).map(s => s.candidate);
   }, [product, products, isServiceItem, isAccItem, isRepItem]);
 
-  const addProductToCart = (prod: Product, qty: number) => {
+  const addProductToCart = (prod: Product, qty: number, variantSummary?: string) => {
     updateCart(prev => {
-      const exists = prev.find(i => i.product.id === prod.id);
+      const variantKey = (variantSummary || '').trim();
+      const exists = prev.find(
+        i => i.product.id === prod.id && (i.selected_variant || '') === variantKey
+      );
       if (exists) {
         return prev.map(i =>
-          i.product.id === prod.id ? { ...i, quantity: i.quantity + qty } : i
+          i.product.id === prod.id && (i.selected_variant || '') === variantKey
+            ? { ...i, quantity: i.quantity + qty }
+            : i
         );
       }
-      return [...prev, { product: prod, quantity: qty }];
+      return [...prev, { product: prod, quantity: qty, selected_variant: variantKey || undefined }];
     });
     setCartDrawerOpen(true);
   };
@@ -252,13 +297,13 @@ export default function ProductoDetalleTiendaPage() {
       setAuthModalOpen(true);
       return;
     }
-    addProductToCart(product, quantity);
+    addProductToCart(product, quantity, shortVariantBadge);
   };
 
   const handleAuthSuccess = (c: StorefrontCustomer) => {
     setCustomer(c);
     if (pendingAdd && product) {
-      addProductToCart(product, quantity);
+      addProductToCart(product, quantity, shortVariantBadge);
       setPendingAdd(false);
     }
   };
@@ -297,10 +342,11 @@ export default function ProductoDetalleTiendaPage() {
   const handleWhatsAppInquiry = () => {
     if (!product) return;
     const url = typeof window !== 'undefined' ? window.location.href : '';
+    const variantNote = shortVariantBadge ? `\n*Opción / Versión deseada:* ${selectedVariantSummary}` : '';
     const msg =
       isServiceItem && !hasPrice
-        ? `¡Hola INGENIUM MOBILE! 👋 Me interesa cotizar el servicio de reparación: *${product.name}* (Código: ${product.code}).\n\nEnlace: ${url}\n\n¿Cuál sería el costo y tiempo de entrega?`
-        : `¡Hola INGENIUM MOBILE! 👋 Me interesa información sobre: *${product.name}* (Código: ${product.code}${hasPrice ? ` · ${formatCurrency(product.sale_price)}` : ''}).\n\nEnlace: ${url}`;
+        ? `¡Hola INGENIUM MOBILE! 👋 Me interesa cotizar el servicio de reparación: *${product.name}* (Código: ${product.code}).${variantNote}\n\nEnlace: ${url}\n\n¿Cuál sería el costo y tiempo de entrega?`
+        : `¡Hola INGENIUM MOBILE! 👋 Me interesa información sobre: *${product.name}* (Código: ${product.code}${hasPrice ? ` · ${formatCurrency(product.sale_price)}` : ''}).${variantNote}\n\nEnlace: ${url}`;
     window.open(`https://wa.me/528139629319?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
@@ -310,7 +356,10 @@ export default function ProductoDetalleTiendaPage() {
     if (!customer || cart.length === 0) return;
 
     const itemsText = cart
-      .map(i => `• ${i.quantity}x ${i.product.name} (${formatCurrency(i.product.sale_price * i.quantity)})`)
+      .map(i => {
+        const variantTag = i.selected_variant ? ` [${i.selected_variant}]` : '';
+        return `• ${i.quantity}x ${i.product.name}${variantTag} (${formatCurrency(i.product.sale_price * i.quantity)})`;
+      })
       .join('\n');
 
     const msg =
@@ -671,6 +720,59 @@ export default function ProductoDetalleTiendaPage() {
                       </div>
                     )}
 
+                    {/* Selector interactivo de Variantes (Conectores, Colores, Medidas, etc.) */}
+                    {activeVariantGroups.length > 0 && (
+                      <div className="p-3.5 sm:p-4 bg-slate-50 border border-blue-200/90 rounded-2xl space-y-3.5 shadow-2xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-black text-[#1e3a5f] uppercase tracking-wide flex items-center gap-1.5">
+                            <Layers size={14} className="text-[#2563eb]" /> Selecciona tu opción:
+                          </p>
+                          <span className="text-[10px] font-bold text-blue-700 bg-blue-100/90 px-2 py-0.5 rounded-full">
+                            Mismo precio
+                          </span>
+                        </div>
+
+                        {activeVariantGroups.map(group => {
+                          const currentVal = selectedVariants[group.id] || group.options[0];
+                          return (
+                            <div key={group.id} className="space-y-1.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-gray-700">{group.title}:</span>
+                                <span className="font-black text-[#2563eb] bg-white px-2 py-0.5 rounded-md border border-blue-100 shadow-2xs">
+                                  {currentVal}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {group.options.map(opt => {
+                                  const isSelected = currentVal === opt;
+                                  return (
+                                    <button
+                                      key={opt}
+                                      type="button"
+                                      onClick={() =>
+                                        setSelectedVariants(prev => ({
+                                          ...prev,
+                                          [group.id]: opt,
+                                        }))
+                                      }
+                                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                                        isSelected
+                                          ? 'bg-[#1e3a5f] text-white border-[#1e3a5f] shadow-xs ring-2 ring-blue-500/20'
+                                          : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50/40'
+                                      }`}
+                                    >
+                                      {isSelected && <Check size={12} className="text-emerald-400 stroke-[3]" />}
+                                      <span>{opt}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     {/* Selector de cantidad (solo productos físicos disponibles) */}
                     {!isServiceItem && isAvailable && (
                       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
@@ -1005,18 +1107,23 @@ export default function ProductoDetalleTiendaPage() {
             ) : (
               <>
                 <div className="flex-1 overflow-y-auto py-4 space-y-3">
-                  {cart.map(item => (
+                  {cart.map((item, idx) => (
                     <div
-                      key={item.product.id}
+                      key={`${item.product.id}-${item.selected_variant || 'def'}-${idx}`}
                       className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100"
                     >
                       <img
                         src={item.product.image_url || FALLBACK_PRODUCT_IMG}
                         alt={item.product.name}
-                        className="w-14 h-14 rounded-lg object-cover border border-gray-200"
+                        className="w-14 h-14 rounded-lg object-cover border border-gray-200 shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-xs text-gray-900 truncate">{item.product.name}</p>
+                        {item.selected_variant && (
+                          <p className="text-[10px] text-blue-700 bg-blue-50 border border-blue-200/70 font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1 mt-0.5 max-w-full truncate">
+                            <Tag size={10} className="shrink-0" /> {item.selected_variant}
+                          </p>
+                        )}
                         <p className="text-[11px] text-gray-500">
                           {formatCurrency(item.product.sale_price)} x {item.quantity}
                         </p>
@@ -1026,9 +1133,10 @@ export default function ProductoDetalleTiendaPage() {
                       </div>
                       <button
                         onClick={() =>
-                          updateCart(prev => prev.filter(i => i.product.id !== item.product.id))
+                          updateCart(prev => prev.filter((_, i) => i !== idx))
                         }
-                        className="text-red-400 hover:text-red-600 p-1 cursor-pointer"
+                        className="text-red-400 hover:text-red-600 p-1 cursor-pointer shrink-0"
+                        title="Quitar del carrito"
                       >
                         ✕
                       </button>

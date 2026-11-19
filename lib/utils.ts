@@ -1,4 +1,4 @@
-import { RepairEvidence, ProductSpec, ProductReview } from '@/types';
+import { RepairEvidence, ProductSpec, ProductReview, ProductVariantGroup } from '@/types';
 
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ');
@@ -150,17 +150,24 @@ export const compressImage = (
   });
 };
 
-// Extrae descripción limpia, galería adicional de imágenes, ficha técnica (especificaciones) y opiniones de un producto/servicio
+// Extrae descripción limpia, galería adicional de imágenes, ficha técnica (especificaciones), opiniones y variantes de un producto/servicio
 export const extractProductMetadata = (
   description?: string | null,
   primaryImage?: string | null
-): { cleanDescription: string; gallery: string[]; specs: ProductSpec[]; reviews: ProductReview[] } => {
+): {
+  cleanDescription: string;
+  gallery: string[];
+  specs: ProductSpec[];
+  reviews: ProductReview[];
+  variants: ProductVariantGroup[];
+} => {
   const raw = description || '';
   const primary = (primaryImage || '').trim();
   let cleanDescription = raw;
   let extraImages: string[] = [];
   let specs: ProductSpec[] = [];
   let reviews: ProductReview[] = [];
+  let variants: ProductVariantGroup[] = [];
 
   const match = raw.match(/\[MetaProducto:\s*([\s\S]*?)\]\s*$/i);
   if (match) {
@@ -179,6 +186,17 @@ export const extractProductMetadata = (
       if (Array.isArray(parsed?.reviews)) {
         reviews = parsed.reviews.filter((r: any) => r && typeof r.id === 'string' && typeof r.rating === 'number');
       }
+      if (Array.isArray(parsed?.variants)) {
+        variants = parsed.variants
+          .filter((v: any) => v && typeof v.title === 'string' && Array.isArray(v.options))
+          .map((v: any) => ({
+            id: String(v.id || Date.now()),
+            title: String(v.title).trim(),
+            enabled: Boolean(v.enabled !== false),
+            options: (v.options || []).map((o: any) => String(o).trim()).filter(Boolean),
+          }))
+          .filter((v: ProductVariantGroup) => v.title.length > 0 && v.options.length > 0);
+      }
     } catch {
       // Si falla el parseo JSON, conservar texto sin romper
     }
@@ -194,15 +212,16 @@ export const extractProductMetadata = (
     }
   }
 
-  return { cleanDescription, gallery, specs, reviews };
+  return { cleanDescription, gallery, specs, reviews, variants };
 };
 
-// Serializa descripción interna junto con galería adicional, características estructuradas y opiniones de clientes
+// Serializa descripción interna junto con galería adicional, características estructuradas, opiniones de clientes y variantes
 export const formatDescriptionWithMetadata = (
   cleanDescription: string,
   gallery: string[],
   specs: ProductSpec[],
-  reviews?: ProductReview[]
+  reviews?: ProductReview[],
+  variants?: ProductVariantGroup[]
 ): string => {
   const trimmedDesc = (cleanDescription || '').trim();
   const validGallery = (gallery || []).map(g => g.trim()).filter(Boolean);
@@ -212,15 +231,34 @@ export const formatDescriptionWithMetadata = (
     .map(s => ({ label: s.label.trim(), value: s.value.trim() }))
     .filter(s => s.label.length > 0 && s.value.length > 0);
   const validReviews = (reviews || []).filter(r => r && typeof r.id === 'string');
+  const validVariants = (variants || [])
+    .filter(v => v && v.enabled && v.options && v.options.length > 0)
+    .map(v => ({
+      id: v.id,
+      title: v.title.trim(),
+      enabled: v.enabled,
+      options: v.options.map(o => o.trim()).filter(Boolean),
+    }));
 
-  if (extraGallery.length === 0 && validSpecs.length === 0 && validReviews.length === 0) {
+  if (
+    extraGallery.length === 0 &&
+    validSpecs.length === 0 &&
+    validReviews.length === 0 &&
+    validVariants.length === 0
+  ) {
     return trimmedDesc;
   }
 
-  const payload: { gallery?: string[]; specs?: ProductSpec[]; reviews?: ProductReview[] } = {};
+  const payload: {
+    gallery?: string[];
+    specs?: ProductSpec[];
+    reviews?: ProductReview[];
+    variants?: ProductVariantGroup[];
+  } = {};
   if (extraGallery.length > 0) payload.gallery = extraGallery;
   if (validSpecs.length > 0) payload.specs = validSpecs;
   if (validReviews.length > 0) payload.reviews = validReviews;
+  if (validVariants.length > 0) payload.variants = validVariants;
 
   const metaTag = `[MetaProducto: ${JSON.stringify(payload)}]`;
   return trimmedDesc ? `${trimmedDesc}\n${metaTag}` : metaTag;

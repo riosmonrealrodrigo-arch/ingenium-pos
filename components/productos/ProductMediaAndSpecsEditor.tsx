@@ -12,8 +12,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Layers,
+  X,
+  Check,
+  Tag,
+  Sparkles,
 } from 'lucide-react';
-import { ProductSpec } from '@/types';
+import { ProductSpec, ProductVariantGroup } from '@/types';
 import { compressImage } from '@/lib/utils';
 
 interface ProductMediaAndSpecsEditorProps {
@@ -21,6 +26,8 @@ interface ProductMediaAndSpecsEditorProps {
   onGalleryChange: (gallery: string[]) => void;
   specs: ProductSpec[];
   onSpecsChange: (specs: ProductSpec[]) => void;
+  variants?: ProductVariantGroup[];
+  onVariantsChange?: (variants: ProductVariantGroup[]) => void;
   isService?: boolean;
 }
 
@@ -44,15 +51,88 @@ const PRODUCT_SPEC_PRESETS = [
   { label: 'Incluye', placeholder: 'Ej: 1 pieza en empaque sellado' },
 ];
 
+const VARIANT_PRESETS = [
+  {
+    key: 'conector',
+    title: 'Tipo de Conector / Entrada',
+    defaultOptions: [
+      'Tipo C a Lightning (iPhone)',
+      'Tipo C a Tipo C',
+      'USB a Tipo C',
+      'USB a Lightning (iPhone)',
+    ],
+    suggestions: [
+      'Tipo C a Lightning (iPhone)',
+      'Tipo C a Tipo C',
+      'USB a Tipo C',
+      'USB a Lightning (iPhone)',
+      'Micro USB (V8)',
+      '3 en 1 Universal',
+      'Entrada Jack 3.5mm',
+      'Adaptador Tipo C a Jack',
+      'Adaptador IP a Jack',
+    ],
+  },
+  {
+    key: 'color',
+    title: 'Color Disponible',
+    defaultOptions: ['Negro', 'Blanco'],
+    suggestions: [
+      'Negro',
+      'Blanco',
+      'Azul',
+      'Rojo',
+      'Gris Espacial',
+      'Morado',
+      'Verde',
+      'Titanio Natural',
+      'Dorado',
+      'Rosa',
+      'Transparente',
+    ],
+  },
+  {
+    key: 'largo',
+    title: 'Largo / Potencia',
+    defaultOptions: ['1 Metro', '2 Metros'],
+    suggestions: [
+      '1 Metro',
+      '1.2 Metros',
+      '2 Metros',
+      '3 Metros',
+      '20W Carga Rápida',
+      '25W Tipo C',
+      '35W Doble Puerto',
+      '65W GaN Turbo',
+    ],
+  },
+  {
+    key: 'compatibilidad',
+    title: 'Compatibilidad de Dispositivo',
+    defaultOptions: ['iPhone (Lightning)', 'iPhone 15 / 16 (Tipo C)', 'Android (Tipo C)'],
+    suggestions: [
+      'iPhone (Lightning)',
+      'iPhone 15 / 16 (Tipo C)',
+      'Android (Tipo C)',
+      'Samsung Galaxy',
+      'Xiaomi / Motorola',
+      'Universal',
+    ],
+  },
+];
+
 export default function ProductMediaAndSpecsEditor({
   gallery,
   onGalleryChange,
   specs,
   onSpecsChange,
+  variants = [],
+  onVariantsChange,
   isService = false,
 }: ProductMediaAndSpecsEditorProps) {
   const [urlInput, setUrlInput] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [newOptionInputs, setNewOptionInputs] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -134,6 +214,81 @@ export default function ProductMediaAndSpecsEditor({
 
   const handleRemoveSpec = (index: number) => {
     onSpecsChange(specs.filter((_, i) => i !== index));
+  };
+
+  // Variants handlers
+  const handleToggleGroup = (groupId: string) => {
+    if (!onVariantsChange) return;
+    const next = variants.map(v => (v.id === groupId ? { ...v, enabled: !v.enabled } : v));
+    onVariantsChange(next);
+  };
+
+  const handleAddPresetGroup = (preset: typeof VARIANT_PRESETS[0]) => {
+    if (!onVariantsChange) return;
+    const existing = variants.find(
+      v => v.title.toLowerCase().trim() === preset.title.toLowerCase().trim()
+    );
+    if (existing) {
+      onVariantsChange(
+        variants.map(v => (v.id === existing.id ? { ...v, enabled: true } : v))
+      );
+      return;
+    }
+    const newGroup: ProductVariantGroup = {
+      id: `var-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title: preset.title,
+      enabled: true,
+      options: [...preset.defaultOptions],
+    };
+    onVariantsChange([...variants, newGroup]);
+  };
+
+  const handleCreateCustomGroup = () => {
+    if (!onVariantsChange) return;
+    const newGroup: ProductVariantGroup = {
+      id: `var-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title: 'Nueva Opción / Característica',
+      enabled: true,
+      options: ['Opción 1'],
+    };
+    onVariantsChange([...variants, newGroup]);
+  };
+
+  const handleUpdateGroupTitle = (groupId: string, newTitle: string) => {
+    if (!onVariantsChange) return;
+    onVariantsChange(
+      variants.map(v => (v.id === groupId ? { ...v, title: newTitle } : v))
+    );
+  };
+
+  const handleRemoveGroup = (groupId: string) => {
+    if (!onVariantsChange) return;
+    onVariantsChange(variants.filter(v => v.id !== groupId));
+  };
+
+  const handleAddOptionToGroup = (groupId: string, optValue?: string) => {
+    if (!onVariantsChange) return;
+    const val = (optValue !== undefined ? optValue : (newOptionInputs[groupId] || '')).trim();
+    if (!val) return;
+
+    onVariantsChange(
+      variants.map(v => {
+        if (v.id !== groupId) return v;
+        if (v.options.some(o => o.toLowerCase() === val.toLowerCase())) return v;
+        return { ...v, options: [...v.options, val] };
+      })
+    );
+    setNewOptionInputs(prev => ({ ...prev, [groupId]: '' }));
+  };
+
+  const handleRemoveOptionFromGroup = (groupId: string, optionIndex: number) => {
+    if (!onVariantsChange) return;
+    onVariantsChange(
+      variants.map(v => {
+        if (v.id !== groupId) return v;
+        return { ...v, options: v.options.filter((_, i) => i !== optionIndex) };
+      })
+    );
   };
 
   return (
@@ -396,6 +551,228 @@ export default function ProductMediaAndSpecsEditor({
           </p>
         )}
       </div>
+
+      {/* 3. Variantes y Opciones del Producto (Conectores, Colores, Medidas, etc.) */}
+      {onVariantsChange && (
+        <div className="p-4 bg-white rounded-2xl border border-sky-200/90 space-y-4 shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                <Layers size={15} />
+              </div>
+              <div>
+                <p className="text-xs font-black text-[#1e3a5f] uppercase tracking-wide flex items-center gap-1.5">
+                  Variantes y Opciones del Producto
+                  <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
+                    Mismo Precio
+                  </span>
+                </p>
+                <p className="text-[11px] text-gray-500">
+                  Ideal para cables o cargadores que cuestan lo mismo pero varían por tipo de conector (Tipo C a IP, Tipo C a C, USB a C) o color.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleCreateCustomGroup}
+              className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0 transition"
+            >
+              <Plus size={14} /> Crear grupo personalizado
+            </button>
+          </div>
+
+          {/* Botones rápidos para activar opciones preconfiguradas */}
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+              <Sparkles size={12} className="text-amber-500" /> Activar opciones rápidas de 1 clic:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {VARIANT_PRESETS.map(preset => {
+                const existing = variants.find(
+                  v => v.title.toLowerCase().trim() === preset.title.toLowerCase().trim()
+                );
+                const isActive = existing && existing.enabled;
+                return (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    onClick={() => handleAddPresetGroup(preset)}
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                        : 'bg-gray-50 hover:bg-sky-50 text-gray-700 hover:text-sky-700 border-gray-200 hover:border-sky-200'
+                    }`}
+                  >
+                    {isActive ? <Check size={13} className="text-emerald-600" /> : <Plus size={13} />}
+                    {preset.title}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Listado de Grupos de Variantes */}
+          {variants.length > 0 ? (
+            <div className="space-y-3 pt-1">
+              {variants.map(group => {
+                const matchedPreset = VARIANT_PRESETS.find(
+                  p => p.title.toLowerCase().trim() === group.title.toLowerCase().trim()
+                );
+                const suggestions = matchedPreset?.suggestions || [];
+                const remainingSuggestions = suggestions.filter(
+                  s => !group.options.some(o => o.toLowerCase() === s.toLowerCase())
+                );
+
+                return (
+                  <div
+                    key={group.id}
+                    className={`p-3.5 rounded-xl border transition-all ${
+                      group.enabled
+                        ? 'bg-sky-50/40 border-sky-200 shadow-2xs'
+                        : 'bg-gray-50 border-gray-200 opacity-60'
+                    }`}
+                  >
+                    {/* Encabezado del grupo con Switch Activar / Desactivar */}
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Tag size={14} className={group.enabled ? 'text-sky-600' : 'text-gray-400'} />
+                        <input
+                          type="text"
+                          value={group.title}
+                          onChange={e => handleUpdateGroupTitle(group.id, e.target.value)}
+                          placeholder="Nombre del apartado (Ej: Tipo de Conector)"
+                          className="font-bold text-xs text-[#1e3a5f] bg-transparent border-b border-transparent hover:border-gray-300 focus:border-sky-500 focus:bg-white px-1 py-0.5 rounded outline-none w-full max-w-xs"
+                        />
+                        <span className="text-[10px] text-gray-400 font-semibold shrink-0">
+                          ({group.options.length} {group.options.length === 1 ? 'opción' : 'opciones'})
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Switch Activar / Desactivar */}
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[11px] font-bold select-none ${group.enabled ? 'text-emerald-700' : 'text-gray-400'}`}>
+                            {group.enabled ? 'Activo' : 'Desactivado'}
+                          </span>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={group.enabled}
+                            onClick={() => handleToggleGroup(group.id)}
+                            className="relative cursor-pointer transition-colors duration-200 rounded-full shrink-0"
+                            style={{
+                              width: '40px',
+                              height: '22px',
+                              backgroundColor: group.enabled ? '#0284c7' : '#d1d5db',
+                              borderRadius: '9999px',
+                            }}
+                          >
+                            <span
+                              className="absolute bg-white shadow transition-all duration-200 ease-in-out pointer-events-none"
+                              style={{
+                                top: '3px',
+                                left: group.enabled ? '20px' : '3px',
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '9999px',
+                              }}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Botón Eliminar Grupo */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGroup(group.id)}
+                          className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                          title="Eliminar este grupo"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Contenido si está activado */}
+                    {group.enabled && (
+                      <div className="space-y-2.5 pt-1">
+                        {/* Opciones seleccionadas / activas (chips) */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {group.options.map((opt, optIdx) => (
+                            <span
+                              key={optIdx}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-sky-300 text-sky-900 rounded-lg text-xs font-semibold shadow-2xs"
+                            >
+                              <span>{opt}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveOptionFromGroup(group.id, optIdx)}
+                                className="w-3.5 h-3.5 rounded-full hover:bg-red-100 hover:text-red-600 text-gray-400 flex items-center justify-center transition cursor-pointer"
+                                title="Eliminar opción"
+                              >
+                                <X size={11} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Input para agregar opción personalizada */}
+                        <div className="flex items-center gap-1.5 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Escribir otra opción (Ej: Tipo C a Micro USB) y pulsar Enter..."
+                            value={newOptionInputs[group.id] || ''}
+                            onChange={e =>
+                              setNewOptionInputs(prev => ({ ...prev, [group.id]: e.target.value }))
+                            }
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddOptionToGroup(group.id);
+                              }
+                            }}
+                            className="flex-1 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddOptionToGroup(group.id)}
+                            disabled={!(newOptionInputs[group.id] || '').trim()}
+                            className="px-3 py-1.5 bg-[#1e3a5f] hover:bg-[#162a45] disabled:opacity-40 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                          >
+                            <Plus size={13} /> Agregar
+                          </button>
+                        </div>
+
+                        {/* Sugerencias de 1 clic */}
+                        {remainingSuggestions.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                            <span className="text-[10px] text-gray-400 font-medium">Sugerencias:</span>
+                            {remainingSuggestions.slice(0, 6).map(sug => (
+                              <button
+                                key={sug}
+                                type="button"
+                                onClick={() => handleAddOptionToGroup(group.id, sug)}
+                                className="px-2 py-0.5 bg-white hover:bg-sky-100 text-sky-700 hover:text-sky-900 border border-sky-200/80 rounded-md text-[10px] font-semibold transition cursor-pointer"
+                              >
+                                + {sug}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-3 bg-gray-50 border border-dashed border-gray-200 rounded-xl text-center">
+              <p className="text-xs text-gray-500">
+                Aún no has activado variantes. Toca los botones de arriba para activar conectores, colores o medidas para este producto.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

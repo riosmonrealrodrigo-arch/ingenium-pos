@@ -36,6 +36,13 @@ export interface ProductSpec {
   value: string;
 }
 
+export interface ProductVariantGroup {
+  id: string;
+  title: string;
+  enabled: boolean;
+  options: string[];
+}
+
 export interface ProductReview {
   id: string;
   product_id: string;
@@ -53,6 +60,7 @@ export interface ProductMetadata {
   gallery: string[];
   specs: ProductSpec[];
   reviews?: ProductReview[];
+  variants?: ProductVariantGroup[];
 }
 
 export interface Product {
@@ -89,6 +97,7 @@ export interface SaleItem {
   unit_price: number;
   discount: number;
   subtotal: number;
+  selected_variant?: string;
 }
 
 export interface Sale {
@@ -128,6 +137,7 @@ export interface CartItem {
   product: Product;
   quantity: number;
   discount: number;
+  selected_variant?: string;
 }
 
 export interface ChatConversation {
