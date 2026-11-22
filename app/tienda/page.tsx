@@ -15,6 +15,11 @@ import FloatingChatWidget from '@/components/store/FloatingChatWidget';
 import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
 import SeasonalAmbiance from '@/components/store/SeasonalAmbiance';
 import { SoundToggleButton } from '@/components/store/StoreSoundEffects';
+import StoreAdsCarousel from '@/components/store/StoreAdsCarousel';
+import StoreAdsManagerModal from '@/components/store/StoreAdsManagerModal';
+import CatalogOrderModal from '@/components/store/CatalogOrderModal';
+import { StoreAdBanner, getStoreAds } from '@/lib/storeAds';
+import { getCatalogOrder, applyCatalogOrder } from '@/lib/storeCatalogOrder';
 import { supabase } from '@/lib/supabase';
 import {
   ShoppingBag,
@@ -38,6 +43,8 @@ import {
   Image as ImageIcon,
   Layers,
   Tag,
+  ArrowUpDown,
+  Megaphone,
 } from 'lucide-react';
 
 export default function TiendaPage() {
@@ -46,6 +53,10 @@ export default function TiendaPage() {
   const { currentTheme, themeId } = useStoreTheme();
   const { profile } = useAuth();
   const [themeModalOpen, setThemeModalOpen] = useState(false);
+  const [adsModalOpen, setAdsModalOpen] = useState(false);
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [ads, setAds] = useState<StoreAdBanner[]>([]);
+  const [catalogOrder, setCatalogOrder] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [customer, setCustomer] = useState<StorefrontCustomer | null>(null);
@@ -71,8 +82,35 @@ export default function TiendaPage() {
     }
   };
 
+  const loadStoreConfig = async () => {
+    try {
+      const [loadedAds, loadedOrder] = await Promise.all([
+        getStoreAds(),
+        getCatalogOrder(),
+      ]);
+      setAds(loadedAds);
+      setCatalogOrder(loadedOrder);
+    } catch (err) {
+      console.warn('Error al cargar config de tienda:', err);
+    }
+  };
+
   useEffect(() => {
     loadProducts();
+    loadStoreConfig();
+
+    // Supabase Realtime para que los cambios en anuncios y orden se vean al instante
+    const channel = supabase
+      .channel('store_ads_and_order_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ticket_settings' },
+        () => {
+          loadStoreConfig();
+        }
+      )
+      .subscribe();
+
     if (typeof window !== 'undefined') {
       const savedCust = localStorage.getItem('ingenium_store_customer');
       if (savedCust) {
@@ -91,6 +129,10 @@ export default function TiendaPage() {
         }
       }
     }
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [loadProducts]);
 
   const syncCart = (
@@ -111,8 +153,9 @@ export default function TiendaPage() {
     });
   };
 
-  // Filter storefront products
-  const storeProducts = products.filter(p => p.visible_en_tienda !== false && p.active !== false);
+  // Filter storefront products and apply custom order
+  const rawStoreProducts = products.filter(p => p.visible_en_tienda !== false && p.active !== false);
+  const storeProducts = applyCatalogOrder(rawStoreProducts, catalogOrder);
 
   const filtered = storeProducts.filter(p => {
     const matchesSearch =
@@ -217,9 +260,40 @@ export default function TiendaPage() {
           <span className="hidden sm:inline text-white/40">|</span>
           <span className="hidden sm:inline text-white/80">Envíos a todo el país y retiro en sucursal</span>
         </div>
-        <div className="flex items-center gap-2.5 text-white/70 text-[10px]">
+        <div className="flex items-center gap-2 text-white/70 text-[10px]">
           <SoundToggleButton />
           <span className="hidden sm:inline">Moneda Oficial: <strong className="text-amber-400">$ MXN</strong></span>
+          {profile?.role === 'admin' && (
+            <div className="flex items-center gap-1 sm:gap-1.5 ml-1.5 sm:ml-2 border-l border-white/20 pl-1.5 sm:pl-2">
+              <button
+                type="button"
+                onClick={() => setOrderModalOpen(true)}
+                title="Acomodar orden de productos en la tienda web"
+                className="px-2 py-0.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition"
+              >
+                <ArrowUpDown size={11} />
+                <span className="hidden md:inline">Acomodar Tienda</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdsModalOpen(true)}
+                title="Gestionar anuncios y banners promocionales"
+                className="px-2 py-0.5 rounded-full bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold text-[10px] flex items-center gap-1 cursor-pointer transition shadow-xs"
+              >
+                <Megaphone size={11} />
+                <span className="hidden md:inline">Anuncios</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setThemeModalOpen(true)}
+                title="Cambiar tema de la tienda"
+                className="px-2 py-0.5 rounded-full bg-purple-500 hover:bg-purple-400 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition shadow-xs"
+              >
+                <Palette size={11} />
+                <span className="hidden md:inline">Temas</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -378,6 +452,9 @@ export default function TiendaPage() {
         </div>
       </section>
 
+      {/* Anuncios y Banners Promocionales (Administrables desde POS o Tienda) */}
+      <StoreAdsCarousel ads={ads} />
+
       {/* Categories Bar */}
       <div className="bg-white border-b border-gray-200 sticky top-[96px] md:top-16 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
@@ -474,7 +551,7 @@ export default function TiendaPage() {
               return (
                 <div
                   key={product.id}
-                  className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group"
+                  className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm card-hover-lift transition-all duration-300 flex flex-col overflow-hidden group relative"
                 >
                   {/* Product Image (Clic para abrir detalles estilo Mercado Libre) */}
                   <Link
@@ -486,14 +563,17 @@ export default function TiendaPage() {
                     <img
                       src={mainPhoto}
                       alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
                     />
+                    {/* Efecto Shimmer de Luz al pasar el cursor */}
+                    <div className="card-shimmer-sweep" />
+
                     <div
                       className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 flex flex-col gap-1 ${
                         isCompact3 ? 'hidden sm:flex' : ''
                       }`}
                     >
-                      <span className="text-[8px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 sm:px-2 rounded-md bg-[#1e3a5f]/90 text-white backdrop-blur-sm">
+                      <span className="text-[8px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 sm:px-2 rounded-md bg-[#1e3a5f]/90 text-white backdrop-blur-sm shadow-xs">
                         {product.code}
                       </span>
                     </div>
@@ -506,8 +586,11 @@ export default function TiendaPage() {
                           <span className="hidden sm:inline">Servicio Técnico</span>
                         </span>
                       ) : isAvailable ? (
-                        <span className="text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded-full bg-emerald-500 text-white shadow-sm flex items-center gap-0.5 sm:gap-1">
-                          <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white animate-pulse"></span>
+                        <span className="text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded-full bg-emerald-500 text-white shadow-sm flex items-center gap-1">
+                          <span className="relative flex h-1.5 w-1.5 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                          </span>
                           <span className="sm:hidden">{isCompact3 ? product.stock : `Stock (${product.stock})`}</span>
                           <span className="hidden sm:inline">En stock ({product.stock})</span>
                         </span>
@@ -755,6 +838,26 @@ export default function TiendaPage() {
       <StoreThemeModal
         isOpen={themeModalOpen}
         onClose={() => setThemeModalOpen(false)}
+      />
+
+      {/* Store Ads Manager Modal (Admin) */}
+      <StoreAdsManagerModal
+        isOpen={adsModalOpen}
+        onClose={() => setAdsModalOpen(false)}
+        onAdsUpdated={async () => {
+          const updated = await getStoreAds();
+          setAds(updated);
+        }}
+      />
+
+      {/* Catalog Order Reorganizer Modal (Admin) */}
+      <CatalogOrderModal
+        isOpen={orderModalOpen}
+        onClose={() => setOrderModalOpen(false)}
+        onOrderSaved={async () => {
+          const updated = await getCatalogOrder();
+          setCatalogOrder(updated);
+        }}
       />
 
       {/* Footer Institucional & Legal (PROFECO & INAI) */}

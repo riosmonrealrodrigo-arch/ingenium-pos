@@ -2,7 +2,19 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 
-export type StoreThemeId = 'default' | 'halloween' | 'navidad' | 'san_valentin' | 'black_friday' | 'fiestas_patrias';
+export type StoreThemeId =
+  | 'default'
+  | 'halloween'
+  | 'navidad'
+  | 'san_valentin'
+  | 'black_friday'
+  | 'fiestas_patrias'
+  | 'cyberpunk'
+  | 'apple_gold'
+  | 'emerald_pro'
+  | 'galaxy_purple'
+  | 'sunset_fire'
+  | 'arcade_retro';
 
 export interface StoreThemeConfig {
   id: StoreThemeId;
@@ -143,6 +155,125 @@ export const STORE_THEMES: Record<StoreThemeId, StoreThemeConfig> = {
     badgeBorder: 'rgba(110, 231, 183, 0.5)',
     badgeText: '#d1fae5',
     glowShadow: 'rgba(5, 150, 105, 0.35)',
+    particleType: 'confetti',
+  },
+  cyberpunk: {
+    id: 'cyberpunk',
+    name: 'Cyberpunk Neon & Gaming',
+    emoji: '🎮',
+    badge: '⚡ CYBER TECH · Modo Gamer & Accesorios',
+    headline: '¡Sube de Nivel la Tecnología de tu Celular! 🎮⚡',
+    tagline: 'Refacciones para alto rendimiento, pantallas ultra fluidas, cables gamer y servicio técnico especializado.',
+    bannerGradient: 'from-[#12002b] via-[#3b0764] to-[#c026d3]',
+    cssGradient: 'linear-gradient(135deg, #090014 0%, #2e0854 35%, #701a75 65%, #c026d3 85%, #facc15 100%)',
+    navTopGradient: '#090014',
+    accentColor: '#c026d3',
+    accentBg: 'bg-fuchsia-600',
+    accentText: 'text-fuchsia-400',
+    cardBg: 'rgba(255, 255, 255, 0.12)',
+    badgeBg: 'rgba(192, 38, 211, 0.25)',
+    badgeBorder: 'rgba(232, 121, 249, 0.5)',
+    badgeText: '#f5d0fe',
+    glowShadow: 'rgba(192, 38, 211, 0.45)',
+    particleType: 'fire',
+  },
+  apple_gold: {
+    id: 'apple_gold',
+    name: 'Titanio Dorado / Apple Luxury',
+    emoji: '✨',
+    badge: '👑 Calidad Premium · Grado Original & Garantía',
+    headline: 'Elegancia, Precisión y Acabado Perfecto ✨📱',
+    tagline: 'Displays OLED grado AAA, baterías certificadas y refacciones de máxima fidelidad con garantía oficial.',
+    bannerGradient: 'from-[#1c1917] via-[#292524] to-[#78350f]',
+    cssGradient: 'linear-gradient(135deg, #1c1917 0%, #292524 40%, #451a03 70%, #92400e 88%, #d97706 100%)',
+    navTopGradient: '#1c1917',
+    accentColor: '#d97706',
+    accentBg: 'bg-amber-600',
+    accentText: 'text-amber-400',
+    cardBg: 'rgba(255, 255, 255, 0.1)',
+    badgeBg: 'rgba(217, 119, 6, 0.25)',
+    badgeBorder: 'rgba(251, 191, 36, 0.5)',
+    badgeText: '#fef3c7',
+    glowShadow: 'rgba(217, 119, 6, 0.35)',
+    particleType: 'snow',
+  },
+  emerald_pro: {
+    id: 'emerald_pro',
+    name: 'Eco Tech & Esmeralda Pro',
+    emoji: '🌿',
+    badge: '🌿 Laboratorio Técnico & Reparación Limpia',
+    headline: '¡Dale una Segunda Vida a tu Dispositivo! 🌿🔧',
+    tagline: 'Reparaciones sustentables, ahorro garantizado y repuestos de alta durabilidad probados en banco de trabajo.',
+    bannerGradient: 'from-[#022c22] via-[#064e3b] to-[#047857]',
+    cssGradient: 'linear-gradient(135deg, #022c22 0%, #064e3b 35%, #065f46 65%, #059669 85%, #10b981 100%)',
+    navTopGradient: '#022c22',
+    accentColor: '#10b981',
+    accentBg: 'bg-emerald-600',
+    accentText: 'text-emerald-400',
+    cardBg: 'rgba(255, 255, 255, 0.12)',
+    badgeBg: 'rgba(16, 185, 129, 0.25)',
+    badgeBorder: 'rgba(110, 231, 183, 0.5)',
+    badgeText: '#d1fae5',
+    glowShadow: 'rgba(16, 185, 129, 0.35)',
+  },
+  galaxy_purple: {
+    id: 'galaxy_purple',
+    name: 'Deep Space Galaxy / Cosmos',
+    emoji: '🌌',
+    badge: '🌌 Tecnología sin Límites · Experiencia Estelar',
+    headline: '¡Tu Celular Como Salido de Otra Galaxia! 🌌🚀',
+    tagline: 'Especialistas en refacciones para marcas líderes: iPhone, Samsung, Xiaomi y Motorola. Servicio garantizado.',
+    bannerGradient: 'from-[#030712] via-[#1e1b4b] to-[#4338ca]',
+    cssGradient: 'linear-gradient(135deg, #030712 0%, #0f172a 30%, #1e1b4b 60%, #3730a3 85%, #6366f1 100%)',
+    navTopGradient: '#030712',
+    accentColor: '#6366f1',
+    accentBg: 'bg-indigo-600',
+    accentText: 'text-indigo-400',
+    cardBg: 'rgba(255, 255, 255, 0.12)',
+    badgeBg: 'rgba(99, 102, 241, 0.25)',
+    badgeBorder: 'rgba(165, 180, 252, 0.5)',
+    badgeText: '#e0e7ff',
+    glowShadow: 'rgba(99, 102, 241, 0.4)',
+    particleType: 'snow',
+  },
+  sunset_fire: {
+    id: 'sunset_fire',
+    name: 'Sunset Glow / Naranja & Fuego',
+    emoji: '🌅',
+    badge: '⚡ OFERTAS CALIENTES · Precios Directos de Sucursal',
+    headline: '¡La Mejor Energía y Servicio para tu Equipo! 🌅🔥',
+    tagline: 'Cargadores rápidos, baterías de alto rendimiento y diagnósticos inmediatos sin esperas.',
+    bannerGradient: 'from-[#431407] via-[#9a3412] to-[#ea580c]',
+    cssGradient: 'linear-gradient(135deg, #431407 0%, #7c2d12 35%, #c2410c 65%, #ea580c 85%, #f97316 100%)',
+    navTopGradient: '#431407',
+    accentColor: '#ea580c',
+    accentBg: 'bg-orange-600',
+    accentText: 'text-orange-400',
+    cardBg: 'rgba(255, 255, 255, 0.12)',
+    badgeBg: 'rgba(234, 88, 12, 0.25)',
+    badgeBorder: 'rgba(251, 146, 60, 0.5)',
+    badgeText: '#ffedd5',
+    glowShadow: 'rgba(234, 88, 12, 0.4)',
+    particleType: 'fire',
+  },
+  arcade_retro: {
+    id: 'arcade_retro',
+    name: 'Arcade Retro & Consolas',
+    emoji: '👾',
+    badge: '👾 Mantenimiento de Consolas & Reparación Pro',
+    headline: '¡Taller Gamer: Xbox, PlayStation & Celulares! 🎮👾',
+    tagline: 'Mantenimiento preventivo, pasta térmica, puertos HDMI y refacciones certificadas al mejor precio.',
+    bannerGradient: 'from-[#0f172a] via-[#1e293b] to-[#dc2626]',
+    cssGradient: 'linear-gradient(135deg, #090d16 0%, #1e1b4b 35%, #0284c7 65%, #dc2626 90%, #f59e0b 100%)',
+    navTopGradient: '#090d16',
+    accentColor: '#dc2626',
+    accentBg: 'bg-red-600',
+    accentText: 'text-red-400',
+    cardBg: 'rgba(255, 255, 255, 0.12)',
+    badgeBg: 'rgba(220, 38, 38, 0.25)',
+    badgeBorder: 'rgba(252, 165, 165, 0.5)',
+    badgeText: '#fee2e2',
+    glowShadow: 'rgba(220, 38, 38, 0.4)',
     particleType: 'confetti',
   },
 };

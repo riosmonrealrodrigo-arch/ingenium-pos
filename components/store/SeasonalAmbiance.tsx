@@ -239,6 +239,150 @@ export default function SeasonalAmbiance({ themeId }: SeasonalAmbianceProps) {
           </div>
         </>
       )}
+
+      {/* THEME: CYBERPUNK NEON 🎮 */}
+      {themeId === 'cyberpunk' && (
+        <>
+          <div
+            className="absolute top-0 right-10 w-96 h-96 rounded-full blur-3xl opacity-40"
+            style={{ background: 'radial-gradient(circle, #c026d3 0%, transparent 70%)' }}
+          />
+          <div
+            className="absolute bottom-0 left-10 w-80 h-80 rounded-full blur-3xl opacity-35"
+            style={{ background: 'radial-gradient(circle, #06b6d4 0%, transparent 70%)' }}
+          />
+          <div className="absolute top-4 left-16 anim-float text-3xl drop-shadow-[0_4px_12px_rgba(192,38,211,0.8)]">
+            🎮
+          </div>
+          <div className="absolute top-8 right-20 anim-float-delayed text-3xl drop-shadow-[0_4px_12px_rgba(250,204,21,0.8)]">
+            ⚡
+          </div>
+          <div className="absolute bottom-4 left-1/3 anim-sway text-2xl drop-shadow-[0_4px_10px_rgba(6,182,212,0.8)]">
+            🕹️
+          </div>
+          <div className="absolute bottom-6 right-1/4 anim-float text-2xl drop-shadow-[0_4px_12px_rgba(236,72,153,0.8)]">
+            👾
+          </div>
+        </>
+      )}
+
+      {/* THEME: APPLE LUXURY GOLD ✨ */}
+      {themeId === 'apple_gold' && (
+        <>
+          <div
+            className="absolute top-0 right-1/4 w-96 h-96 rounded-full blur-3xl opacity-30"
+            style={{ background: 'radial-gradient(circle, #d97706 0%, transparent 70%)' }}
+          />
+          <div className="absolute top-4 left-20 anim-float text-2xl drop-shadow-[0_4px_10px_rgba(217,119,6,0.7)]">
+            ✨
+          </div>
+          <div className="absolute top-8 right-24 anim-float-delayed text-2xl drop-shadow-[0_4px_10px_rgba(251,191,36,0.8)]">
+            👑
+          </div>
+          <div className="absolute bottom-5 left-1/3 anim-sway text-2xl drop-shadow-[0_4px_10px_rgba(255,255,255,0.7)]">
+            💎
+          </div>
+          <div className="absolute bottom-4 right-1/3 anim-float text-2xl drop-shadow-[0_4px_10px_rgba(217,119,6,0.7)]">
+            ✨
+          </div>
+        </>
+      )}
+
+      {/* THEME: ECO TECH ESMERALDA PRO 🌿 */}
+      {themeId === 'emerald_pro' && (
+        <>
+          <div
+            className="absolute top-0 right-10 w-96 h-96 rounded-full blur-3xl opacity-35"
+            style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)' }}
+          />
+          <div className="absolute top-4 left-14 anim-float text-3xl drop-shadow-[0_4px_10px_rgba(16,185,129,0.7)]">
+            🌿
+          </div>
+          <div className="absolute top-8 right-20 anim-float-delayed text-2xl drop-shadow-[0_4px_10px_rgba(5,150,105,0.7)]">
+            🔧
+          </div>
+          <div className="absolute bottom-4 left-1/3 anim-sway text-2xl drop-shadow-[0_4px_8px_rgba(52,211,153,0.8)]">
+            🌱
+          </div>
+          <div className="absolute bottom-5 right-1/4 anim-float text-2xl drop-shadow-[0_4px_8px_rgba(16,185,129,0.8)]">
+            ⚡
+          </div>
+        </>
+      )}
+
+      {/* THEME: DEEP SPACE GALAXY 🌌 */}
+      {themeId === 'galaxy_purple' && (
+        <>
+          <div
+            className="absolute top-0 left-10 w-96 h-96 rounded-full blur-3xl opacity-40"
+            style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)' }}
+          />
+          <div
+            className="absolute bottom-0 right-10 w-80 h-80 rounded-full blur-3xl opacity-35"
+            style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
+          />
+          <div className="absolute top-4 left-16 anim-float text-3xl drop-shadow-[0_4px_12px_rgba(99,102,241,0.8)]">
+            🌌
+          </div>
+          <div className="absolute top-8 right-20 anim-float-delayed text-2xl drop-shadow-[0_4px_10px_rgba(255,255,255,0.9)]">
+            ⭐
+          </div>
+          <div className="absolute bottom-4 left-1/3 anim-sway text-3xl drop-shadow-[0_4px_12px_rgba(168,85,247,0.8)]">
+            🚀
+          </div>
+          <div className="absolute bottom-6 right-1/4 anim-float text-2xl drop-shadow-[0_4px_10px_rgba(129,140,248,0.8)]">
+            🪐
+          </div>
+        </>
+      )}
+
+      {/* THEME: SUNSET GLOW & FUEGO 🌅 */}
+      {themeId === 'sunset_fire' && (
+        <>
+          <div
+            className="absolute top-0 right-10 w-96 h-96 rounded-full blur-3xl opacity-40"
+            style={{ background: 'radial-gradient(circle, #ea580c 0%, transparent 70%)' }}
+          />
+          <div className="absolute top-4 left-14 anim-float text-3xl drop-shadow-[0_4px_10px_rgba(234,88,12,0.8)]">
+            🌅
+          </div>
+          <div className="absolute top-8 right-20 anim-float-delayed text-3xl drop-shadow-[0_4px_10px_rgba(249,115,22,0.8)]">
+            🔥
+          </div>
+          <div className="absolute bottom-4 left-1/3 anim-sway text-2xl drop-shadow-[0_4px_8px_rgba(251,146,60,0.8)]">
+            ⚡
+          </div>
+          <div className="absolute bottom-5 right-1/4 anim-float text-2xl drop-shadow-[0_4px_8px_rgba(234,88,12,0.8)]">
+            ☀️
+          </div>
+        </>
+      )}
+
+      {/* THEME: ARCADE RETRO GAMING 👾 */}
+      {themeId === 'arcade_retro' && (
+        <>
+          <div
+            className="absolute top-0 right-10 w-96 h-96 rounded-full blur-3xl opacity-35"
+            style={{ background: 'radial-gradient(circle, #dc2626 0%, transparent 70%)' }}
+          />
+          <div
+            className="absolute bottom-0 left-10 w-80 h-80 rounded-full blur-3xl opacity-35"
+            style={{ background: 'radial-gradient(circle, #0284c7 0%, transparent 70%)' }}
+          />
+          <div className="absolute top-4 left-14 anim-float text-3xl drop-shadow-[0_4px_10px_rgba(220,38,38,0.8)]">
+            👾
+          </div>
+          <div className="absolute top-8 right-20 anim-float-delayed text-3xl drop-shadow-[0_4px_10px_rgba(2,132,199,0.8)]">
+            🕹️
+          </div>
+          <div className="absolute bottom-4 left-1/3 anim-sway text-2xl drop-shadow-[0_4px_8px_rgba(245,158,11,0.8)]">
+            🎮
+          </div>
+          <div className="absolute bottom-5 right-1/4 anim-float text-2xl drop-shadow-[0_4px_8px_rgba(220,38,38,0.8)]">
+            🪙
+          </div>
+        </>
+      )}
     </div>
   );
 }

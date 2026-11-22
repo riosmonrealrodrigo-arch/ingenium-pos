@@ -7,11 +7,13 @@ import { supabase } from '@/lib/supabase';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { Save, Check, Printer, ChevronRight, Palette, RotateCcw, AlertTriangle, Trash2, X, RefreshCw } from 'lucide-react';
+import { Save, Check, Printer, ChevronRight, Palette, RotateCcw, AlertTriangle, Trash2, X, RefreshCw, ArrowUpDown, Megaphone } from 'lucide-react';
 import Link from 'next/link';
 import { useStoreTheme } from '@/context/StoreThemeContext';
 import StoreThemeModal from '@/components/store/StoreThemeModal';
 import ProductReviewsManager from '@/components/admin/ProductReviewsManager';
+import CatalogOrderModal from '@/components/store/CatalogOrderModal';
+import StoreAdsManagerModal from '@/components/store/StoreAdsManagerModal';
 
 export default function ConfiguracionPage() {
   const { profile, business, loading } = useAuth();
@@ -21,6 +23,8 @@ export default function ConfiguracionPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [adsModalOpen, setAdsModalOpen] = useState(false);
   const [form, setForm] = useState({ name: '', address: '', phone: '', email: '', currency: '$ MXN', tax_rate: '16' });
 
   // Reset modal state
@@ -136,12 +140,62 @@ export default function ConfiguracionPage() {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 truncate">
-                  Halloween, Navidad, Buen Fin o Cyber Blue en tiempo real
+                  12 temáticas exclusivas (Cyberpunk, Oro Titanio, Esmeralda, Cosmos, Navidad...)
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-1 text-xs font-bold text-purple-700 shrink-0 ml-2">
               <span>Cambiar</span>
+              <ChevronRight size={16} />
+            </div>
+          </button>
+
+          {/* Quick link to Custom Product Order */}
+          <button
+            type="button"
+            onClick={() => setOrderModalOpen(true)}
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 via-sky-50 to-indigo-50 border border-blue-200/80 rounded-2xl hover:border-blue-400 transition group shadow-sm text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shrink-0">
+                <ArrowUpDown size={20} />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900 text-sm group-hover:text-blue-700 transition">
+                  Acomodar Catálogo de la Tienda Web
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  Ordena tus productos donde quieras: subir, bajar, fijar al inicio o por número
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-bold text-blue-700 shrink-0 ml-2">
+              <span>Ordenar</span>
+              <ChevronRight size={16} />
+            </div>
+          </button>
+
+          {/* Quick link to Store Ads & Banners Manager */}
+          <button
+            type="button"
+            onClick={() => setAdsModalOpen(true)}
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 border border-amber-200/80 rounded-2xl hover:border-amber-400 transition group shadow-sm text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md shrink-0">
+                <Megaphone size={20} />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900 text-sm group-hover:text-amber-800 transition">
+                  Gestor de Anuncios y Banners Web
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  Crea ofertas, sube fotos desde cámara/galería, edita textos y activa/desactiva anuncios
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-bold text-amber-800 shrink-0 ml-2">
+              <span>Gestionar</span>
               <ChevronRight size={16} />
             </div>
           </button>
@@ -274,6 +328,14 @@ export default function ConfiguracionPage() {
       <StoreThemeModal
         isOpen={themeModalOpen}
         onClose={() => setThemeModalOpen(false)}
+      />
+      <CatalogOrderModal
+        isOpen={orderModalOpen}
+        onClose={() => setOrderModalOpen(false)}
+      />
+      <StoreAdsManagerModal
+        isOpen={adsModalOpen}
+        onClose={() => setAdsModalOpen(false)}
       />
 
       {/* Safety Confirmation Modal for Reset */}

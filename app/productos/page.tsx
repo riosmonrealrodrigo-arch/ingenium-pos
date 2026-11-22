@@ -7,10 +7,12 @@ import { useProducts } from '@/context/ProductContext';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package, Globe, Trash2, Smartphone, Zap, Wrench, RefreshCw } from 'lucide-react';
+import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package, Globe, Trash2, Smartphone, Zap, Wrench, RefreshCw, ArrowUpDown, Megaphone } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Product } from '@/types';
 import { isRepuesto, isAccesorio, isServicio } from '@/lib/categories';
+import CatalogOrderModal from '@/components/store/CatalogOrderModal';
+import StoreAdsManagerModal from '@/components/store/StoreAdsManagerModal';
 
 export default function ProductosPage() {
   const { profile, business, loading } = useAuth();
@@ -20,6 +22,8 @@ export default function ProductosPage() {
   const [filter, setFilter] = useState<'all' | 'repuestos' | 'accesorios' | 'servicios' | 'active' | 'inactive' | 'low' | 'store'>('all');
   const [purging, setPurging] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [adsModalOpen, setAdsModalOpen] = useState(false);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -86,6 +90,26 @@ export default function ProductosPage() {
                   <span>{purging ? 'Limpiando...' : 'Vaciar Catálogo Demo'}</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => setOrderModalOpen(true)}
+                title="Acomodar el orden de los productos en la tienda web"
+                className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold border border-indigo-200 transition flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
+              >
+                <ArrowUpDown size={13} />
+                <span>Acomodar Tienda</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAdsModalOpen(true)}
+                title="Crear y editar anuncios o banners promocionales de la tienda web"
+                className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl text-xs font-bold border border-amber-200 transition flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
+              >
+                <Megaphone size={13} />
+                <span>Anuncios Web</span>
+              </button>
 
               <button
                 onClick={handleSync}
@@ -289,6 +313,17 @@ export default function ProductosPage() {
           </div>
         </main>
       </div>
+
+      {/* Modales de Personalización de Tienda Web */}
+      <CatalogOrderModal
+        isOpen={orderModalOpen}
+        onClose={() => setOrderModalOpen(false)}
+      />
+      <StoreAdsManagerModal
+        isOpen={adsModalOpen}
+        onClose={() => setAdsModalOpen(false)}
+      />
+
       <BottomNav />
     </div>
   );
