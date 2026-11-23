@@ -381,7 +381,13 @@ export default function ProductoDetalleTiendaPage() {
     setSelectedImageIdx(i => (i === displayGallery.length - 1 ? 0 : i + 1));
 
   return (
-    <div className="min-h-screen bg-[#ededed] sm:bg-slate-100 text-slate-800 flex flex-col font-sans">
+    <div
+      style={{
+        background: currentTheme.pageBgGradient,
+        color: currentTheme.isDark ? '#ffffff' : '#1e293b',
+      }}
+      className="min-h-screen flex flex-col font-sans relative selection:bg-[#2563eb] selection:text-white transition-colors duration-700 overflow-x-hidden"
+    >
       {/* Top Banner */}
       <div
         style={{ background: currentTheme.navTopGradient }}
@@ -403,12 +409,23 @@ export default function ProductoDetalleTiendaPage() {
       </div>
 
       {/* Navbar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-xs border-b border-gray-200">
+      <header
+        style={{
+          background: currentTheme.headerBg,
+          borderColor: currentTheme.headerBorder,
+        }}
+        className="sticky top-0 z-40 backdrop-blur-md shadow-xs border-b transition-colors duration-500"
+      >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => router.push('/tienda')}
-              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition cursor-pointer shrink-0"
+              style={{
+                backgroundColor: currentTheme.categoryInactiveBg,
+                borderColor: currentTheme.categoryInactiveBorder,
+                color: currentTheme.searchText,
+              }}
+              className="p-2 rounded-full border hover:brightness-125 transition cursor-pointer shrink-0"
               title="Volver al catálogo"
             >
               <ArrowLeft size={16} />
@@ -417,14 +434,21 @@ export default function ProductoDetalleTiendaPage() {
               <img
                 src="/images/logo.jpg"
                 alt="INGENIUM MOBILE"
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-gray-200 shrink-0"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-white/20 shrink-0"
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm sm:text-base font-black text-[#1e3a5f] tracking-tight truncate">
+                  <span className="text-sm sm:text-base font-black text-white tracking-tight truncate drop-shadow-xs">
                     INGENIUM MOBILE
                   </span>
-                  <span className="text-[9px] bg-blue-100 text-[#2563eb] font-bold px-1 py-0.5 rounded shrink-0">
+                  <span
+                    style={{
+                      backgroundColor: currentTheme.badgeBg,
+                      borderColor: currentTheme.badgeBorder,
+                      color: currentTheme.badgeText,
+                    }}
+                    className="text-[9px] font-bold px-1.5 py-0.2 rounded border shrink-0"
+                  >
                     TIENDA
                   </span>
                 </div>
@@ -434,13 +458,19 @@ export default function ProductoDetalleTiendaPage() {
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {customer ? (
-              <div className="hidden sm:flex items-center gap-1.5 bg-blue-50/80 px-2.5 py-1 rounded-full border border-blue-100 text-[11px]">
-                <User size={13} className="text-[#2563eb]" />
-                <span className="font-bold text-[#1e3a5f] max-w-[100px] truncate">{customer.name}</span>
+              <div
+                style={{
+                  backgroundColor: currentTheme.categoryInactiveBg,
+                  borderColor: currentTheme.categoryInactiveBorder,
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px]"
+              >
+                <User size={13} style={{ color: currentTheme.accentColor }} />
+                <span className="font-bold text-white max-w-[100px] truncate">{customer.name}</span>
                 <button
                   onClick={handleLogoutCustomer}
                   title="Salir"
-                  className="text-gray-400 hover:text-red-500 ml-0.5 cursor-pointer"
+                  className="text-gray-400 hover:text-red-400 ml-0.5 cursor-pointer"
                 >
                   <LogOut size={12} />
                 </button>
@@ -448,7 +478,12 @@ export default function ProductoDetalleTiendaPage() {
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition cursor-pointer"
+                style={{
+                  backgroundColor: currentTheme.categoryInactiveBg,
+                  borderColor: currentTheme.categoryInactiveBorder,
+                  color: currentTheme.searchText,
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-full border hover:brightness-125 transition cursor-pointer"
               >
                 <User size={13} /> Identificarme
               </button>
@@ -456,12 +491,16 @@ export default function ProductoDetalleTiendaPage() {
 
             <button
               onClick={() => setCartDrawerOpen(true)}
-              className="relative p-2 bg-[#1e3a5f] hover:bg-[#162a45] text-white rounded-full shadow-sm transition cursor-pointer"
+              style={{
+                backgroundColor: currentTheme.accentColor,
+                boxShadow: `0 0 14px ${currentTheme.glowShadow}`,
+              }}
+              className="relative p-2 text-white rounded-full transition cursor-pointer hover:brightness-110"
               title="Ver Carrito"
             >
               <ShoppingBag size={17} />
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#f59e0b] text-[#1e3a5f] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#f59e0b] text-[#1e3a5f] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {cart.reduce((c, i) => c + i.quantity, 0)}
                 </span>
               )}

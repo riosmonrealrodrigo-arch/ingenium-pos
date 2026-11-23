@@ -245,14 +245,37 @@ export default function TiendaPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
+    <div
+      style={{
+        background: currentTheme.pageBgGradient,
+        color: currentTheme.isDark ? '#ffffff' : '#1e293b',
+      }}
+      className="min-h-screen flex flex-col font-sans relative selection:bg-[#2563eb] selection:text-white transition-colors duration-700 overflow-x-hidden"
+    >
+      {/* Global Themed & Seasonal Background Ambiance for entire catalog */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <SeasonalAmbiance themeId={themeId} fullPage={true} />
+      </div>
+
+      {/* Dynamic styles for neon glowing card hover & smooth interactive feel */}
+      <style jsx global>{`
+        .store-catalog-card {
+          transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .store-catalog-card:hover {
+          transform: translateY(-4px);
+          border-color: var(--card-hover-border) !important;
+          box-shadow: var(--card-hover-glow) !important;
+        }
+      `}</style>
+
       {/* Animated Intro Loader on Entry */}
       <AnimatedIntroLoader />
 
       {/* Top Banner (100% Tienda Orientada al Cliente - Themed) */}
       <div
         style={{ background: currentTheme.navTopGradient }}
-        className="text-white text-[11px] py-1 px-4 border-b border-white/10 flex justify-between items-center transition-colors duration-500"
+        className="relative z-10 text-white text-[11px] py-1 px-4 border-b border-white/10 flex justify-between items-center transition-colors duration-500"
       >
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-amber-400 font-semibold">
@@ -268,21 +291,36 @@ export default function TiendaPage() {
       </div>
 
       {/* Main Navbar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-xs border-b border-gray-100">
+      <header
+        style={{
+          background: currentTheme.headerBg,
+          borderColor: currentTheme.headerBorder,
+        }}
+        className="sticky top-0 z-40 backdrop-blur-md shadow-xs border-b transition-colors duration-500"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
           {/* Logo & Brand */}
           <Link href="/" className="flex items-center gap-2.5 group shrink-0">
             <img
               src="/images/logo.jpg"
               alt="INGENIUM MOBILE"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-xs border border-gray-200 group-hover:scale-105 transition"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-xs border border-white/20 group-hover:scale-105 transition"
             />
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-base sm:text-lg font-black text-[#1e3a5f] tracking-tight">INGENIUM MOBILE</span>
-                <span className="text-[9px] bg-blue-100 text-[#2563eb] font-bold px-1 py-0.2 rounded">TIENDA</span>
+                <span className="text-base sm:text-lg font-black text-white tracking-tight drop-shadow-xs">INGENIUM MOBILE</span>
+                <span
+                  style={{
+                    backgroundColor: currentTheme.badgeBg,
+                    borderColor: currentTheme.badgeBorder,
+                    color: currentTheme.badgeText,
+                  }}
+                  className="text-[9px] font-bold px-1.5 py-0.2 rounded border shadow-xs"
+                >
+                  TIENDA
+                </span>
               </div>
-              <p className="text-[10px] text-gray-400 font-medium hidden sm:block">Repuestos, accesorios y reparaciones</p>
+              <p className="text-[10px] text-gray-300 font-medium hidden sm:block">Repuestos, accesorios y reparaciones</p>
             </div>
           </Link>
 
@@ -298,7 +336,12 @@ export default function TiendaPage() {
                 value={search}
                 onChange={e => handleSearchChange(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') scrollToCatalog(); }}
-                className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-900 placeholder:text-gray-400 font-medium outline-none focus:ring-2 focus:ring-[#2563eb] focus:bg-white transition"
+                style={{
+                  backgroundColor: currentTheme.searchBg,
+                  borderColor: currentTheme.searchBorder,
+                  color: currentTheme.searchText,
+                }}
+                className="w-full pl-10 pr-3 py-2 border rounded-full text-xs font-medium outline-none focus:ring-2 focus:ring-[#2563eb] transition placeholder:text-gray-400"
               />
             </div>
           </div>
@@ -306,13 +349,19 @@ export default function TiendaPage() {
           {/* Actions: Client Profile & Cart */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             {customer ? (
-              <div className="flex items-center gap-1.5 bg-blue-50/80 px-2.5 py-1 rounded-full border border-blue-100 text-[11px]">
-                <User size={13} className="text-[#2563eb]" />
-                <span className="font-bold text-[#1e3a5f] max-w-[100px] truncate">{customer.name}</span>
+              <div
+                style={{
+                  backgroundColor: currentTheme.categoryInactiveBg,
+                  borderColor: currentTheme.categoryInactiveBorder,
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] backdrop-blur-xs"
+              >
+                <User size={13} style={{ color: currentTheme.accentColor }} />
+                <span className="font-bold text-white max-w-[100px] truncate">{customer.name}</span>
                 <button
                   onClick={handleLogoutCustomer}
                   title="Cambiar datos / Salir"
-                  className="text-gray-400 hover:text-red-500 ml-0.5 cursor-pointer"
+                  className="text-gray-400 hover:text-red-400 ml-0.5 cursor-pointer"
                 >
                   <LogOut size={12} />
                 </button>
@@ -320,7 +369,12 @@ export default function TiendaPage() {
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition cursor-pointer"
+                style={{
+                  backgroundColor: currentTheme.categoryInactiveBg,
+                  borderColor: currentTheme.categoryInactiveBorder,
+                  color: currentTheme.searchText,
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-full border hover:brightness-125 transition cursor-pointer"
               >
                 <User size={13} /> Identificarme
               </button>
@@ -329,12 +383,16 @@ export default function TiendaPage() {
             {/* Cart Trigger */}
             <button
               onClick={() => setCartDrawerOpen(true)}
-              className="relative p-2 bg-[#1e3a5f] hover:bg-[#162a45] text-white rounded-full shadow-sm transition"
+              style={{
+                backgroundColor: currentTheme.accentColor,
+                boxShadow: `0 0 14px ${currentTheme.glowShadow}`,
+              }}
+              className="relative p-2 text-white rounded-full transition cursor-pointer hover:brightness-110"
               title="Ver Carrito"
             >
               <ShoppingBag size={17} />
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#f59e0b] text-[#1e3a5f] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#f59e0b] text-[#1e3a5f] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {cart.reduce((c, i) => c + i.quantity, 0)}
                 </span>
               )}
@@ -354,7 +412,12 @@ export default function TiendaPage() {
               value={search}
               onChange={e => handleSearchChange(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') scrollToCatalog(); }}
-              className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 font-medium outline-none focus:ring-2 focus:ring-[#2563eb]"
+              style={{
+                backgroundColor: currentTheme.searchBg,
+                borderColor: currentTheme.searchBorder,
+                color: currentTheme.searchText,
+              }}
+              className="w-full pl-10 pr-3 py-2 border rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-[#2563eb] placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -363,7 +426,7 @@ export default function TiendaPage() {
       {/* Hero Banner (Themed dynamically from POS with guaranteed CSS linear-gradient) */}
       <section
         style={{ background: currentTheme.cssGradient }}
-        className="relative text-white py-3.5 sm:py-8 px-3 sm:px-6 lg:px-8 shadow-md overflow-hidden transition-all duration-700"
+        className="relative z-10 text-white py-3.5 sm:py-8 px-3 sm:px-6 lg:px-8 shadow-md overflow-hidden transition-all duration-700"
       >
         {/* Festive Ambiance Overlay */}
         <SeasonalAmbiance themeId={themeId} />
@@ -426,34 +489,48 @@ export default function TiendaPage() {
       <StoreAdsCarousel ads={ads} />
 
       {/* Categories Bar */}
-      <div className="bg-white border-b border-gray-200 sticky top-[96px] md:top-16 z-30 shadow-xs">
+      <div
+        style={{
+          background: currentTheme.categoryBarBg,
+          borderColor: currentTheme.categoryBarBorder,
+        }}
+        className="border-b sticky top-[96px] md:top-16 z-30 shadow-xs backdrop-blur-md transition-colors duration-500"
+      >
         <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
           {[
             { id: 'todos', label: 'Todos los productos' },
             { id: 'repuestos', label: 'Repuestos & Pantallas' },
             { id: 'accesorios', label: 'Cargadores & Accesorios' },
             { id: 'servicios', label: 'Servicio de Reparación' },
-          ].map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setSelectedCategory(cat.id);
-                scrollToCatalog();
-              }}
-              style={
-                selectedCategory === cat.id
-                  ? { backgroundColor: currentTheme.accentColor, color: '#ffffff' }
-                  : {}
-              }
-              className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                selectedCategory === cat.id
-                  ? 'shadow-xs'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
+          ].map(cat => {
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategory(cat.id);
+                  scrollToCatalog();
+                }}
+                style={
+                  isSelected
+                    ? {
+                        backgroundColor: currentTheme.accentColor,
+                        color: '#ffffff',
+                        boxShadow: `0 0 16px ${currentTheme.glowShadow}`,
+                        borderColor: 'transparent',
+                      }
+                    : {
+                        backgroundColor: currentTheme.categoryInactiveBg,
+                        color: currentTheme.categoryInactiveText,
+                        borderColor: currentTheme.categoryInactiveBorder,
+                      }
+                }
+                className="px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition whitespace-nowrap cursor-pointer border"
+              >
+                {cat.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -461,43 +538,77 @@ export default function TiendaPage() {
       <main
         ref={catalogSectionRef}
         id="catalogo-productos"
-        className="flex-1 max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8 pb-20 sm:pb-8 w-full scroll-mt-36"
+        className="relative z-10 flex-1 max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8 pb-20 sm:pb-8 w-full scroll-mt-36"
       >
         <div className="flex items-center justify-between gap-2 mb-3 sm:mb-6">
-          <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
+          <p
+            style={{ color: currentTheme.filterLabelColor }}
+            className="text-[10px] sm:text-xs font-bold uppercase tracking-wider"
+          >
             Mostrando {filtered.length} productos disponibles
           </p>
           <div className="flex items-center gap-2">
             {/* Selector de vista compacto solo para celular */}
-            <div className="sm:hidden flex items-center bg-gray-200/80 rounded-lg p-0.5 text-[10px] font-bold">
+            <div
+              style={{
+                backgroundColor: currentTheme.mobileToggleBg,
+                borderColor: currentTheme.categoryInactiveBorder,
+              }}
+              className="sm:hidden flex items-center border rounded-lg p-0.5 text-[10px] font-bold backdrop-blur-xs"
+            >
               <button
                 type="button"
                 onClick={() => setMobileCols(2)}
-                className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
-                  mobileCols === 2 ? 'bg-white text-[#1e3a5f] shadow-xs' : 'text-gray-500'
-                }`}
+                style={
+                  mobileCols === 2
+                    ? {
+                        backgroundColor: currentTheme.mobileToggleActiveBg,
+                        color: currentTheme.mobileToggleActiveText,
+                        boxShadow: `0 0 10px ${currentTheme.glowShadow}`,
+                      }
+                    : { color: currentTheme.filterLabelColor }
+                }
+                className="px-2 py-0.5 rounded-md transition cursor-pointer"
               >
                 2 col
               </button>
               <button
                 type="button"
                 onClick={() => setMobileCols(3)}
-                className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
-                  mobileCols === 3 ? 'bg-white text-[#1e3a5f] shadow-xs' : 'text-gray-500'
-                }`}
+                style={
+                  mobileCols === 3
+                    ? {
+                        backgroundColor: currentTheme.mobileToggleActiveBg,
+                        color: currentTheme.mobileToggleActiveText,
+                        boxShadow: `0 0 10px ${currentTheme.glowShadow}`,
+                      }
+                    : { color: currentTheme.filterLabelColor }
+                }
+                className="px-2 py-0.5 rounded-md transition cursor-pointer"
               >
                 3 col
               </button>
             </div>
-            <span className="hidden sm:inline text-xs text-gray-400">Precios en Moneda Nacional ($ MXN)</span>
+            <span
+              style={{ color: currentTheme.filterLabelColor }}
+              className="hidden sm:inline text-xs opacity-75 font-medium"
+            >
+              Precios en Moneda Nacional ($ MXN)
+            </span>
           </div>
         </div>
 
         {filtered.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-gray-300 p-8">
-            <PackageCheck size={48} className="mx-auto text-gray-300 mb-3" />
-            <h3 className="font-bold text-gray-700 text-base">No encontramos productos con ese filtro</h3>
-            <p className="text-xs text-gray-400 mt-1">Intenta con otra palabra clave o categoría.</p>
+          <div
+            style={{
+              backgroundColor: currentTheme.emptyStateBg,
+              borderColor: currentTheme.emptyStateBorder,
+            }}
+            className="text-center py-16 backdrop-blur-md rounded-3xl border border-dashed p-8"
+          >
+            <PackageCheck size={48} className="mx-auto text-gray-400 mb-3" />
+            <h3 className="font-bold text-white text-base">No encontramos productos con ese filtro</h3>
+            <p className="text-xs text-gray-300 mt-1">Intenta con otra palabra clave o categoría.</p>
           </div>
         ) : (
           <div
@@ -521,14 +632,20 @@ export default function TiendaPage() {
               return (
                 <div
                   key={product.id}
-                  className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm card-hover-lift transition-all duration-300 flex flex-col overflow-hidden group relative"
+                  style={{
+                    backgroundColor: currentTheme.catalogCardBg,
+                    borderColor: currentTheme.catalogCardBorder,
+                    ['--card-hover-border' as any]: currentTheme.catalogCardHoverBorder,
+                    ['--card-hover-glow' as any]: currentTheme.catalogCardHoverGlow,
+                  }}
+                  className="store-catalog-card backdrop-blur-md rounded-xl sm:rounded-2xl border shadow-sm flex flex-col overflow-hidden group relative"
                 >
                   {/* Product Image (Clic para abrir detalles estilo Mercado Libre) */}
                   <Link
                     href={`/tienda/${product.id}`}
                     className={`block relative ${
                       isCompact3 ? 'h-20' : 'h-28'
-                    } sm:h-48 bg-gray-100 overflow-hidden cursor-pointer`}
+                    } sm:h-48 bg-black/25 overflow-hidden cursor-pointer`}
                   >
                     <img
                       src={mainPhoto}
@@ -543,7 +660,7 @@ export default function TiendaPage() {
                         isCompact3 ? 'hidden sm:flex' : ''
                       }`}
                     >
-                      <span className="text-[8px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 sm:px-2 rounded-md bg-[#1e3a5f]/90 text-white backdrop-blur-sm shadow-xs">
+                      <span className="text-[8px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 sm:px-2 rounded-md bg-black/70 text-white backdrop-blur-sm shadow-xs border border-white/10">
                         {product.code}
                       </span>
                     </div>
@@ -572,7 +689,7 @@ export default function TiendaPage() {
                     </div>
 
                     {gallery.length > 1 && (
-                      <span className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 bg-gray-900/75 text-white text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md backdrop-blur-xs flex items-center gap-1">
+                      <span className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 bg-black/75 text-white text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md backdrop-blur-xs flex items-center gap-1 border border-white/10">
                         <ImageIcon size={10} /> {gallery.length}
                       </span>
                     )}
@@ -582,29 +699,39 @@ export default function TiendaPage() {
                   <div className={`${isCompact3 ? 'p-1.5' : 'p-2.5'} sm:p-4 flex-1 flex flex-col`}>
                     <Link href={`/tienda/${product.id}`} className="flex-1 flex flex-col group/title">
                       <h3
+                        style={{ color: currentTheme.cardTitleColor }}
                         className={`font-bold ${
                           isCompact3 ? 'text-[10px] leading-tight mb-1' : 'text-xs leading-snug mb-0.5'
-                        } sm:text-sm text-gray-900 group-hover/title:text-[#2563eb] group-hover:text-[#2563eb] transition line-clamp-2 sm:line-clamp-1 sm:mb-1`}
+                        } sm:text-sm group-hover/title:opacity-85 transition line-clamp-2 sm:line-clamp-1 sm:mb-1 drop-shadow-xs`}
                       >
                         {product.name}
                       </h3>
                       <p
+                        style={{ color: currentTheme.cardDescColor }}
                         className={`${
                           isCompact3 ? 'hidden sm:block' : 'text-[10px] mb-1.5'
-                        } sm:text-xs text-gray-500 line-clamp-2 leading-snug sm:leading-relaxed flex-1 sm:mb-2`}
+                        } sm:text-xs line-clamp-2 leading-snug sm:leading-relaxed flex-1 sm:mb-2`}
                       >
                         {product.commercial_description || cleanDescription || (isServiceItem ? 'Servicio técnico especializado para taller.' : 'Repuesto garantizado para taller.')}
                       </p>
                       {hasActiveVariants && (
-                        <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200/80 px-2 py-0.5 rounded-md w-fit mb-1.5">
-                          <Layers size={10} className="text-sky-600 shrink-0" />
+                        <span
+                          style={{
+                            backgroundColor: currentTheme.categoryInactiveBg,
+                            borderColor: currentTheme.categoryInactiveBorder,
+                            color: currentTheme.cardTitleColor,
+                          }}
+                          className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-bold border px-2 py-0.5 rounded-md w-fit mb-1.5 backdrop-blur-xs"
+                        >
+                          <Layers size={10} style={{ color: currentTheme.accentColor }} className="shrink-0" />
                           <span>Opciones de conectores / colores</span>
                         </span>
                       )}
                       <span
+                        style={{ color: currentTheme.accentColor }}
                         className={`${
                           isCompact3 ? 'hidden sm:inline-block' : 'text-[10px]'
-                        } sm:text-[11px] font-bold text-[#2563eb] hover:underline mb-2 sm:mb-2.5`}
+                        } sm:text-[11px] font-bold hover:underline mb-2 sm:mb-2.5`}
                       >
                         {hasActiveVariants ? 'Ver opciones y comprar →' : 'Ver características →'}
                       </span>
@@ -612,12 +739,18 @@ export default function TiendaPage() {
 
                     {/* Precio y Acción */}
                     {isServiceItem && !hasPrice ? (
-                      <div className="pt-1.5 sm:pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between mt-auto gap-1.5 sm:gap-2">
+                      <div
+                        style={{ borderColor: currentTheme.cardFooterBorder }}
+                        className="pt-1.5 sm:pt-3 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between mt-auto gap-1.5 sm:gap-2"
+                      >
                         <div>
-                          <span className="text-[8px] sm:text-[10px] text-amber-700 font-bold block uppercase tracking-wider">
+                          <span className="text-[8px] sm:text-[10px] text-amber-400 font-bold block uppercase tracking-wider">
                             {isCompact3 ? 'En Taller' : 'Servicio en Taller'}
                           </span>
-                          <span className={`${isCompact3 ? 'hidden sm:inline' : 'text-[10px]'} sm:text-xs font-semibold text-gray-500`}>
+                          <span
+                            style={{ color: currentTheme.cardDescColor }}
+                            className={`${isCompact3 ? 'hidden sm:inline' : 'text-[10px]'} sm:text-xs font-semibold`}
+                          >
                             Cotización personalizada
                           </span>
                         </div>
@@ -638,12 +771,21 @@ export default function TiendaPage() {
                         </button>
                       </div>
                     ) : (
-                      <div className="pt-1.5 sm:pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between mt-auto gap-1.5 sm:gap-2">
+                      <div
+                        style={{ borderColor: currentTheme.cardFooterBorder }}
+                        className="pt-1.5 sm:pt-3 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between mt-auto gap-1.5 sm:gap-2"
+                      >
                         <div>
-                          <span className={`${isCompact3 ? 'hidden sm:block' : 'text-[9px]'} sm:text-[10px] text-gray-400 block font-medium`}>
+                          <span
+                            style={{ color: currentTheme.cardPriceSubColor }}
+                            className={`${isCompact3 ? 'hidden sm:block' : 'text-[9px]'} sm:text-[10px] block font-medium`}
+                          >
                             {isServiceItem ? 'Costo desde' : 'Precio final'}
                           </span>
-                          <span className={`font-black ${isCompact3 ? 'text-[11px]' : 'text-sm'} sm:text-lg text-[#1e3a5f] block leading-tight`}>
+                          <span
+                            style={{ color: currentTheme.cardPriceColor }}
+                            className={`font-black ${isCompact3 ? 'text-[11px]' : 'text-sm'} sm:text-lg block leading-tight drop-shadow-xs`}
+                          >
                             {formatCurrency(product.sale_price)}
                           </span>
                         </div>
@@ -651,9 +793,13 @@ export default function TiendaPage() {
                         <button
                           onClick={() => handleActionClick(product)}
                           disabled={!isAvailable && !isServiceItem}
+                          style={{
+                            background: currentTheme.buttonGradient,
+                            boxShadow: `0 4px 14px ${currentTheme.glowShadow}`,
+                          }}
                           className={`w-full sm:w-auto justify-center ${
                             isCompact3 ? 'px-1.5 py-1 text-[9px]' : 'px-2.5 py-1.5 text-[11px]'
-                          } sm:px-3.5 sm:py-2 bg-[#2563eb] hover:bg-[#1d4ed8] active:scale-95 text-white font-bold rounded-lg sm:rounded-xl sm:text-xs transition shadow-sm disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 cursor-pointer`}
+                          } sm:px-3.5 sm:py-2 active:scale-95 text-white font-bold rounded-lg sm:rounded-xl sm:text-xs transition shadow-sm disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 cursor-pointer`}
                         >
                           <ShoppingBag size={11} className="sm:w-[14px] sm:h-[14px] shrink-0" />
                           {hasActiveVariants ? 'Elegir' : isServiceItem ? 'Solicitar' : 'Comprar'}
