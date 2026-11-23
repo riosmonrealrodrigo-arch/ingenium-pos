@@ -7,12 +7,13 @@ import { useProducts } from '@/context/ProductContext';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import Header from '@/components/layout/Header';
-import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package, Globe, Trash2, Smartphone, Zap, Wrench, RefreshCw, ArrowUpDown, Megaphone } from 'lucide-react';
+import { Search, Plus, Edit2, ToggleLeft, ToggleRight, Package, Globe, Trash2, Smartphone, Zap, Wrench, RefreshCw, ArrowUpDown, Megaphone, Palette } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Product } from '@/types';
 import { isRepuesto, isAccesorio, isServicio } from '@/lib/categories';
 import CatalogOrderModal from '@/components/store/CatalogOrderModal';
 import StoreAdsManagerModal from '@/components/store/StoreAdsManagerModal';
+import StoreThemeModal from '@/components/store/StoreThemeModal';
 
 export default function ProductosPage() {
   const { profile, business, loading } = useAuth();
@@ -24,6 +25,7 @@ export default function ProductosPage() {
   const [syncing, setSyncing] = useState(false);
   const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [adsModalOpen, setAdsModalOpen] = useState(false);
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -90,6 +92,16 @@ export default function ProductosPage() {
                   <span>{purging ? 'Limpiando...' : 'Vaciar Catálogo Demo'}</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => setThemeModalOpen(true)}
+                title="Cambiar temática visual de la tienda web"
+                className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-bold border border-purple-200 transition flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
+              >
+                <Palette size={13} />
+                <span>Temas Web</span>
+              </button>
 
               <button
                 type="button"
@@ -315,6 +327,10 @@ export default function ProductosPage() {
       </div>
 
       {/* Modales de Personalización de Tienda Web */}
+      <StoreThemeModal
+        isOpen={themeModalOpen}
+        onClose={() => setThemeModalOpen(false)}
+      />
       <CatalogOrderModal
         isOpen={orderModalOpen}
         onClose={() => setOrderModalOpen(false)}

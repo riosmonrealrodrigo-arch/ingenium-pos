@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useProducts } from '@/context/ProductContext';
 import { useStoreTheme } from '@/context/StoreThemeContext';
 import { useAuth } from '@/context/AuthContext';
-import StoreThemeModal from '@/components/store/StoreThemeModal';
 import Footer from '@/components/layout/Footer';
 import { Product, StorefrontCustomer } from '@/types';
 import { formatCurrency, extractProductMetadata } from '@/lib/utils';
@@ -16,8 +15,6 @@ import AnimatedIntroLoader from '@/components/store/AnimatedIntroLoader';
 import SeasonalAmbiance from '@/components/store/SeasonalAmbiance';
 import { SoundToggleButton } from '@/components/store/StoreSoundEffects';
 import StoreAdsCarousel from '@/components/store/StoreAdsCarousel';
-import StoreAdsManagerModal from '@/components/store/StoreAdsManagerModal';
-import CatalogOrderModal from '@/components/store/CatalogOrderModal';
 import { StoreAdBanner, getStoreAds } from '@/lib/storeAds';
 import { getCatalogOrder, applyCatalogOrder } from '@/lib/storeCatalogOrder';
 import { supabase } from '@/lib/supabase';
@@ -36,15 +33,11 @@ import {
   ExternalLink,
   ChevronRight,
   PackageCheck,
-  Palette,
-  Settings,
   Package,
   MessageSquare,
   Image as ImageIcon,
   Layers,
   Tag,
-  ArrowUpDown,
-  Megaphone,
 } from 'lucide-react';
 
 export default function TiendaPage() {
@@ -52,9 +45,6 @@ export default function TiendaPage() {
   const { products, loadProducts } = useProducts();
   const { currentTheme, themeId } = useStoreTheme();
   const { profile } = useAuth();
-  const [themeModalOpen, setThemeModalOpen] = useState(false);
-  const [adsModalOpen, setAdsModalOpen] = useState(false);
-  const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [ads, setAds] = useState<StoreAdBanner[]>([]);
   const [catalogOrder, setCatalogOrder] = useState<string[]>([]);
   const [search, setSearch] = useState('');
@@ -260,40 +250,9 @@ export default function TiendaPage() {
           <span className="hidden sm:inline text-white/40">|</span>
           <span className="hidden sm:inline text-white/80">Envíos a todo el país y retiro en sucursal</span>
         </div>
-        <div className="flex items-center gap-2 text-white/70 text-[10px]">
+        <div className="flex items-center gap-2.5 text-white/70 text-[10px]">
           <SoundToggleButton />
           <span className="hidden sm:inline">Moneda Oficial: <strong className="text-amber-400">$ MXN</strong></span>
-          {profile?.role === 'admin' && (
-            <div className="flex items-center gap-1 sm:gap-1.5 ml-1.5 sm:ml-2 border-l border-white/20 pl-1.5 sm:pl-2">
-              <button
-                type="button"
-                onClick={() => setOrderModalOpen(true)}
-                title="Acomodar orden de productos en la tienda web"
-                className="px-2 py-0.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition"
-              >
-                <ArrowUpDown size={11} />
-                <span className="hidden md:inline">Acomodar Tienda</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setAdsModalOpen(true)}
-                title="Gestionar anuncios y banners promocionales"
-                className="px-2 py-0.5 rounded-full bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold text-[10px] flex items-center gap-1 cursor-pointer transition shadow-xs"
-              >
-                <Megaphone size={11} />
-                <span className="hidden md:inline">Anuncios</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setThemeModalOpen(true)}
-                title="Cambiar tema de la tienda"
-                className="px-2 py-0.5 rounded-full bg-purple-500 hover:bg-purple-400 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition shadow-xs"
-              >
-                <Palette size={11} />
-                <span className="hidden md:inline">Temas</span>
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -832,32 +791,6 @@ export default function TiendaPage() {
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
-      />
-
-      {/* Store Theme Modal (Permite cambiar el tema directamente desde la tienda web) */}
-      <StoreThemeModal
-        isOpen={themeModalOpen}
-        onClose={() => setThemeModalOpen(false)}
-      />
-
-      {/* Store Ads Manager Modal (Admin) */}
-      <StoreAdsManagerModal
-        isOpen={adsModalOpen}
-        onClose={() => setAdsModalOpen(false)}
-        onAdsUpdated={async () => {
-          const updated = await getStoreAds();
-          setAds(updated);
-        }}
-      />
-
-      {/* Catalog Order Reorganizer Modal (Admin) */}
-      <CatalogOrderModal
-        isOpen={orderModalOpen}
-        onClose={() => setOrderModalOpen(false)}
-        onOrderSaved={async () => {
-          const updated = await getCatalogOrder();
-          setCatalogOrder(updated);
-        }}
       />
 
       {/* Footer Institucional & Legal (PROFECO & INAI) */}

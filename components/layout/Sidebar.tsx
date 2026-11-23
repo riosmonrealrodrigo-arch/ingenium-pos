@@ -6,12 +6,15 @@ import { supabase } from '@/lib/supabase';
 import {
   LayoutDashboard, ShoppingCart, Package, Warehouse,
   ClipboardList, Users, BarChart2, Settings, LogOut, Store,
-  MessageSquare, Globe, Wrench, Sparkles, Palette, Check, X
+  MessageSquare, Globe, Wrench, Sparkles, Palette, Check, X,
+  Megaphone, ArrowUpDown
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStoreTheme, STORE_THEMES } from '@/context/StoreThemeContext';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import StoreThemeModal from '@/components/store/StoreThemeModal';
+import StoreAdsManagerModal from '@/components/store/StoreAdsManagerModal';
+import CatalogOrderModal from '@/components/store/CatalogOrderModal';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -32,6 +35,8 @@ export default function Sidebar() {
   const { themeId } = useStoreTheme();
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
+  const [adsModalOpen, setAdsModalOpen] = useState(false);
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -99,8 +104,10 @@ export default function Sidebar() {
             );
           })}
 
-          {/* Botón Selector de Temática Web */}
-          <div className="pt-1.5">
+          {/* Sección Gestión de Tienda Web */}
+          <div className="pt-2 mt-1.5 border-t border-white/10 space-y-1">
+            <p className="px-2 text-[9px] font-black uppercase tracking-wider text-amber-300/80">Gestión Tienda Web</p>
+
             <button
               onClick={() => setThemeModalOpen(true)}
               className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[10.5px] font-semibold text-purple-200 hover:text-white hover:bg-purple-500/20 border border-purple-400/30 transition cursor-pointer"
@@ -111,10 +118,42 @@ export default function Sidebar() {
               </div>
               <span className="text-[10px]">{STORE_THEMES[themeId]?.emoji || '🎨'}</span>
             </button>
+
+            <button
+              onClick={() => setAdsModalOpen(true)}
+              className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[10.5px] font-semibold text-amber-200 hover:text-white hover:bg-amber-500/20 border border-amber-400/30 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-1.5 truncate">
+                <Megaphone size={13} className="text-amber-300 shrink-0" />
+                <span className="truncate">Anuncios Web</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setOrderModalOpen(true)}
+              className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[10.5px] font-semibold text-sky-200 hover:text-white hover:bg-sky-500/20 border border-sky-400/30 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-1.5 truncate">
+                <ArrowUpDown size={13} className="text-sky-300 shrink-0" />
+                <span className="truncate">Acomodar Tienda</span>
+              </div>
+            </button>
+
+            <Link
+              href="/tienda"
+              target="_blank"
+              className="flex items-center justify-between px-2 py-1.5 rounded-lg text-[10.5px] font-bold text-emerald-300 hover:text-white hover:bg-emerald-500/20 border border-emerald-400/30 transition-all mt-1"
+            >
+              <div className="flex items-center gap-1.5 truncate">
+                <Globe size={13} className="shrink-0" />
+                <span className="truncate">Ver Tienda</span>
+              </div>
+              <span className="text-[8.5px] bg-emerald-400/20 text-emerald-300 px-1.5 py-0.5 rounded font-black">En vivo</span>
+            </Link>
           </div>
 
           {/* Botón Guía de Inicio */}
-          <div className="pt-0.5">
+          <div className="pt-1 mt-1 border-t border-white/10">
             <button
               onClick={() => setWelcomeOpen(true)}
               className="w-full flex items-center justify-between px-2 py-1 rounded-lg text-[10px] font-semibold text-blue-200 hover:text-white hover:bg-white/10 transition cursor-pointer"
@@ -125,21 +164,6 @@ export default function Sidebar() {
               </div>
               <span className="text-[8px] bg-blue-500/30 text-blue-200 px-1 py-0.5 rounded">F1-F4</span>
             </button>
-          </div>
-
-          {/* Enlace directo a la Tienda Web Pública */}
-          <div className="pt-1.5 mt-1.5 border-t border-white/10">
-            <Link
-              href="/tienda"
-              target="_blank"
-              className="flex items-center justify-between px-2 py-1.5 rounded-lg text-[10.5px] font-bold text-amber-300 hover:text-white hover:bg-amber-400/10 border border-amber-400/30 transition-all"
-            >
-              <div className="flex items-center gap-1.5 truncate">
-                <Globe size={13} className="shrink-0" />
-                <span className="truncate">Tienda Web</span>
-              </div>
-              <span className="text-[8.5px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded">En vivo</span>
-            </Link>
           </div>
         </nav>
 
@@ -152,10 +176,18 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* Modal Selector de Temáticas Web */}
+      {/* Modales de Gestión de la Tienda Web */}
       <StoreThemeModal
         isOpen={themeModalOpen}
         onClose={() => setThemeModalOpen(false)}
+      />
+      <StoreAdsManagerModal
+        isOpen={adsModalOpen}
+        onClose={() => setAdsModalOpen(false)}
+      />
+      <CatalogOrderModal
+        isOpen={orderModalOpen}
+        onClose={() => setOrderModalOpen(false)}
       />
 
       {/* Welcome Screen Modal */}
