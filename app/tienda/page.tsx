@@ -101,6 +101,13 @@ export default function TiendaPage() {
       )
       .subscribe();
 
+    const onAdsUpdated = () => loadStoreConfig();
+    const onOrderUpdated = () => loadStoreConfig();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('ingenium_store_ads_updated', onAdsUpdated);
+      window.addEventListener('ingenium_catalog_order_updated', onOrderUpdated);
+    }
+
     if (typeof window !== 'undefined') {
       const savedCust = localStorage.getItem('ingenium_store_customer');
       if (savedCust) {
@@ -122,6 +129,10 @@ export default function TiendaPage() {
 
     return () => {
       supabase.removeChannel(channel);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('ingenium_store_ads_updated', onAdsUpdated);
+        window.removeEventListener('ingenium_catalog_order_updated', onOrderUpdated);
+      }
     };
   }, [loadProducts]);
 

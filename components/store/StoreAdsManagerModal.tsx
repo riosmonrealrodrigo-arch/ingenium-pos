@@ -17,8 +17,16 @@ import {
   EyeOff,
   Sparkles,
   Loader2,
+  Power,
+  RotateCcw,
 } from 'lucide-react';
-import { StoreAdBanner, getStoreAds, saveStoreAds, DEFAULT_ADS } from '@/lib/storeAds';
+import {
+  StoreAdBanner,
+  StoreAdsConfig,
+  getStoreAdsConfig,
+  saveStoreAdsConfig,
+  DEFAULT_ADS,
+} from '@/lib/storeAds';
 import { compressImage } from '@/lib/utils';
 
 interface StoreAdsManagerModalProps {
@@ -41,6 +49,7 @@ export default function StoreAdsManagerModal({
   onAdsUpdated,
 }: StoreAdsManagerModalProps) {
   const [ads, setAds] = useState<StoreAdBanner[]>([]);
+  const [globalEnabled, setGlobalEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
@@ -53,8 +62,9 @@ export default function StoreAdsManagerModal({
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
-      getStoreAds().then(data => {
-        setAds(data);
+      getStoreAdsConfig().then(config => {
+        setGlobalEnabled(config.global_enabled);
+        setAds(config.ads);
         setLoading(false);
       });
     }
@@ -66,6 +76,34 @@ export default function StoreAdsManagerModal({
     setAds(prev =>
       prev.map(ad => (ad.id === id ? { ...ad, active: !ad.active } : ad))
     );
+  };
+
+  const handleToggleGlobal = async () => {
+    const nextState = !globalEnabled;
+    setGlobalEnabled(nextState);
+    setSaving(true);
+    await saveStoreAdsConfig({
+      global_enabled: nextState,
+      ads,
+    });
+    setSaving(false);
+    setSuccess(
+      nextState
+        ? '¡Anuncios ACTIVADOS en la tienda web!'
+        : '¡Todos los anuncios han sido COMPLETAMENTE DESACTIVADOS en la tienda web!'
+    );
+    if (onAdsUpdated) onAdsUpdated();
+    setTimeout(() => setSuccess(''), 3500);
+  };
+
+  const handleDeactivateAllAds = () => {
+    const updated = ads.map(a => ({ ...a, active: false }));
+    setAds(updated);
+  };
+
+  const handleActivateAllAds = () => {
+    const updated = ads.map(a => ({ ...a, active: true }));
+    setAds(updated);
   };
 
   const handleMove = (index: number, delta: -1 | 1) => {
@@ -82,13 +120,16 @@ export default function StoreAdsManagerModal({
     }
   };
 
-  const handleSaveAll = async (listToSave = ads) => {
+  const handleSaveAll = async (listToSave = ads, isGlobalEnabled = globalEnabled) => {
     setSaving(true);
-    await saveStoreAds(listToSave);
+    await saveStoreAdsConfig({
+      global_enabled: isGlobalEnabled,
+      ads: listToSave,
+    });
     setSaving(false);
-    setSuccess('¡Anuncios promocionales guardados y sincronizados con la tienda web!');
+    setSuccess('¡Anuncios guardados y sincronizados con todos los dispositivos!');
     if (onAdsUpdated) onAdsUpdated();
-    setTimeout(() => setSuccess(''), 3000);
+    setTimeout(() => setSuccess(''), 3500);
   };
 
   const handleCreateNew = () => {
@@ -176,6 +217,61 @@ export default function StoreAdsManagerModal({
             <Check size={16} /> {success}
           </div>
         )}
+
+        {/* INTERRUPTOR MAESTRO: Activar o Desactivar Anuncios Completamente en la Tienda Web */}
+        <div className={`mt-3 p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 ${
+          globalEnabled 
+            ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-emerald-200 text-emerald-950' 
+            : 'bg-gradient-to-r from-red-50 via-rose-50 to-red-50 border-red-200 text-red-950'
+        }`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+              globalEnabled ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+            }`}>
+              {globalEnabled ? <Eye size={20} /> : <EyeOff size={20} />}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-black text-xs sm:text-sm leading-tight">
+                  {globalEnabled ? 'Anuncios ACTIVADOS en Tienda Web' : 'Anuncios COMPLETAMENTE DESACTIVADOS'}
+                </span>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                  globalEnabled ? 'bg-emerald-200/90 text-emerald-900' : 'bg-red-200/90 text-red-900'
+                }`}>
+                  {globalEnabled ? 'Activo en Tienda' : 'Apagado Total'}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-600 mt-0.5 leading-snug">
+                {globalEnabled 
+                  ? 'Los clientes verán los anuncios activos en el carrusel de la tienda web.' 
+                  : 'Ningún anuncio se mostrará a los clientes, sin importar cuántos tengas creados.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleToggleGlobal}
+            disabled={saving}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 shadow-sm flex items-center justify-center gap-1.5 active:scale-95 whitespace-nowrap ${
+              globalEnabled
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            }`}
+          >
+            {globalEnabled ? (
+              <>
+                <EyeOff size={14} />
+                <span>Desactivar Todos los Anuncios</span>
+              </>
+            ) : (
+              <>
+                <Eye size={14} />
+                <span>Activar Anuncios en Tienda</span>
+              </>
+            )}
+          </button>
+        </div>
 
         {/* Modal Body */}
         <div className="overflow-y-auto p-1 flex-1 mt-3 space-y-4">
@@ -386,15 +482,36 @@ export default function StoreAdsManagerModal({
           ) : (
             /* Vista de Lista de Anuncios Existentes */
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-500">
-                  {ads.length} {ads.length === 1 ? 'anuncio configurado' : 'anuncios configurados'} (
-                  {ads.filter(a => a.active).length} activos en tienda)
-                </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-gray-500">
+                    {ads.length} {ads.length === 1 ? 'anuncio' : 'anuncios'} ({ads.filter(a => a.active).length} activos)
+                  </span>
+                  {ads.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={handleDeactivateAllAds}
+                        className="text-red-600 hover:text-red-700 font-bold px-2 py-0.5 bg-red-50 hover:bg-red-100 rounded-md cursor-pointer transition"
+                        title="Poner todos los anuncios individuales en pausa"
+                      >
+                        Pausar todos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleActivateAllAds}
+                        className="text-emerald-700 hover:text-emerald-800 font-bold px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 rounded-md cursor-pointer transition"
+                        title="Activar todos los anuncios individuales"
+                      >
+                        Activar todos
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={handleCreateNew}
-                  className="px-3 py-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="px-3 py-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <Plus size={14} /> + Crear Nuevo Anuncio
                 </button>
