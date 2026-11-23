@@ -13,6 +13,7 @@ import {
   Package,
   Layers,
   Sparkles,
+  ArrowDownToLine,
 } from 'lucide-react';
 import { useProducts } from '@/context/ProductContext';
 import { Product } from '@/types';
@@ -175,6 +176,16 @@ export default function CatalogOrderModal({
           </div>
         </div>
 
+        {/* Tip de orden rápido */}
+        <div className="mt-2.5 px-3 py-1.5 bg-blue-50/80 border border-blue-100 rounded-xl flex items-center justify-between gap-2 text-[11px] text-blue-900 shrink-0">
+          <span className="flex items-center gap-1.5">
+            <Sparkles size={12} className="text-[#2563eb] shrink-0" />
+            <span>
+              <strong>Organización Rápida:</strong> Escribe el número en la casilla <strong>Posición</strong> (ej. 1, 3, 10) y presiona Enter, o usa <strong>Primero</strong> y <strong>Al Final</strong> para acomodar de inmediato.
+            </span>
+          </span>
+        </div>
+
         {/* Product Items List */}
         <div className="overflow-y-auto p-1 flex-1 mt-3 space-y-2">
           {filteredList.length === 0 ? (
@@ -197,14 +208,37 @@ export default function CatalogOrderModal({
                   key={product.id}
                   className="p-3 bg-white rounded-2xl border border-gray-200/80 shadow-2xs hover:border-blue-300 transition-all flex items-center justify-between gap-3 group"
                 >
-                  {/* Posición Numérica */}
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563eb] font-black text-xs flex items-center justify-center border border-blue-200 shadow-2xs">
-                      #{position}
-                    </span>
+                  {/* Posición Numérica Editable */}
+                  <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                    <div className="flex flex-col items-center" title="Escribe el número de orden y presiona Enter">
+                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Posición</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={orderedProducts.length}
+                        defaultValue={position}
+                        key={`pos-${product.id}-${position}`}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            const val = parseInt((e.target as HTMLInputElement).value, 10);
+                            if (!isNaN(val) && val !== position) {
+                              handleSetPosition(realIndex, val);
+                            }
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
+                        onBlur={e => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val) && val !== position) {
+                            handleSetPosition(realIndex, val);
+                          }
+                        }}
+                        className="w-12 h-8 rounded-xl bg-blue-50 hover:bg-blue-100/70 focus:bg-white text-[#2563eb] font-black text-xs text-center border border-blue-200 shadow-2xs focus:ring-2 focus:ring-[#2563eb] outline-none transition cursor-text"
+                      />
+                    </div>
 
                     {/* Foto */}
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden border border-gray-200 shrink-0">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gray-100 overflow-hidden border border-gray-200 shrink-0">
                       <img
                         src={
                           product.image_url ||
@@ -247,7 +281,7 @@ export default function CatalogOrderModal({
                   </div>
 
                   {/* Acciones de Orden */}
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                     {/* Botón Mover al Frente (Top 1) */}
                     <button
                       type="button"
@@ -257,7 +291,19 @@ export default function CatalogOrderModal({
                       title="Poner en la posición #1 al frente de la tienda"
                     >
                       <Star size={12} className="fill-amber-400 text-amber-500" />
-                      <span className="hidden sm:inline">Poner Primero</span>
+                      <span className="hidden sm:inline">Primero</span>
+                    </button>
+
+                    {/* Botón Poner al Final */}
+                    <button
+                      type="button"
+                      onClick={() => handleMoveToBottom(realIndex)}
+                      disabled={realIndex === orderedProducts.length - 1}
+                      className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[11px] font-bold border border-slate-200 transition disabled:opacity-20 flex items-center gap-1 cursor-pointer"
+                      title="Enviar este producto a la última posición de la tienda"
+                    >
+                      <ArrowDownToLine size={12} className="text-slate-600" />
+                      <span className="hidden sm:inline">Al Final</span>
                     </button>
 
                     {/* Botón Subir */}
